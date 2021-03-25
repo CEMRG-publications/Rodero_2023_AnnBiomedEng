@@ -220,3 +220,6 @@ def write_vtx(pathname, array):
     with open(pathname, 'w') as f:
         for item in str_to_write:
             f.write("%s\n" % item)
+
+def map_biv(heart):
+     
