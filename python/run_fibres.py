@@ -4,22 +4,20 @@
 
 To run the experiment:
 
-case_number=00; cd /home/crg17/Desktop/Seg3DProjects/healthy_CT_MRI/h_case$case_number/meshing/1000um/BiV/; mkdir -p fibres; cd ./fibres ; for fibre_exp in 'apba' 'epi' 'endoLV' 'endoRV'; do /home/crg17/Desktop/scripts/4chmodel/Python/run_fibers.py --experiment $fibre_exp --current_case $case_number --np 20; done; alert
+case_number=00; for fibre_exp in 'apba' 'epi' 'endoLV' 'endoRV'; do /home/crg17/Desktop/scripts/4chmodel/Python/run_fibers.py --experiment $fibre_exp --current_case $case_number --np 20; done; alert
 """
 
 import os
-from datetime import date
-from glob import glob
-
-from carputils import settings
+import carputils
+#from carputils import settings
 from carputils import tools
-from carputils import ep
-from carputils import model
-from carputils.mesh import Ring, linear_fibre_rule
-from carputils.resources import petsc_block_options
+#from carputils import ep
+#from carputils import model
+#from carputils.mesh import Ring, linear_fibre_rule
+#from carputils.resources import petsc_block_options
 
 def parser():
-    parser = tools.standard_parser()
+    parser = carputils.tools.standard_parser()
     parser.add_argument('--experiment',
                         default='epi',
                         choices=['apba','epi','endoLV','endoRV'],
@@ -34,19 +32,25 @@ def jobID(args):
     Generate name of top level output directory.
     """
     subtest = args.experiment
+    meshdir  = "/data/fitting/Full_Heart_Mesh_" + args.current_case + "/biv"
+    simdir = os.path.join(meshdir,"fibres")
 
-    return '{}'.format(subtest)
+    if not os.path.exists(simdir):
+      os.makedirs(simdir)
+
+    return  os.path.join(simdir,subtest)
 
 @tools.carpexample(parser, jobID)
 def run(args, job):
 
+    meshdir  = "/data/fitting/Full_Heart_Mesh_" + args.current_case + "/biv"
+
     # Add all the non-general arguments
-    cmd  = tools.carp_cmd()
+    cmd  = carputils.tools.carp_cmd()
     cmd += ['-simID', job.ID]
 
     # Generate mesh
-    meshdir  = "/data/fitting/Full_Heart_Mesh_" + args.current_case
-    meshname = '{}/Full_Heart_Mesh_{}'.format(meshdir,args.current_case)
+    meshname = '{}/biv'.format(meshdir)
 
     cmd += ['-meshname', meshname]
 
@@ -91,16 +95,16 @@ def setupStimuli(experiment,meshdir):
 
     if experiment=='apba':
       filename_ground = 'LV_apex_epi'
-      filename_pot = 'base.surf'
+      filename_pot = 'MVTV_base.surf'
     elif experiment=='epi':
-      filename_ground = 'BiV.endo.surf'
-      filename_pot = 'BiV.epi.surf'
+      filename_ground = 'biv_endo.surf'
+      filename_pot = 'biv_epi.surf'
     elif experiment=='endoLV':
-      filename_ground = 'BiV.nolvendo.surf'
-      filename_pot = 'BiV.lvendo.surf'
+      filename_ground = 'biv_noLVendo.surf'
+      filename_pot = 'LV_endo.surf'
     elif experiment=='endoRV':
-      filename_ground = 'BiV.norvendo.surf'
-      filename_pot = 'BiV.rvendo.surf'
+      filename_ground = 'biv_noRVendo.surf'
+      filename_pot = 'RV_endo.surf'
     else:
       raise Exception('Unsupported experiment type')
 

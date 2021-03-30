@@ -1,11 +1,12 @@
 import wget
 import os
 import zipfile
-from os import listdir
-from os.path import isfile, join, isdir, getsize
-from shutil import copy
+import shutil
 import glob
 import numpy as np
+import pathlib
+
+import files_manipulations
 
 
 def download_zip(bundle_number):
@@ -35,62 +36,62 @@ def unzip_meshes(bundle_number):
         zip_ref.extractall(pathmeshes + "/..")
     print("Files unzipped.")
     
-    files_in_dir = [f for f in listdir(pathmeshes) if isfile(join(pathmeshes, f))]
+    files_in_dir = [f for f in os.listdir(pathmeshes) if os.path.isfile(os.path.join(pathmeshes, f))]
 
     for filename in files_in_dir:
         if filename.split(".")[-1] != "csv":
-            if not isdir(join(pathmeshes, "..", filename.split(".")[0])):
-                os.mkdir(join(pathmeshes, "..", filename.split(".")[0]))
-            os.rename(join(pathmeshes,filename),join(pathmeshes,"..",filename.split(".")[0],filename))
+            if not os.path.isdir(os.path.join(pathmeshes, "..", filename.split(".")[0])):
+                os.mkdir(os.path.join(pathmeshes, "..", filename.split(".")[0]))
+            os.rename(os.path.join(pathmeshes,filename),os.path.join(pathmeshes,"..",filename.split(".")[0],filename))
         else:
-            if not isdir(join(pathmeshes, "../Cases_weights")):
-                os.mkdir(join(pathmeshes, "../Cases_weights"))
-            os.rename(join(pathmeshes,filename),join(pathmeshes,"../Cases_weights",filename))
+            if not os.path.isdir(os.path.join(pathmeshes, "../Cases_weights")):
+                os.mkdir(os.path.join(pathmeshes, "../Cases_weights"))
+            os.rename(os.path.join(pathmeshes,filename),os.path.join(pathmeshes,"../Cases_weights",filename))
 
     os.rmdir(pathmeshes)
 
 def vtk_mm2carp_um(heart):
 
     mesh_name = "Full_Heart_Mesh_" + str(heart)
-    mesh_dir = join("/data","fitting",mesh_name)
+    mesh_dir = os.path.join("/data","fitting",mesh_name)
 
-    os.system("meshtool convert -imsh=" + join(mesh_dir,mesh_name) + \
-                              " -omsh=" + join(mesh_dir,mesh_name) + \
+    os.system("meshtool convert -imsh=" + os.path.join(mesh_dir,mesh_name) + \
+                              " -omsh=" + os.path.join(mesh_dir,mesh_name) + \
                               " -ifmt=vtk" + \
                               " -ofmt=carp_txt")
 
-    os.rename(join(mesh_dir, mesh_name) + ".pts", join(mesh_dir, mesh_name) + "_mm.pts")
+    os.rename(os.path.join(mesh_dir, mesh_name) + ".pts", os.path.join(mesh_dir, mesh_name) + "_mm.pts")
 
-    os.system(join("/home","common","cm2carp","bin","return_carp2original_coord.pl ") + \
-              join(mesh_dir,mesh_name) + "_mm.pts 1000 0 0 0 > " + join(mesh_dir,mesh_name) + "_um.pts")
+    os.system(os.path.join("/home","common","cm2carp","bin","return_carp2original_coord.pl ") + \
+              os.path.join(mesh_dir,mesh_name) + "_mm.pts 1000 0 0 0 > " + os.path.join(mesh_dir,mesh_name) + "_um.pts")
 
-    copy(join(mesh_dir,mesh_name) + "_um.pts", join(mesh_dir,mesh_name) + ".pts")
+    shutil.copy(os.path.join(mesh_dir,mesh_name) + "_um.pts", os.path.join(mesh_dir,mesh_name) + ".pts")
 
 def extract_bdry_bayer(heart):
 
     mesh_name = "Full_Heart_Mesh_" + str(heart)
-    mesh_dir = join("/data","fitting",mesh_name)
+    mesh_dir = os.path.join("/data","fitting",mesh_name)
 
-    ####### Epi and endo
+    ########## biv_epi, LV_endo and RV_endo
 
-    os.system("meshtool extract surface -msh=" + join(mesh_dir,mesh_name) + \
-                            " -surf=" + join(mesh_dir,"biv_epi_endo") + \
+    os.system("meshtool extract surface -msh=" + os.path.join(mesh_dir,mesh_name) + \
+                            " -surf=" + os.path.join(mesh_dir,"biv_epi_endo") + \
                             " -op=1,2-7,8,9,10" + \
                             " -ifmt=carp_txt" + \
                             " -ofmt=vtk_bin")
 
-    os.system("meshtool extract unreachable -msh=" + join(mesh_dir,"biv_epi_endo.surfmesh") + \
-                            " -submsh=" + join(mesh_dir,"biv_epi_endo") + \
+    os.system("meshtool extract unreachable -msh=" + os.path.join(mesh_dir,"biv_epi_endo.surfmesh") + \
+                            " -submsh=" + os.path.join(mesh_dir,"biv_epi_endo") + \
                             " -op=1,2-7,8,9,10" + \
                             " -ifmt=vtk_bin" + \
                             " -ofmt=carp_txt")
 
-    epi_or_endo_files = glob.glob(join(mesh_dir,"*part*elem"))
+    epi_or_endo_files = glob.glob(os.path.join(mesh_dir,"*part*elem"))
 
     # We want only the three biggest files. The biggest will be the epi, and 
     # depending on the tags, the others will be the LV or the RV.
 
-    size_files = [getsize(f) for f in epi_or_endo_files]
+    size_files = [os.path.getsize(f) for f in epi_or_endo_files]
 
     while(len(size_files) > 3):
         idx_min = size_files.index(min(size_files))
@@ -99,15 +100,15 @@ def extract_bdry_bayer(heart):
 
     idx_max = size_files.index(max(size_files))
 
-    copy(epi_or_endo_files[idx_max], join(mesh_dir, "biv_epi.surf"))
+    shutil.copy(epi_or_endo_files[idx_max], os.path.join(mesh_dir, "biv_epi.surf"))
 
     name = epi_or_endo_files[idx_max]
     name_no_ext = name.split(".elem")[0]
     file_name = name_no_ext.split("/")[-1]
 
-    os.rename(name, join(mesh_dir, "biv_epi.elem"))
-    os.rename(name_no_ext + ".lon", join(mesh_dir, "biv_epi.lon"))
-    os.rename(name_no_ext + ".pts", join(mesh_dir, "biv_epi.pts"))
+    os.rename(name, os.path.join(mesh_dir, "biv_epi.elem"))
+    os.rename(name_no_ext + ".lon", os.path.join(mesh_dir, "biv_epi.lon"))
+    os.rename(name_no_ext + ".pts", os.path.join(mesh_dir, "biv_epi.pts"))
 
     epi_or_endo_files.pop(idx_max)
     size_files.pop(idx_max)
@@ -118,16 +119,16 @@ def extract_bdry_bayer(heart):
         file_name = name_no_ext.split("/")[-1]
 
         os.system("meshtool extract tags -msh=" + name_no_ext + \
-                            " -odat=" + join(mesh_dir,file_name) + ".tags" + \
+                            " -odat=" + os.path.join(mesh_dir,file_name) + ".tags" + \
                             " -ifmt=carp_txt")
-        tag_file = np.loadtxt(join(mesh_dir,file_name) + ".tags")
+        tag_file = np.loadtxt(os.path.join(mesh_dir,file_name) + ".tags")
 
         if(int(sum(tag_file)) != len(tag_file)):
-            copy(name, join(mesh_dir, "RV_endo.surf"))
+            shutil.copy(name, os.path.join(mesh_dir, "RV_endo.surf"))
 
-            os.rename(name, join(mesh_dir, "RV_endo.elem"))
-            os.rename(name_no_ext + ".lon", join(mesh_dir, "RV_endo.lon"))
-            os.rename(name_no_ext + ".pts", join(mesh_dir, "RV_endo.pts"))
+            os.rename(name, os.path.join(mesh_dir, "RV_endo.elem"))
+            os.rename(name_no_ext + ".lon", os.path.join(mesh_dir, "RV_endo.lon"))
+            os.rename(name_no_ext + ".pts", os.path.join(mesh_dir, "RV_endo.pts"))
 
             epi_or_endo_files.pop(i)
             size_files.pop(i)
@@ -135,31 +136,31 @@ def extract_bdry_bayer(heart):
 
     idx_max = size_files.index(max(size_files))
 
-    copy(epi_or_endo_files[idx_max], join(mesh_dir, "LV_endo.surf"))
+    shutil.copy(epi_or_endo_files[idx_max], os.path.join(mesh_dir, "LV_endo.surf"))
 
     name = epi_or_endo_files[idx_max]
     name_no_ext = name.split(".elem")[0]
     file_name = name_no_ext.split("/")[-1]
 
-    os.rename(name, join(mesh_dir, "LV_endo.elem"))
-    os.rename(name_no_ext + ".lon", join(mesh_dir, "LV_endo.lon"))
-    os.rename(name_no_ext + ".pts", join(mesh_dir, "LV_endo.pts"))
+    os.rename(name, os.path.join(mesh_dir, "LV_endo.elem"))
+    os.rename(name_no_ext + ".lon", os.path.join(mesh_dir, "LV_endo.lon"))
+    os.rename(name_no_ext + ".pts", os.path.join(mesh_dir, "LV_endo.pts"))
 
-    ####### Base and apex
+    ########## MVTV_base and LV_apex_epi
 
-    os.system("meshtool extract surface -msh=" + join(mesh_dir,mesh_name) + \
-                        " -surf=" + join(mesh_dir,"base") + \
+    os.system("meshtool extract surface -msh=" + os.path.join(mesh_dir,mesh_name) + \
+                        " -surf=" + os.path.join(mesh_dir,"MVTV_base") + \
                         " -op=1,2:7,8" + \
                         " -ifmt=carp_txt" + \
                         " -ofmt=carp_txt")
 
-    os.system("meshtool extract surface -msh=" + join(mesh_dir,mesh_name) + \
-                        " -surf=" + join(mesh_dir,"MV") + \
+    os.system("meshtool extract surface -msh=" + os.path.join(mesh_dir,mesh_name) + \
+                        " -surf=" + os.path.join(mesh_dir,"MV") + \
                         " -op=7-1,3" + \
                         " -ifmt=carp_txt" + \
                         " -ofmt=carp_txt")
 
-    MV = np.loadtxt(join(mesh_dir,"MV.surfmesh.pts"), skiprows = 1)
+    MV = np.loadtxt(os.path.join(mesh_dir,"MV.surfmesh.pts"), skiprows = 1)
 
     num_pts =  MV.shape[0]
 
@@ -169,16 +170,16 @@ def extract_bdry_bayer(heart):
 
     centroid = np.array([sum_x/num_pts, sum_y/num_pts, sum_z/num_pts])
 
-    os.system("meshtool extract tags -msh=" + join(mesh_dir,"biv_epi") + \
-                    " -odat=" + join(mesh_dir,"biv_epi_tags.dat") + \
+    os.system("meshtool extract tags -msh=" + os.path.join(mesh_dir,"biv_epi") + \
+                    " -odat=" + os.path.join(mesh_dir,"biv_epi_tags.dat") + \
                     " -ifmt=carp_txt")
 
-    os.system("meshtool interpolate elem2node -omsh=" + join(mesh_dir,"biv_epi") + \
-                    " -idat=" + join(mesh_dir,"biv_epi_tags.dat") + \
-                    " -odat=" + join(mesh_dir,"biv_epi_tags_pts.dat"))
+    os.system("meshtool interpolate elem2node -omsh=" + os.path.join(mesh_dir,"biv_epi") + \
+                    " -idat=" + os.path.join(mesh_dir,"biv_epi_tags.dat") + \
+                    " -odat=" + os.path.join(mesh_dir,"biv_epi_tags_pts.dat"))
 
-    biv_tag_file = np.loadtxt(join(mesh_dir,"biv_epi_tags_pts.dat"))
-    biv_epi_pts = np.loadtxt(join(mesh_dir,"biv_epi.pts"), skiprows = 1)
+    biv_tag_file = np.loadtxt(os.path.join(mesh_dir,"biv_epi_tags_pts.dat"))
+    biv_epi_pts = np.loadtxt(os.path.join(mesh_dir,"biv_epi.pts"), skiprows = 1)
 
     dist_vec = np.zeros(len(biv_tag_file))
 
@@ -190,17 +191,17 @@ def extract_bdry_bayer(heart):
 
     apex_pts = np.copy(biv_epi_pts[idx_max,:])
 
-    heart_pts = np.loadtxt(join(mesh_dir,mesh_name) + ".pts", skiprows = 1)
+    heart_pts = np.loadtxt(os.path.join(mesh_dir,mesh_name) + ".pts", skiprows = 1)
 
-    os.system("meshtool extract tags -msh=" + join(mesh_dir,mesh_name) + \
-                " -odat=" + join(mesh_dir, mesh_name + "_tags.dat") + \
+    os.system("meshtool extract tags -msh=" + os.path.join(mesh_dir,mesh_name) + \
+                " -odat=" + os.path.join(mesh_dir, mesh_name + "_tags.dat") + \
                 " -ifmt=carp_txt")
 
-    os.system("meshtool interpolate elem2node -omsh=" + join(mesh_dir,mesh_name) + \
-                    " -idat=" + join(mesh_dir, mesh_name + "_tags.dat") + \
-                    " -odat=" + join(mesh_dir, mesh_name + "_tags_pts.dat"))
+    os.system("meshtool interpolate elem2node -omsh=" + os.path.join(mesh_dir,mesh_name) + \
+                    " -idat=" + os.path.join(mesh_dir, mesh_name + "_tags.dat") + \
+                    " -odat=" + os.path.join(mesh_dir, mesh_name + "_tags_pts.dat"))
 
-    heart_tag_file = np.loadtxt(join(mesh_dir, mesh_name + "_tags_pts.dat"))
+    heart_tag_file = np.loadtxt(os.path.join(mesh_dir, mesh_name + "_tags_pts.dat"))
 
     big_dist_vec = np.ones(len(heart_tag_file))
 
@@ -210,16 +211,102 @@ def extract_bdry_bayer(heart):
 
     apex_idx = np.where(big_dist_vec == min(big_dist_vec))
 
-    write_vtx(join(mesh_dir,"LV_apex_epi.vtx"),apex_idx[0])
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"LV_apex_epi.vtx"),apex_idx[0])
 
-def write_vtx(pathname, array):
+    ########## biv_endo
 
-    header = [len(array), "intra"]
-    str_to_write = np.append(header, array)
+    os.system("meshtool merge meshes -msh1=" + os.path.join(mesh_dir,"LV_endo") + \
+                                   " -msh2=" + os.path.join(mesh_dir,"RV_endo") + \
+                                   " -outmsh=" + os.path.join(mesh_dir,"biv_endo") + \
+                                   " -ifmt=carp_txt -ofmt=carp_txt"
+    )
 
-    with open(pathname, 'w') as f:
-        for item in str_to_write:
-            f.write("%s\n" % item)
+    shutil.copy(os.path.join(mesh_dir, "biv_endo.elem"), \
+                os.path.join(mesh_dir, "biv_endo.surf"))
+
+    ########## biv_noLVendo
+
+    os.system("meshtool merge meshes -msh1=" + os.path.join(mesh_dir,"biv_epi") + \
+                                   " -msh2=" + os.path.join(mesh_dir,"RV_endo") + \
+                                   " -outmsh=" + os.path.join(mesh_dir,"biv_noLVendo") + \
+                                   " -ifmt=carp_txt -ofmt=carp_txt"
+    )
+
+    shutil.copy(os.path.join(mesh_dir, "biv_noLVendo.elem"), \
+                os.path.join(mesh_dir, "biv_noLVendo.surf"))
+
+    ########## biv_noRVendo
+
+    os.system("meshtool merge meshes -msh1=" + os.path.join(mesh_dir,"biv_epi") + \
+                                   " -msh2=" + os.path.join(mesh_dir,"LV_endo") + \
+                                   " -outmsh=" + os.path.join(mesh_dir,"biv_noRVendo") + \
+                                   " -ifmt=carp_txt -ofmt=carp_txt"
+    )
+
+    shutil.copy(os.path.join(mesh_dir, "biv_noRVendo.elem"), \
+                os.path.join(mesh_dir, "biv_noRVendo.surf"))
+
+    ########## We create the missing vtx's
+
+    biv_endo_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"biv_endo.surf"))
+    biv_endo_surf_vtx = files_manipulations.surf.tovtx(biv_endo_surf)
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"biv_endo.surf.vtx"),
+                                    biv_endo_surf_vtx)
+
+    biv_epi_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"biv_epi.surf"))
+    biv_epi_surf_vtx = files_manipulations.surf.tovtx(biv_epi_surf)
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"biv_epi.surf.vtx"),
+                                    biv_epi_surf_vtx)
+
+
+    biv_noLVendo_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"biv_noLVendo.surf"))
+    biv_noLVendo_surf_vtx = files_manipulations.surf.tovtx(biv_noLVendo_surf)
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"biv_noLVendo.surf.vtx"),
+                                    biv_noLVendo_surf_vtx)
+
+
+    biv_noRVendo_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"biv_noRVendo.surf"))
+    biv_noRVendo_surf_vtx = files_manipulations.surf.tovtx(biv_noRVendo_surf)
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"biv_noRVendo.surf.vtx"),
+                                    biv_noRVendo_surf_vtx)
+
+    LV_endo_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"LV_endo.surf"))
+    LV_endo_surf_vtx = files_manipulations.surf.tovtx(LV_endo_surf)
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"LV_endo.surf.vtx"),
+                                    LV_endo_surf_vtx)
+
+    RV_endo_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"RV_endo.surf"))
+    RV_endo_surf_vtx = files_manipulations.surf.tovtx(RV_endo_surf)
+    files_manipulations.write_vtx(os.path.join(mesh_dir,"RV_endo.surf.vtx"),
+                                    RV_endo_surf_vtx)
 
 def map_biv(heart):
-     
+    
+    fourch_name = "Full_Heart_Mesh_" + str(heart)
+    path2fourch =  "/data/fitting/" + fourch_name
+    path2biv = path2fourch + "/biv"
+    pathlib.Path(path2biv).mkdir(parents=True, exist_ok=True)
+
+    os.system("meshtool extract mesh -msh=" + os.path.join(path2fourch, fourch_name) + \
+                " -submsh=" + os.path.join(path2biv, "biv") + " -tags=1,2" \
+                " -ifmt=carp_txt -ofmt=carp_txt")
+
+    os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") + \
+                           " -files=" + os.path.join(path2fourch,"MVTV_base.surf") + "," + \
+                                        os.path.join(path2fourch,"MVTV_base.surf.vtx") + "," + \
+                                        os.path.join(path2fourch,"LV_apex_epi.vtx") + "," + \
+                                        os.path.join(path2fourch,"biv_endo.surf") + "," + \
+                                        os.path.join(path2fourch,"biv_endo.surf.vtx") + "," + \
+                                        os.path.join(path2fourch,"biv_epi.surf") + "," + \
+                                        os.path.join(path2fourch,"biv_epi.surf.vtx") + "," + \
+                                        os.path.join(path2fourch,"biv_noLVendo.surf") + "," + \
+                                        os.path.join(path2fourch,"biv_noLVendo.surf.vtx") + "," + \
+                                        os.path.join(path2fourch,"biv_noRVendo.surf") + "," + \
+                                        os.path.join(path2fourch,"biv_noRVendo.surf.vtx") + "," + \
+                                        os.path.join(path2fourch,"LV_endo.surf") + "," + \
+                                        os.path.join(path2fourch,"LV_endo.surf.vtx") + "," + \
+                                        os.path.join(path2fourch,"RV_endo.surf") + "," + \
+                                        os.path.join(path2fourch,"RV_endo.surf.vtx") + "," + \
+                            " -outdir=" + path2biv)
+
+    
