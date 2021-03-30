@@ -2,12 +2,19 @@ import numpy as np
 
 def write_vtx(pathname, array):
 
-    header = [len(array), "intra"]
+    array = np.array(array)
+    header = [array.size, "intra"]
     str_to_write = np.append(header, array)
 
     with open(pathname, 'w') as f:
         for item in str_to_write:
             f.write("%s\n" % item)
+
+def read_vtx(pathname):
+
+    vtx = np.genfromtxt(pathname, dtype = int, skip_header = 2)
+
+    return vtx
 
 class surf:
     

@@ -9,12 +9,7 @@ case_number=00; for fibre_exp in 'apba' 'epi' 'endoLV' 'endoRV'; do /home/crg17/
 
 import os
 import carputils
-#from carputils import settings
 from carputils import tools
-#from carputils import ep
-#from carputils import model
-#from carputils.mesh import Ring, linear_fibre_rule
-#from carputils.resources import petsc_block_options
 
 def parser():
     parser = carputils.tools.standard_parser()

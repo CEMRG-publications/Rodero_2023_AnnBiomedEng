@@ -246,7 +246,7 @@ def extract_bdry_bayer(heart):
     shutil.copy(os.path.join(mesh_dir, "biv_noRVendo.elem"), \
                 os.path.join(mesh_dir, "biv_noRVendo.surf"))
 
-    ########## We create the missing vtx's
+    ########## We create the missing vtx's.
 
     biv_endo_surf = files_manipulations.surf.read(os.path.join(mesh_dir,"biv_endo.surf"))
     biv_endo_surf_vtx = files_manipulations.surf.tovtx(biv_endo_surf)
@@ -309,4 +309,9 @@ def map_biv(heart):
                                         os.path.join(path2fourch,"RV_endo.surf.vtx") + "," + \
                             " -outdir=" + path2biv)
 
-    
+    for vtx_file in ["MVTV_base.surf.vtx", "LV_apex_epi.vtx",\
+                    "biv_endo.surf.vtx",  "biv_epi.surf.vtx",\
+                    "biv_noLVendo.surf.vtx", "LV_endo.surf.vtx",\
+                    "biv_noRVendo.surf.vtx", "RV_endo.surf.vtx"]:
+        vtx = files_manipulations.read_vtx(os.path.join(path2biv, vtx_file))
+        files_manipulations.write_vtx(os.path.join(path2biv,vtx_file), vtx)

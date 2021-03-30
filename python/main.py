@@ -4,6 +4,7 @@ import os
 
 import prepare_mesh 
 import files_manipulations as fm
+import fibres
 
 def main():
     bundle_number = "01"
@@ -14,12 +15,9 @@ def main():
     # prepare_mesh.unzip_meshes(bundle_number)
     # prepare_mesh.vtk_mm2carp_um(heart)
     # prepare_mesh.extract_bdry_bayer(heart)
-    # prepare_mesh.map_biv(heart)
-
-    for experiment in ["apba","epi","endoLV","endoRV"]:
-        os.system(os.path.join(scripts_folder,"run_fibres.py") + \
-            " --experiment " + experiment + " --current_case " + str(heart) + \
-            " --np 20 --overwrite-behaviour overwrite")
+    prepare_mesh.map_biv(heart)
+    fibres.run_laplacian(heart)
+    fibres.rb_bayer(heart)
 
 if __name__ == "__main__":
     main()
