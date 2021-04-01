@@ -16,12 +16,15 @@ def main():
     # prepare_mesh.vtk_mm2carp_um(heart)
     # prepare_mesh.extract_bdry_bayer(heart)
     # prepare_mesh.map_biv(heart)
-    # fibres.run_laplacian(heart)
-    # fibres.rb_bayer(heart)
+    prepare_mesh.extract_LDRB_biv(heart)
+    prepare_mesh.extract_MVTV_base(heart)
+    fibres.run_laplacian(heart)
+    fibres.rb_bayer(heart)
 
-    dummy_pts = files_manipulations.pts.read("/data/fitting/Full_Heart_Mesh_1/dummy.pts")
-    dummy_vtx = files_manipulations.read_vtx("/data/fitting/Full_Heart_Mesh_1/dummy.vtx")
-    new_pts = files_manipulations.pts.extract(dummy_pts,dummy_vtx)
-    new_pts.write("/data/fitting/Full_Heart_Mesh_1/new_pts.pts")
+    # whole_pts = files_manipulations.pts.read("/data/fitting/Full_Heart_Mesh_1/Full_Heart_Mesh_1.pts")
+    # new_vtx = files_manipulations.read_vtx("/data/fitting/Full_Heart_Mesh_1/biv_epi.surf.vtx")
+    # new_pts = files_manipulations.pts.extract(whole_pts,new_vtx)
+    # new_pts.write("/data/fitting/Full_Heart_Mesh_1/biv/debug/biv_epi.surf.pts")
+
 if __name__ == "__main__":
     main()
