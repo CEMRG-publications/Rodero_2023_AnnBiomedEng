@@ -117,8 +117,6 @@ class surf:
         with open(pathname, "ab") as f:
             np.savetxt(f, np.transpose(data), fmt = "%s")
 
-
-
 class pts:
     
     def __init__(self, p1, p2, p3, name):
@@ -154,7 +152,7 @@ class pts:
         new_p2 = self.p2[vtx_array.indices]
         new_p3 = self.p3[vtx_array.indices]
 
-        return pts(new_p1, new_p2, new_p3)
+        return pts(new_p1, new_p2, new_p3, self.name)
 
     def write(self,pathname):
 
