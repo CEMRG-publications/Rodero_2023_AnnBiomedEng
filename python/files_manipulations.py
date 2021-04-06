@@ -163,3 +163,92 @@ class pts:
 
         with open(pathname, "ab") as datafile_id:
             np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
+
+
+class lon:
+    
+    def __init__(self, f1, f2, f3, s1, s2, s3):
+        self.f1 = f1
+        self.f2 = f2
+        self.f3 = f3
+
+        self.s1 = s1
+        self.s2 = s2
+        self.s3 = s3
+
+    @classmethod
+    def read(cls, pathname):
+
+        lonfile = np.genfromtxt(pathname, delimiter = ' ',
+                                    dtype = float, skip_header = 1
+                                    )
+
+        f1 = lonfile[:,0]
+        f2 = lonfile[:,1]
+        f3 = lonfile[:,2]
+
+        if(lonfile.shape[1] > 3):
+            s3 = lonfile[:,-1]
+            s2 = lonfile[:,-2]
+            s1 = lonfile[:,-3]
+        else:
+            s1 = None
+            s2 = None
+            s3 = None
+
+        return cls(f1, f2, f3, s1, s2, s3)
+
+    def orthogonalise(self):
+        count = 0
+
+        for i in range(len(self.f1)):
+            f = np.array([self.f1[i], self.f2[i], self.f3[i]])
+            s = np.array([self.s1[i], self.s2[i], self.s3[i]])
+            if(np.dot(f,s) > 1e-5):
+                s_corrected = orthogonalise(f,s)
+                self.s1[i] = s_corrected[0]
+                self.s2[i] = s_corrected[1]
+                self.s3[i] = s_corrected[2]
+                count = count + 1
+        print("Corrected sheet direction for " + str(count) + " elements.")
+
+
+    def write(self,pathname):
+
+        header = np.array([str(self.f1.size)])
+
+        if(self.s1 is None):
+            data = np.array([self.f1, self.f2, self.f3])
+        else:
+            data = np.array([self.f1, self.f2, self.f3, self.s1, self.s2, self.s3])
+
+        np.savetxt(pathname, header, fmt='%s')
+
+        with open(pathname, "ab") as datafile_id:
+            np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
+
+def orthogonalise(f, s):
+
+    c = numpy.cross(f,s)
+    d = np.dot(f,s)
+
+    norm_c = np.linalg.norm(c)
+    axis = (1/norm_c)*c
+
+    theta = np.pi - np.arccos(d)
+
+    R00 = axis[0]**2 + np.cos(theta) + (1-axis[0]**2)
+    R01 = (1-np.cos(theta))*axis[0]*axis[1] - axis[2]*np.sin(theta)
+    R02 = (1-np.cos(theta))*axis[0]*axis[2] + axis[1]*np.sin(theta)
+
+    R10 = (1-np.cos(theta))*axis[0]*axis[1] + axis[2]*np.sin(theta)
+    R11 = axis[1]**2 + np.cos(theta) + (1-axis[1]**2)
+    R12 = (1-np.cos(theta))*axis[1]*axis[2] - axis[0]*np.sin(theta)
+
+    R20 = (1-np.cos(theta))*axis[0]*axis[2] - axis[1]*np.sin(theta)
+    R21 = (1-np.cos(theta))*axis[1]*axis[2] + axis[0]*np.sin(theta)
+    R22 = axis[2]**2 + np.cos(theta) + (1-axis[2]**2)
+
+    R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
+
+    return R.dot(s)
