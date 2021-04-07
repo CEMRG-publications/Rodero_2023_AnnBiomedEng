@@ -1,6 +1,15 @@
 import os
 
 def run_laplacian(heart, experiment = None):
+    """Function to run all the laplacian simulations of Bayer 2012.
+
+    Args:
+        heart (int or str): Number of the mesh.
+        experiment (str, optional): Experiment to run. Option are apba for apex
+        to base, epi for epicardium to endocardium, endoLV for everything except 
+        LV endo to LV endo, endoRV for analogous with RV endo. If None, runs all
+        of them sequentially. Defaults to None.
+    """
 
     if experiment != None:
         experiment_vec = [experiment]
@@ -15,6 +24,19 @@ def run_laplacian(heart, experiment = None):
             " --np 20 --overwrite-behaviour overwrite")
 
 def rb_bayer(heart, alpha_epi = -60, alpha_endo = 80, beta_epi = 25, beta_endo = -65):
+    """Function to create the fibre file based on the laplacian solves.
+
+    Args:
+        heart (int or str): Number of the mesh.
+        alpha_epi (int, optional): Angle of the fibre direction in the
+        epicardium. Defaults to -60.
+        alpha_endo (int, optional): Angle of the fibre direction in the
+        endocardium. Defaults to 80.
+        beta_epi (int, optional): Angle of the sheet direction in the
+        epicardium. Defaults to 25.
+        beta_endo (int, optional): Angle of the sheet direction in the
+        endocardium. Defaults to -65.
+    """
 
     biv_dir = "/data/fitting/Full_Heart_Mesh_" + str(heart) + "/biv"
     fibre_dir = biv_dir + "/fibres"
