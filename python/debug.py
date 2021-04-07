@@ -5,6 +5,14 @@ import shutil
 import files_manipulations
 
 def extract_LDRB_biv(heart):
+    """Function to visualize the output of extract_LDRB_biv. Surf and vtx of 
+    "biv_epi", "biv_endo", "biv_noLVendo", "biv_noRVendo", "LV_endo" and
+    "RV_endo"
+
+    Args:
+        heart (int or str): Number of the mesh, part of the path.
+    """
+
     fourch_name = "Full_Heart_Mesh_" + str(heart)
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = path2fourch + "/biv"
@@ -36,6 +44,12 @@ def extract_LDRB_biv(heart):
         sub_pts.write(os.path.join(path2debug, files2check + ".pts"))
 
 def extract_MVTV_base(heart):
+    """Function to visualize the output of extract_MVTV_base. Surf and vtx of 
+    MVTV_base.
+
+    Args:
+        heart (int or str): Number of the mesh, part of the path.
+    """
     fourch_name = "Full_Heart_Mesh_" + str(heart)
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = path2fourch + "/biv"
