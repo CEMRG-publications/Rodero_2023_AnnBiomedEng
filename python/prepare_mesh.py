@@ -11,8 +11,20 @@ import files_manipulations
 
 
 def download_zip(bundle_number):
+    """Function to download the zip from zenodo.
+
+    Args:
+        bundle_number (str): Number of the zip folder (each with 20 cases).
+    """
 
     def bar_custom(current, total, width = 80):
+        """Function to show a progress bar when downloading.
+
+        Args:
+            current (double): Current progress in Mb
+            total (double): Total progress in Mb
+            width (int, optional): Width of the bar. Defaults to 80.
+        """
         os.system('clear')
         current_format = current / 1e6
         total_format = total / 1e6
@@ -29,6 +41,12 @@ def download_zip(bundle_number):
     wget.download(url, out = out_name, bar = bar_custom)
 
 def unzip_meshes(bundle_number):
+    """Function to unzip the bundle of meshes and create the approppriate 
+    directories.
+
+    Args:
+        bundle_number (str): Number of the zip folder (each with 20 cases).
+    """
 
     pathmeshes = "/data/fitting/Final_models_" + bundle_number
 
@@ -52,6 +70,12 @@ def unzip_meshes(bundle_number):
     os.rmdir(pathmeshes)
 
 def vtk_mm2carp_um(heart):
+    """Function to convert to carp format and convert the pts to micrometre
+    instead of millimetre.
+
+    Args:
+        heart (int or str): Number of the mesh, part of the path.
+    """
 
     mesh_name = "Full_Heart_Mesh_" + str(heart)
     mesh_dir = os.path.join("/data","fitting",mesh_name)
@@ -69,6 +93,12 @@ def vtk_mm2carp_um(heart):
     shutil.copy(os.path.join(mesh_dir,mesh_name) + "_um.pts", os.path.join(mesh_dir,mesh_name) + ".pts")
 
 def extract_LDRB_biv(heart):
+    """Function to extract the boundary conditions for the LDRB method from
+    Bayer 2012, except for the base and the apex.
+
+    Args:
+        heart (int or str): Number of the mesh, part of the path.
+    """
 
     fourch_name = "Full_Heart_Mesh_" + str(heart)
     path2fourch = os.path.join("/data","fitting",fourch_name)
@@ -252,6 +282,12 @@ def extract_LDRB_biv(heart):
     biv_noRVendo_vtx.write(os.path.join(path2biv,"biv_noRVendo.surf.vtx"))
 
 def extract_MVTV_base(heart):
+    """Function to extract the base and the apex as boundary conditions for the
+    LDRB method from Bayer 2012.
+
+    Args:
+        heart (int or str): Number of the mesh, part of the path.
+    """
     fourch_name = "Full_Heart_Mesh_" + str(heart)
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = path2fourch + "/biv"
