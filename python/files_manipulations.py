@@ -291,7 +291,7 @@ class pts:
 
 class lon:
     
-    def __init__(self, f1, f2, f3, s1, s2, s3):
+    def __init__(self, f1, f2, f3, s1 = None, s2 = None, s3 = None):
         """Function to initialize a lon object (from fibres).
 
         Args:
@@ -327,10 +327,12 @@ class lon:
             lon: lon object from the file.
         """
 
+        print("Reading lon file...")
+
         lonfile = np.genfromtxt(pathname, delimiter = ' ',
                                     dtype = float, skip_header = 1
                                     )
-
+        print("File read.")
         f1 = lonfile[:,0]
         f2 = lonfile[:,1]
         f3 = lonfile[:,2]
@@ -364,7 +366,6 @@ class lon:
                 count = count + 1
         print("Corrected sheet direction for " + str(count) + " elements.")
 
-
     def write(self,pathname):
         """Function to write the lon object in a file.
 
@@ -375,14 +376,28 @@ class lon:
         header = np.array([str(self.f1.size)])
 
         if(self.s1 is None):
+            header = np.array(["1"])
             data = np.array([self.f1, self.f2, self.f3])
         else:
+            header = np.array(["2"])
             data = np.array([self.f1, self.f2, self.f3, self.s1, self.s2, self.s3])
 
         np.savetxt(pathname, header, fmt='%s')
 
         with open(pathname, "ab") as datafile_id:
             np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
+
+    @classmethod
+    def normalise(cls, self):
+        matrix_lon = np.transpose(np.array([self.f1, self.f2, self.f3]))
+        row_norms = np.linalg.norm(matrix_lon, axis = 1)
+        new_matrix = matrix_lon / row_norms[:, np.newaxis]
+
+        return cls(new_matrix[:,0], new_matrix[:,1], new_matrix[:,2])
+
+
+
+
 
 def orthogonalise(f, s):
     """Function to rotate a vector to make it orthogonal to the other.
@@ -453,11 +468,12 @@ class elem:
         Returns:
             elem: elem object extracted from the file.
         """
-    
+        print("Reading elem file...")
         elemfile = np.genfromtxt(pathname, delimiter = ' ',
                                     dtype = int, skip_header = True,
                                     usecols= (1,2,3,4,5)
                                     )
+        print("File read.")
 
         return cls(elemfile[:,0], elemfile[:,1], elemfile[:,2],
                    elemfile[:,3], elemfile[:,4])
