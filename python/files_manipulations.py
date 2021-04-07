@@ -4,20 +4,47 @@ import csv
 class vtx:
 
     def __init__(self, indices, mesh_from):
+        """Init function for the vtx class.
+
+        Args:
+            indices (numpy array of integers): Array of indices.
+            mesh_from (str): Mesh where the vtx comes from, for debugging
+            purposes.
+        """
         self.indices = indices
         self.size = len(indices)
         self.mesh_from = mesh_from
 
     def __str__(self):
+        """Function to improve the printing of a vtx object.
+
+        Returns:
+            str: Message with number of vertices and the mesh where it comes
+            from.
+        """
         return "Vtx variable of {} vertices extracted from {}".format(self.size,self.mesh_from)
 
     @classmethod
     def read(cls, pathname, mesh_from):
+        """Function to read a vtx file and convert it to a vtx object.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+            mesh_from (str): Mesh where the vtx comes from, for debugging
+            purposes.
+        Returns:
+            vtx: vtx object from the file.
+        """
         vtx_var = np.genfromtxt(pathname, dtype = int, skip_header = 2)
 
         return cls(vtx_var, mesh_from)
 
     def write(self,pathname):
+        """Function to write a vtx object to a file.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+        """
         array = np.array(self.indices)
         header = [self.size, "intra"]
         str_to_write = np.append(header, array)
@@ -28,6 +55,21 @@ class vtx:
 class surf:
     
     def __init__(self, i1, i2, i3, mesh_from, tags = None):
+        """Init function for the surf class.
+
+        Args:
+            i1 (numpy array of integers): Array with the first index for each 
+            element.
+            i2 (numpy array of integers): Array with the second index for each 
+            element.
+            i3 (numpy array of integers): Array with the third index for each 
+            element.
+            mesh_from (str): Mesh where the vtx comes from, for debugging
+            purposes.
+            tags (numpy array of integers, optional): In case of being a
+            surfmesh, the list of tag for each element. If it is a surf, takes
+            the value None. Defaults to None.
+        """
         self.i1 = i1.astype(int)
         self.i2 = i2.astype(int)
         self.i3 = i3.astype(int)
@@ -41,6 +83,16 @@ class surf:
 
     @classmethod
     def read(cls, pathname, mesh_from):
+        """Function to read a .surf, .elem or .surfmesh file and convert it to a
+        surf object.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+            mesh_from (str): Mesh where the vtx comes from, for debugging
+            purposes.
+        Returns:
+            surf: surf object extracted from the file.
+        """
 
         surfmesh_str = pathname.split(".")[-1]
         if(surfmesh_str == "surfmesh"):
@@ -68,6 +120,19 @@ class surf:
 
     @classmethod
     def merge(cls, surf1, surf2):
+        """Function to merge two surf objects into one. Might have duplicates.
+
+        Args:
+            surf1 (surf): First surf object to merge.
+            surf2 (surf): Second surf object to merge.
+
+        Raises:
+            NameError: If the meshes they come from are not the same.
+            NameError: If one have tags and the other not.
+
+        Returns:
+            surf: Surf object of the two surfs merged.
+        """
         if(surf1.mesh_from != surf2.mesh_from):
             raise NameError("Surfaces come from different meshes.")
         if((surf1.tags is None) != (surf2.tags is None)):
@@ -88,22 +153,49 @@ class surf:
 
     @classmethod
     def tosurf(cls, surfmesh_var):
+        """Function to convert surfmesh (or .surf.elem) to surf object.
+
+        Args:
+            surfmesh_var (surf): Surf object (with tags).
+
+        Returns:
+            surf: Surf object (without tags).
+        """
         
         return cls(surfmesh_var.i1, surfmesh_var.i2, surfmesh_var.i3, surfmesh_var.mesh_from)
     
     @classmethod
-    def tosurfmesh(cls, surfmesh_var):
+    def tosurfmesh(cls, surf_var):
+        """Function to convert a surf object to surfmesh (or .surf.elem) 
+        adding zeroes to the tags.
 
-        tags = np.zeros(surfmesh_var.size)
-        return cls(surfmesh_var.i1, surfmesh_var.i2, surfmesh_var.i3, surfmesh_var.mesh_from, tags)
+        Args:
+            surf_var (surf): Surf object (without tags).
+
+        Returns:
+            surf: Surf object (with tags).
+        """
+
+        tags = np.zeros(surf_var.size)
+        return cls(surf_var.i1, surf_var.i2, surf_var.i3, surf_var.mesh_from, tags)
 
     def tovtx(self):
+        """Function to extract the vtx from a surf object, removing duplicates.
+
+        Returns:
+            vtx: vtx object with the indices from the surf.
+        """
         vtxvec =  np.unique(np.concatenate((self.i1, self.i2, self.i3),
                                             axis = 0))
         
         return vtx(vtxvec, self.mesh_from)
 
     def write(self,pathname):
+        """Function to write a surf object to a file.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+        """
 
         header = np.array([str(self.size)])
         elemtype = np.repeat("Tr",self.size)
@@ -120,6 +212,15 @@ class surf:
 class pts:
     
     def __init__(self, p1, p2, p3, name):
+        """Function to initialise a pts object.
+
+        Args:
+            p1 (numpy array): Array of the first coordinate for all the points.
+            p2 (numpy array): Array of the second coordinate for all the points.
+            p3 (numpy array): Array of the third coordinate for all the points.
+            name (str): Name of the pts (without extension) for debugging
+            purposes.
+        """
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
@@ -128,6 +229,14 @@ class pts:
 
     @classmethod
     def read(cls, pathname):
+        """Function to generate a pts object from a file.
+
+        Args:
+            pathname (str): Full path including filename and extension.
+
+        Returns:
+            pts: pts object extracted from the file.
+        """
     
         ptsfile = np.genfromtxt(pathname, delimiter = ' ',
                                     dtype = float, skip_header = 1
@@ -144,6 +253,17 @@ class pts:
         return cls(p1, p2, p3, name_noext)
 
     def extract(self,vtx_array):
+        """Function to extract the pts of a submesh based on a vtx.
+
+        Args:
+            vtx_array (vtx): vtx of the submesh
+
+        Raises:
+            NameError: If the vtx does not come from this pts.
+
+        Returns:
+            pts: pts object of the submesh.
+        """
 
         if(vtx_array.mesh_from != self.name):
             raise NameError("The vtx does not come from that mesh. You should use {}.pts".format(vtx_array.mesh_from))
@@ -155,6 +275,11 @@ class pts:
         return pts(new_p1, new_p2, new_p3, self.name)
 
     def write(self,pathname):
+        """Function to write a pts object to a file.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+        """
 
         header = np.array([str(self.size)])
         data = np.array([self.p1, self.p2, self.p3])
@@ -168,6 +293,22 @@ class pts:
 class lon:
     
     def __init__(self, f1, f2, f3, s1, s2, s3):
+        """Function to initialize a lon object (from fibres).
+
+        Args:
+            f1 (numpy array): First coordinate of the fibre directions for all
+            the elements.
+            f2 (numpy array): Second coordinate of the fibre directions for all
+            the elements.
+            f3 (numpy array): Third coordinate of the fibre directions for all
+            the elements.
+            s1 (numpy array): First coordinate of the sheet directions for all
+            the elements.
+            s2 (numpy array): Second coordinate of the sheet directions for all
+            the elements.
+            s3 (numpy array): Third coordinate of the sheet directions for all
+            the elements.
+        """
         self.f1 = f1
         self.f2 = f2
         self.f3 = f3
@@ -178,6 +319,14 @@ class lon:
 
     @classmethod
     def read(cls, pathname):
+        """Function to read a lon file and convert it in a lon object.
+
+        Args:
+            pathname (str): Full path including filename and extension.
+
+        Returns:
+            lon: lon object from the file.
+        """
 
         lonfile = np.genfromtxt(pathname, delimiter = ' ',
                                     dtype = float, skip_header = 1
@@ -199,6 +348,10 @@ class lon:
         return cls(f1, f2, f3, s1, s2, s3)
 
     def orthogonalise(self):
+        """Function to orthogonalise the sheet directions based on the fibre
+        direction. The assumption is if the z coordinate is too small (seems a
+        bug from CARP).
+        """
         count = 0
 
         for i in range(len(self.f1)):
@@ -214,6 +367,11 @@ class lon:
 
 
     def write(self,pathname):
+        """Function to write the lon object in a file.
+
+        Args:
+            pathname (str): Full path including filename and extension.
+        """
 
         header = np.array([str(self.f1.size)])
 
@@ -228,6 +386,15 @@ class lon:
             np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
 
 def orthogonalise(f, s):
+    """Function to rotate a vector to make it orthogonal to the other.
+
+    Args:
+        f (numpy array): Vector base.
+        s (numpy array): Vector to move to make it orthogonal to f.
+
+    Returns:
+        numpy array: Corrected vector.
+    """
 
     c = numpy.cross(f,s)
     d = np.dot(f,s)
