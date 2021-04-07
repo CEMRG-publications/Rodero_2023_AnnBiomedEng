@@ -289,7 +289,6 @@ class pts:
         with open(pathname, "ab") as datafile_id:
             np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
 
-
 class lon:
     
     def __init__(self, f1, f2, f3, s1, s2, s3):
@@ -419,3 +418,64 @@ def orthogonalise(f, s):
     R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
 
     return R.dot(s)
+
+class elem:
+    
+    def __init__(self, i1, i2, i3, i4, tags):
+        """Init function for the elem class.
+
+        Args:
+            i1 (numpy array of integers): Array with the first index for each 
+            element.
+            i2 (numpy array of integers): Array with the second index for each 
+            element.
+            i3 (numpy array of integers): Array with the third index for each 
+            element.
+            i4 (numpy array of integers): Array with the fourth index for each 
+            element.
+            tags (numpy array of integers): List of tags for each element.
+        """
+        self.i1 = i1.astype(int)
+        self.i2 = i2.astype(int)
+        self.i3 = i3.astype(int)
+        self.i4 = i4.astype(int)
+        self.tags = tags.astype(int)
+
+        self.size = i1.shape[0]
+
+    @classmethod
+    def read(cls, pathname):
+        """Function to read a .elem and convert it to an elem object.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+
+        Returns:
+            elem: elem object extracted from the file.
+        """
+    
+        elemfile = np.genfromtxt(pathname, delimiter = ' ',
+                                    dtype = int, skip_header = True,
+                                    usecols= (1,2,3,4,5)
+                                    )
+
+        return cls(elemfile[:,0], elemfile[:,1], elemfile[:,2],
+                   elemfile[:,3], elemfile[:,4])
+
+
+    def write(self,pathname):
+        """Function to write a elem object to a file.
+
+        Args:
+            pathname (str): Full path (including filename and extension).
+        """
+
+        header = np.array([str(self.size)])
+        elemtype = np.repeat("Tt",self.size)
+
+        data = [elemtype, self.i1, self.i2, self.i3, self.i4, self.tags]
+
+        np.savetxt(pathname, header, fmt='%s')
+
+        with open(pathname, "ab") as f:
+            np.savetxt(f, np.transpose(data), fmt = "%s")
