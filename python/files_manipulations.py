@@ -52,6 +52,7 @@ class vtx:
         with open(pathname, 'w') as f:
             for item in str_to_write:
                 f.write("%s\n" % item)
+
 class surf:
     
     def __init__(self, i1, i2, i3, mesh_from, tags = None):
@@ -208,6 +209,19 @@ class surf:
 
         with open(pathname, "ab") as f:
             np.savetxt(f, np.transpose(data), fmt = "%s")
+
+    @classmethod
+    def extract(cls, self, vtx_var):
+        if(self.tags is not None):
+            sub_tags = self.tags[vtx_var]
+        else:
+            sub_tags = self.tags
+
+        sub_i1 = self.i1[vtx_var]
+        sub_i2 = self.i2[vtx_var]
+        sub_i3 = self.i3[vtx_var]
+
+        return cls(sub_i1, sub_i2, sub_i3, self.mesh_from, sub_tags)
 
 class pts:
     
@@ -394,10 +408,6 @@ class lon:
         new_matrix = matrix_lon / row_norms[:, np.newaxis]
 
         return cls(new_matrix[:,0], new_matrix[:,1], new_matrix[:,2])
-
-
-
-
 
 def orthogonalise(f, s):
     """Function to rotate a vector to make it orthogonal to the other.

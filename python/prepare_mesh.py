@@ -106,7 +106,7 @@ def extract_LDRB_biv(heart):
     path2nomapped = os.path.join(path2biv,"no_mapped")
 
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) + \
-                            " -surf=" + os.path.join(path2fourch,"biv_epi_endo") + \
+                            " -surf=" + os.path.join(path2fourch,"biv.epi_endo") + \
                             " -op=1,2-7,8,9,10" + \
                             " -ifmt=carp_txt" + \
                             " -ofmt=vtk_bin")
@@ -119,36 +119,36 @@ def extract_LDRB_biv(heart):
                 " -ifmt=carp_txt -ofmt=carp_txt")
 
     os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") + \
-                           " -files=" + os.path.join(path2fourch,"biv_epi_endo.surf") + \
+                           " -files=" + os.path.join(path2fourch,"biv.epi_endo.surf") + \
                             " -outdir=" + path2biv)
 
 
     ##### For debugging purposes
-    biv_epi_endo_surf = files_manipulations.surf.read(os.path.join(path2biv,"biv_epi_endo.surf"),"biv")
+    biv_epi_endo_surf = files_manipulations.surf.read(os.path.join(path2biv,"biv.epi_endo.surf"),"biv")
 
     biv_epi_endo_surfmesh = files_manipulations.surf.tosurfmesh(biv_epi_endo_surf)
 
-    biv_epi_endo_surfmesh.write(os.path.join(path2biv,"biv_epi_endo.surf.elem"))
+    biv_epi_endo_surfmesh.write(os.path.join(path2biv,"biv.epi_endo.surf.elem"))
     #####
 
     
     biv_epi_endo_vtx = biv_epi_endo_surf.tovtx()
-    biv_epi_endo_vtx.write(os.path.join(path2biv,"biv_epi_endo.surf.vtx"))
+    biv_epi_endo_vtx.write(os.path.join(path2biv,"biv.epi_endo.surf.vtx"))
 
     os.system("meshtool extract tags -msh=" + os.path.join(path2biv,"biv") + \
                     " -odat=" + os.path.join(path2biv,"biv_tags.dat") + \
                     " -ifmt=carp_txt")
 
-    shutil.copy(os.path.join(path2biv,"biv_epi_endo.surf"), os.path.join(path2biv, "biv_epi_endo.surf.elem"))
-    shutil.copy(os.path.join(path2biv,"biv.pts"), os.path.join(path2biv, "biv_epi_endo.surf.pts"))
+    shutil.copy(os.path.join(path2biv,"biv.epi_endo.surf"), os.path.join(path2biv, "biv.epi_endo.surf.elem"))
+    shutil.copy(os.path.join(path2biv,"biv.pts"), os.path.join(path2biv, "biv.epi_endo.surf.pts"))
 
-    os.system("meshtool interpolate elemdata -omsh=" + os.path.join(path2biv,"biv_epi_endo.surf") + \
+    os.system("meshtool interpolate elemdata -omsh=" + os.path.join(path2biv,"biv.epi_endo.surf") + \
                     " -imsh=" + os.path.join(path2biv, "biv") + \
                     " -idat=" + os.path.join(path2biv,"biv_tags.dat") + \
-                    " -odat=" + os.path.join(path2biv,"biv_epi_endo_tags.dat"))
+                    " -odat=" + os.path.join(path2biv,"biv.epi_endo_tags.dat"))
     
 
-    biv_epi_endo_tags = np.loadtxt(os.path.join(path2biv,"biv_epi_endo_tags.dat"))
+    biv_epi_endo_tags = np.loadtxt(os.path.join(path2biv,"biv.epi_endo_tags.dat"))
 
     biv_epi_endo_surfmesh = files_manipulations.surf(biv_epi_endo_surf.i1,
                                                     biv_epi_endo_surf.i2,
@@ -158,13 +158,13 @@ def extract_LDRB_biv(heart):
                                                     )
 
     
-    biv_epi_endo_surfmesh.write(os.path.join(path2biv, "biv_epi_endo.elem"))
-    shutil.copy(os.path.join(path2biv,"biv.pts"), os.path.join(path2biv, "biv_epi_endo.pts"))
+    biv_epi_endo_surfmesh.write(os.path.join(path2biv, "biv.epi_endo.elem"))
+    shutil.copy(os.path.join(path2biv,"biv.pts"), os.path.join(path2biv, "biv.epi_endo.pts"))
     
     pathlib.Path(path2nomapped).mkdir(parents=True, exist_ok=True)
 
-    os.system("meshtool extract unreachable -msh=" + os.path.join(path2biv,"biv_epi_endo") + \
-                            " -submsh=" + os.path.join(path2nomapped,"biv_epi_endo_split") + \
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2biv,"biv.epi_endo") + \
+                            " -submsh=" + os.path.join(path2nomapped,"biv.epi_endo_split") + \
                             " -ifmt=carp_txt" + \
                             " -ofmt=carp_txt")
 
@@ -182,19 +182,19 @@ def extract_LDRB_biv(heart):
 
     idx_max = size_files.index(max(size_files))
 
-    shutil.copy(epi_or_endo_files[idx_max], os.path.join(path2nomapped, "biv_epi.surfmesh"))
+    shutil.copy(epi_or_endo_files[idx_max], os.path.join(path2nomapped, "biv.epi.surfmesh"))
 
 
     name = epi_or_endo_files[idx_max]
     name_no_ext = name.split(".elem")[0]
     file_name = name_no_ext.split("/")[-1]
 
-    shutil.copy(name, os.path.join(path2nomapped, "biv_epi.elem"))
-    shutil.copy(name, os.path.join(path2nomapped, "biv_epi.surf"))
-    shutil.copy(name_no_ext + ".lon", os.path.join(path2nomapped, "biv_epi.lon"))
-    shutil.copy(name_no_ext + ".pts", os.path.join(path2nomapped, "biv_epi.pts"))
-    shutil.copy(name_no_ext + ".nod", os.path.join(path2nomapped, "biv_epi.nod"))
-    shutil.copy(name_no_ext + ".eidx", os.path.join(path2nomapped, "biv_epi.eidx"))
+    shutil.copy(name, os.path.join(path2nomapped, "biv.epi.elem"))
+    shutil.copy(name, os.path.join(path2nomapped, "biv.epi.surf"))
+    shutil.copy(name_no_ext + ".lon", os.path.join(path2nomapped, "biv.epi.lon"))
+    shutil.copy(name_no_ext + ".pts", os.path.join(path2nomapped, "biv.epi.pts"))
+    shutil.copy(name_no_ext + ".nod", os.path.join(path2nomapped, "biv.epi.nod"))
+    shutil.copy(name_no_ext + ".eidx", os.path.join(path2nomapped, "biv.epi.eidx"))
     
     epi_or_endo_files.pop(idx_max)
     size_files.pop(idx_max)
@@ -210,28 +210,59 @@ def extract_LDRB_biv(heart):
         tag_file = np.loadtxt(os.path.join(path2nomapped,file_name) + ".tags")
 
         if(int(sum(tag_file)) != len(tag_file)):
-            shutil.copy(name, os.path.join(path2nomapped, "RV_endo.surf"))
-            shutil.copy(name_no_ext + ".pts", os.path.join(path2nomapped, "RV_endo.pts"))
-            shutil.copy(name_no_ext + ".nod", os.path.join(path2nomapped, "RV_endo.nod"))
-            shutil.copy(name_no_ext + ".eidx", os.path.join(path2nomapped, "RV_endo.eidx"))
+            shutil.copy(name, os.path.join(path2nomapped, "biv.rvendo.surf"))
+            shutil.copy(name, os.path.join(path2nomapped, "biv.rvendo.surfmesh"))
+            shutil.copy(name_no_ext + ".pts", os.path.join(path2nomapped, "biv.rvendo.pts"))
+            shutil.copy(name_no_ext + ".nod", os.path.join(path2nomapped, "biv.rvendo.nod"))
+            shutil.copy(name_no_ext + ".eidx", os.path.join(path2nomapped, "biv.rvendo.eidx"))
 
             epi_or_endo_files.pop(i)
             size_files.pop(i)
             break
+
+    #### We extract the biv_rvendo_nosept and the septum as well for the UVC
+
+    biv_rvendo = files_manipulations.surf.read(os.path.join(
+                                                      path2nomapped,
+                                                      "biv.rvendo.surfmesh"
+                                                      ), "biv.rvendo"
+                                                      )
+
+    biv_rvendo_nosept = files_manipulations.surf.extract(biv_rvendo,np.where(biv_rvendo.tags == 2))
+    biv_rvsept = files_manipulations.surf.extract(biv_rvendo,np.where(biv_rvendo.tags == 1))
+
+    biv_rvendo_nosept.write(os.path.join(path2nomapped, "biv.rvendo_nosept.surf"))
+    shutil.copy(os.path.join(path2nomapped, "biv.rvendo.pts"),
+                os.path.join(path2nomapped, "biv.rvendo_nosept.pts"))
+    shutil.copy(os.path.join(path2nomapped, "biv.rvendo.nod"),
+                os.path.join(path2nomapped, "biv.rvendo_nosept.nod"))
+    shutil.copy(os.path.join(path2nomapped, "biv.rvendo.eidx"),
+                os.path.join(path2nomapped, "biv.rvendo_nosept.eidx"))
+
+    biv_rvsept.write(os.path.join(path2nomapped, "biv.rvsept.surf"))
+    shutil.copy(os.path.join(path2nomapped, "biv.rvendo.pts"),
+                os.path.join(path2nomapped, "biv.rvsept.pts"))
+    shutil.copy(os.path.join(path2nomapped, "biv.rvendo.nod"),
+                os.path.join(path2nomapped, "biv.rvsept.nod"))
+    shutil.copy(os.path.join(path2nomapped, "biv.rvendo.eidx"),
+                os.path.join(path2nomapped, "biv.rvsept.eidx"))
+
+    ####
 
     idx_max = size_files.index(max(size_files))
 
     name = epi_or_endo_files[idx_max]
     name_no_ext = name.split(".elem")[0]
 
-    shutil.copy(name, os.path.join(path2nomapped, "LV_endo.surf"))
-    shutil.copy(name_no_ext + ".pts", os.path.join(path2nomapped, "LV_endo.pts"))
-    shutil.copy(name_no_ext + ".nod", os.path.join(path2nomapped, "LV_endo.nod"))
-    shutil.copy(name_no_ext + ".eidx", os.path.join(path2nomapped, "LV_endo.eidx"))
+    shutil.copy(name, os.path.join(path2nomapped, "biv.lvendo.surf"))
+    shutil.copy(name_no_ext + ".pts", os.path.join(path2nomapped, "biv.lvendo.pts"))
+    shutil.copy(name_no_ext + ".nod", os.path.join(path2nomapped, "biv.lvendo.nod"))
+    shutil.copy(name_no_ext + ".eidx", os.path.join(path2nomapped, "biv.lvendo.eidx"))
 
     ######### Map back to the biv
 
-    for surfname in ["biv_epi", "LV_endo", "RV_endo"]:
+    for surfname in ["biv.epi", "biv.lvendo", "biv.rvendo",
+                     "biv.rvendo_nosept", "biv.rvsept"]:
 
         os.system("meshtool map -submsh=" + os.path.join(path2nomapped,surfname) + \
                                 " -files=" + os.path.join(path2nomapped,surfname + ".surf") + \
@@ -244,22 +275,28 @@ def extract_LDRB_biv(heart):
 
     ########## All the surfs
 
-    LV_endo_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"LV_endo.surfmesh"), mesh_from = "biv")
-    RV_endo_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"RV_endo.surfmesh"), mesh_from = "biv")
-    biv_epi_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"biv_epi.surfmesh"), mesh_from = "biv")
+    biv_lvendo_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"biv.lvendo.surfmesh"), mesh_from = "biv")
+    biv_rvendo_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"biv.rvendo.surfmesh"), mesh_from = "biv")
+    biv_epi_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"biv.epi.surfmesh"), mesh_from = "biv")
+    biv_rvendo_nosept_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"biv.rvendo_nosept.surfmesh"), mesh_from = "biv")
+    biv_rvsept_surfmesh = files_manipulations.surf.read(os.path.join(path2biv,"biv.rvsept.surfmesh"), mesh_from = "biv")
 
-    LV_endo_surf = files_manipulations.surf.tosurf(LV_endo_surfmesh)
-    RV_endo_surf = files_manipulations.surf.tosurf(RV_endo_surfmesh)
+    biv_lvendo_surf = files_manipulations.surf.tosurf(biv_lvendo_surfmesh)
+    biv_rvendo_surf = files_manipulations.surf.tosurf(biv_rvendo_surfmesh)
     biv_epi_surf = files_manipulations.surf.tosurf(biv_epi_surfmesh)
+    biv_rvendo_nosept_surf = files_manipulations.surf.tosurf(biv_rvendo_nosept_surfmesh)
+    biv_rvsept_surf = files_manipulations.surf.tosurf(biv_rvsept_surfmesh)
 
-    biv_endo_surf = files_manipulations.surf.merge(LV_endo_surf, RV_endo_surf)
-    biv_noLVendo_surf = files_manipulations.surf.merge(biv_epi_surf, RV_endo_surf)
-    biv_noRVendo_surf = files_manipulations.surf.merge(biv_epi_surf, LV_endo_surf)
+    biv_endo_surf = files_manipulations.surf.merge(biv_lvendo_surf, biv_rvendo_surf)
+    biv_noLVendo_surf = files_manipulations.surf.merge(biv_epi_surf, biv_rvendo_surf)
+    biv_noRVendo_surf = files_manipulations.surf.merge(biv_epi_surf, biv_lvendo_surf)
 
     ########## The corresponding vtx
 
-    LV_endo_vtx = files_manipulations.surf.tovtx(LV_endo_surf)
-    RV_endo_vtx = files_manipulations.surf.tovtx(RV_endo_surf)
+    biv_lvendo_vtx = files_manipulations.surf.tovtx(biv_lvendo_surf)
+    biv_rvendo_vtx = files_manipulations.surf.tovtx(biv_rvendo_surf)
+    biv_rvendo_nosept_vtx = files_manipulations.surf.tovtx(biv_rvendo_nosept_surf)
+    biv_rvsept_vtx = files_manipulations.surf.tovtx(biv_rvsept_surf)
     biv_endo_vtx = files_manipulations.surf.tovtx(biv_endo_surf)
     biv_epi_vtx = files_manipulations.surf.tovtx(biv_epi_surf)
     biv_noLVendo_vtx = files_manipulations.surf.tovtx(biv_noLVendo_surf)
@@ -267,17 +304,21 @@ def extract_LDRB_biv(heart):
 
     ########## Write everything
 
-    LV_endo_surf.write(os.path.join(path2biv,"LV_endo.surf"))
-    RV_endo_surf.write(os.path.join(path2biv,"RV_endo.surf"))
+    biv_lvendo_surf.write(os.path.join(path2biv,"biv.lvendo.surf"))
+    biv_rvendo_surf.write(os.path.join(path2biv,"biv.rvendo.surf"))
+    biv_rvendo_nosept_surf.write(os.path.join(path2biv,"biv.rvendo_nosept.surf"))
+    biv_rvsept_surf.write(os.path.join(path2biv,"biv.rvsept.surf"))
     biv_endo_surf.write(os.path.join(path2biv,"biv_endo.surf"))
-    biv_epi_surf.write(os.path.join(path2biv,"biv_epi.surf"))
+    biv_epi_surf.write(os.path.join(path2biv,"biv.epi.surf"))
     biv_noLVendo_surf.write(os.path.join(path2biv,"biv_noLVendo.surf"))
     biv_noRVendo_surf.write(os.path.join(path2biv,"biv_noRVendo.surf"))
 
-    LV_endo_vtx.write(os.path.join(path2biv,"LV_endo.surf.vtx"))
-    RV_endo_vtx.write(os.path.join(path2biv,"RV_endo.surf.vtx"))
+    biv_lvendo_vtx.write(os.path.join(path2biv,"biv.lvendo.surf.vtx"))
+    biv_rvendo_vtx.write(os.path.join(path2biv,"biv.rvendo.surf.vtx"))
+    biv_rvendo_nosept_vtx.write(os.path.join(path2biv,"biv.rvendo_nosept.surf.vtx"))
+    biv_rvsept_vtx.write(os.path.join(path2biv,"biv.rvsept.surf.vtx"))
     biv_endo_vtx.write(os.path.join(path2biv,"biv_endo.surf.vtx"))
-    biv_epi_vtx.write(os.path.join(path2biv,"biv_epi.surf.vtx"))
+    biv_epi_vtx.write(os.path.join(path2biv,"biv.epi.surf.vtx"))
     biv_noLVendo_vtx.write(os.path.join(path2biv,"biv_noLVendo.surf.vtx"))
     biv_noRVendo_vtx.write(os.path.join(path2biv,"biv_noRVendo.surf.vtx"))
 
@@ -315,12 +356,12 @@ def extract_MVTV_base(heart):
 
     centroid = np.array([sum_x/num_pts, sum_y/num_pts, sum_z/num_pts])
 
-    os.system("meshtool interpolate elem2node -omsh=" + os.path.join(path2biv,"biv_epi_endo") + \
-                    " -idat=" + os.path.join(path2biv,"biv_epi_endo_tags.dat") + \
-                    " -odat=" + os.path.join(path2biv,"biv_epi_endo_tags_pts.dat"))
+    os.system("meshtool interpolate elem2node -omsh=" + os.path.join(path2biv,"biv.epi_endo") + \
+                    " -idat=" + os.path.join(path2biv,"biv.epi_endo_tags.dat") + \
+                    " -odat=" + os.path.join(path2biv,"biv.epi_endo_tags_pts.dat"))
 
-    biv_epi_endo_pts = files_manipulations.pts.read(os.path.join(path2biv,"biv_epi_endo.pts"))
-    biv_epi_endo_tags_pts = np.loadtxt(os.path.join(path2biv,"biv_epi_endo_tags_pts.dat"), skiprows = 1)
+    biv_epi_endo_pts = files_manipulations.pts.read(os.path.join(path2biv,"biv.epi_endo.pts"))
+    biv_epi_endo_tags_pts = np.loadtxt(os.path.join(path2biv,"biv.epi_endo_tags_pts.dat"), skiprows = 1)
 
     dist_vec = np.zeros(len(biv_epi_endo_tags_pts))
 

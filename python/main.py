@@ -6,6 +6,7 @@ import prepare_mesh
 import files_manipulations
 import fibres
 import debug
+import create_UVC
 
 def main():
     bundle_number = "01"
@@ -19,10 +20,10 @@ def main():
     # prepare_mesh.extract_LDRB_biv(heart)
     # prepare_mesh.extract_MVTV_base(heart)
     # fibres.run_laplacian(heart)
-    # fibres.rb_bayer(heart)
+    # fibres.full_pipeline(heart, alpha_epi = -60, alpha_endo = 80)
+    create_UVC.create(1, "MVTV")
+    
 
-    lon_file = files_manipulations.lon.read("/data/fitting/Full_Heart_Mesh_1/biv/fibres/rb_-60_80_25_-65.lon")
-    lon_file.orthogonalise()
 
 if __name__ == "__main__":
     main()

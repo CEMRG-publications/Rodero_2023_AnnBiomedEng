@@ -93,13 +93,13 @@ def setupStimuli(experiment,meshdir):
       filename_pot = 'MVTV_base.surf'
     elif experiment=='epi':
       filename_ground = 'biv_endo.surf'
-      filename_pot = 'biv_epi.surf'
+      filename_pot = 'biv.epi.surf'
     elif experiment=='endoLV':
       filename_ground = 'biv_noLVendo.surf'
-      filename_pot = 'LV_endo.surf'
+      filename_pot = 'biv.lvendo.surf'
     elif experiment=='endoRV':
       filename_ground = 'biv_noRVendo.surf'
-      filename_pot = 'RV_endo.surf'
+      filename_pot = 'biv.rvendo.surf'
     else:
       raise Exception('Unsupported experiment type')
 

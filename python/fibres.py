@@ -87,7 +87,7 @@ def FibreCorrection(heart, alpha_epi = -60, alpha_endo = 80):
     # Identify tets with wrong fibres
 
     tets_ind = np.where(np.abs(biv_lon.f3) < 1e-6)[0]
-
+    print("Correcting fibres...")
     for index_to_correct in tqdm.tqdm(tets_ind):
         r = 2500 #micrometers
         sphere = np.empty(0)

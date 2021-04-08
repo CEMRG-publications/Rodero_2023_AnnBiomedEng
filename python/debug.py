@@ -6,8 +6,8 @@ import files_manipulations
 
 def extract_LDRB_biv(heart):
     """Function to visualize the output of extract_LDRB_biv. Surf and vtx of 
-    "biv_epi", "biv_endo", "biv_noLVendo", "biv_noRVendo", "LV_endo" and
-    "RV_endo"
+    "biv_epi", "biv_endo", "biv_noLVendo", "biv_noRVendo", "biv_lvendo" and
+    "biv_rvendo"
 
     Args:
         heart (int or str): Number of the mesh, part of the path.
@@ -22,8 +22,9 @@ def extract_LDRB_biv(heart):
 
     biv_pts = files_manipulations.pts.read(os.path.join(path2biv,"biv.pts"))
 
-    for files2check in ["biv_epi", "biv_endo", "biv_noLVendo", "biv_noRVendo",
-                        "LV_endo", "RV_endo"]:
+    for files2check in ["biv.epi", "biv_endo", "biv_noLVendo", "biv_noRVendo",
+                        "biv.lvendo", "biv.rvendo", "biv.rvendo_nosept",
+                        "biv.rvsept"]:
 
         surf_file = files_manipulations.surf.read(os.path.join(path2biv, files2check + ".surf"), "biv")
         surfmesh_file = files_manipulations.surf.tosurfmesh(surf_file)
