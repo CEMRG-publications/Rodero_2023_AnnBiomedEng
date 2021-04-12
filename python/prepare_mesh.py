@@ -90,7 +90,11 @@ def vtk_mm2carp_um(heart):
     os.system(os.path.join("/home","common","cm2carp","bin","return_carp2original_coord.pl ") + \
               os.path.join(mesh_dir,mesh_name) + "_mm.pts 1000 0 0 0 > " + os.path.join(mesh_dir,mesh_name) + "_um.pts")
 
-    shutil.copy(os.path.join(mesh_dir,mesh_name) + "_um.pts", os.path.join(mesh_dir,mesh_name) + ".pts")
+    shutil.copy(os.path.join(mesh_dir,mesh_name) + "_um.pts",
+                os.path.join(mesh_dir,mesh_name) + ".pts")
+
+    shutil.copy(os.path.join(mesh_dir,mesh_name + ".elem"),
+                os.path.join(mesh_dir,mesh_name + "_default.elem"))
 
 def extract_LDRB_biv(heart):
     """Function to extract the boundary conditions for the LDRB method from
@@ -117,6 +121,9 @@ def extract_LDRB_biv(heart):
     os.system("meshtool extract mesh -msh=" + os.path.join(path2fourch, fourch_name) + \
                 " -submsh=" + os.path.join(path2biv, "biv") + " -tags=1,2" \
                 " -ifmt=carp_txt -ofmt=carp_txt")
+
+    shutil.copy(os.path.join(path2biv, "biv.elem"),
+                os.path.join(path2biv, "biv_default.elem"))
 
     os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") + \
                            " -files=" + os.path.join(path2fourch,"biv.epi_endo.surf") + \
@@ -308,7 +315,7 @@ def extract_LDRB_biv(heart):
     biv_rvendo_surf.write(os.path.join(path2biv,"biv.rvendo.surf"))
     biv_rvendo_nosept_surf.write(os.path.join(path2biv,"biv.rvendo_nosept.surf"))
     biv_rvsept_surf.write(os.path.join(path2biv,"biv.rvsept.surf"))
-    biv_endo_surf.write(os.path.join(path2biv,"biv_endo.surf"))
+    biv_endo_surf.write(os.path.join(path2biv,"biv.endo.surf"))
     biv_epi_surf.write(os.path.join(path2biv,"biv.epi.surf"))
     biv_noLVendo_surf.write(os.path.join(path2biv,"biv_noLVendo.surf"))
     biv_noRVendo_surf.write(os.path.join(path2biv,"biv_noRVendo.surf"))
@@ -317,7 +324,7 @@ def extract_LDRB_biv(heart):
     biv_rvendo_vtx.write(os.path.join(path2biv,"biv.rvendo.surf.vtx"))
     biv_rvendo_nosept_vtx.write(os.path.join(path2biv,"biv.rvendo_nosept.surf.vtx"))
     biv_rvsept_vtx.write(os.path.join(path2biv,"biv.rvsept.surf.vtx"))
-    biv_endo_vtx.write(os.path.join(path2biv,"biv_endo.surf.vtx"))
+    biv_endo_vtx.write(os.path.join(path2biv,"biv.endo.surf.vtx"))
     biv_epi_vtx.write(os.path.join(path2biv,"biv.epi.surf.vtx"))
     biv_noLVendo_vtx.write(os.path.join(path2biv,"biv_noLVendo.surf.vtx"))
     biv_noRVendo_vtx.write(os.path.join(path2biv,"biv_noRVendo.surf.vtx"))

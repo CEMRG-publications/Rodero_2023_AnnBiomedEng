@@ -6,7 +6,7 @@ import prepare_mesh
 import files_manipulations
 import fibres
 import debug
-import create_UVC
+import UVC
 
 def main():
     bundle_number = "01"
@@ -21,8 +21,11 @@ def main():
     # prepare_mesh.extract_MVTV_base(heart)
     # fibres.run_laplacian(heart)
     # fibres.full_pipeline(heart, alpha_epi = -60, alpha_endo = 80)
-    create_UVC.create(1, "MVTV")
-    
+    # UVC.create(1, "MVTV")
+    # UVC.bottom_third(1, "MVTV")
+    UVC.create_FEC(1, "MVTV")
+    debug.create_FEC(1, "MVTV")
+    # debug.extract_LDRB_biv(heart)
 
 
 if __name__ == "__main__":

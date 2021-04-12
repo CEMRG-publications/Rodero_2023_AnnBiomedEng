@@ -22,7 +22,7 @@ def extract_LDRB_biv(heart):
 
     biv_pts = files_manipulations.pts.read(os.path.join(path2biv,"biv.pts"))
 
-    for files2check in ["biv.epi", "biv_endo", "biv_noLVendo", "biv_noRVendo",
+    for files2check in ["biv.epi", "biv.endo", "biv_noLVendo", "biv_noRVendo",
                         "biv.lvendo", "biv.rvendo", "biv.rvendo_nosept",
                         "biv.rvsept"]:
 
@@ -76,3 +76,36 @@ def extract_MVTV_base(heart):
 
     sub_pts.write(os.path.join(path2debug,"MVTV_base.pts"))
 
+def bottom_third(heart):
+    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
+                            "biv")
+    bottom_third_vtx = files_manipulations.vtx.read(os.path.join(path2biv, "EP",
+                                                                "bottom_third.vtx"),
+                                                    "biv")
+    biv_pts = files_manipulations.pts.read(os.path.join(path2biv,"biv.pts"))
+
+    bottom_third_pts = biv_pts.extract(bottom_third_vtx)
+
+    bottom_third_pts.write(os.path.join(path2biv, "EP", "bottom_third.pts"))
+
+def create_FEC(heart, UVC_base):
+    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
+                            "biv")
+    path2UVC = os.path.join(path2biv,"UVC_" + UVC_base, "UVC")
+
+    pathlib.Path(path2biv,"debug").mkdir(parents=True, exist_ok=True)
+    shutil.copy(os.path.join(path2biv,"biv_FEC.elem"),
+                os.path.join(path2biv,"debug","biv_FEC.elem"))
+    shutil.copy(os.path.join(path2biv,"biv.pts"),
+                os.path.join(path2biv,"debug","biv_FEC.pts"))
+    
+    os.system("GlVTKConvert -m " + os.path.join(path2biv,"debug","biv_FEC") +\
+              " -e " + os.path.join(path2UVC,"COORDS_Z_elem.dat") +\
+              " -e " + os.path.join(path2UVC,"COORDS_RHO_elem_scaled.dat") +\
+              " -e " + os.path.join(path2UVC,"COORDS_RHO_elem.dat") +\
+              " -n " + os.path.join(path2UVC,"COORDS_RHO.dat") +\
+              " -f txt -F bin -o " + os.path.join(path2biv,"debug","biv_FEC"))
+
+    # os.system("meshtool convert -ifmt=carp_txt -ofmt=vtk_bin" +
+    #           " -imsh=" + os.path.join(path2biv,"debug","biv_FEC") + \
+    #           " -omsh=" + os.path.join(path2biv,"debug","biv_FEC"))

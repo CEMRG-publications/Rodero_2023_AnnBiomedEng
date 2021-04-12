@@ -505,3 +505,20 @@ class elem:
 
         with open(pathname, "ab") as f:
             np.savetxt(f, np.transpose(data), fmt = "%s")
+
+def reescale(value_aray, lower_boundary = 0, upper_boundary = 1):
+    """Function to reescale an array of values to the interval
+    [lower_boundary, upper_boundary] with a linear transformation. 
+
+    Args:
+        value_array (numpy array): Array not scaled.
+        lower_boundary (int, optional): Min value of the new interval. Defaults
+        to 0.
+        upper_boundary (int, optional): Max value of the new interval. Defaults
+        to 1.
+    """
+
+    slope = (upper_boundary - lower_boundary) / (max(value_aray) - min(value_aray))
+    intercept = lower_boundary - slope * min(value_aray)
+
+    return(slope*value_aray + intercept)
