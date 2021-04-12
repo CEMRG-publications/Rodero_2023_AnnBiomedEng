@@ -23,7 +23,10 @@ def run_laplacian(heart, experiment = None):
     else:
         experiment_vec = ["apba","epi","endoLV","endoRV"]
 
-    scripts_folder = "/home/crg17/Desktop/KCL_projects/fitting/python"
+    scripts_folder = os.path.join("/home","crg17","Desktop","KCL_projects",
+                                  "fitting", "python")
+    meshdir  = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
+                            "biv")
 
     for exp in experiment_vec:
         os.system(os.path.join(scripts_folder,"run_fibres.py") + \
