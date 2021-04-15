@@ -47,9 +47,19 @@ def bottom_third(heart, UVC_base):
 
     UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"),dtype = float)
     UVC_RHO = np.genfromtxt(os.path.join(path2UVC, "COORDS_RHO.dat"),dtype = float)
+    septum_vtx = files_manipulations.vtx.read(os.path.join(path2biv,"biv.rvsept.surf.vtx"),"biv")
 
-    bottom_third_indices = np.where((UVC_Z < 0.33) & (UVC_RHO == 0))
-    bottom_third_vtx = files_manipulations.vtx(bottom_third_indices[0], "biv")
+    bottom_third_all = np.where(UVC_Z < 0.33)[0]
+    bottom_third_endo = np.intersect1d(bottom_third_all,np.where(UVC_RHO == 0)[0])
+    bottom_third_septum = np.intersect1d(bottom_third_all, septum_vtx.indices)
+
+    bottom_third_indices = np.append(bottom_third_endo, bottom_third_septum)
+
+
+    bottom_third_vtx = files_manipulations.vtx(bottom_third_indices, "biv")
+
+    # bottom third in the septum
+
 
     pathlib.Path(os.path.join(path2biv,"EP")).mkdir(parents=True, exist_ok=True)
 
