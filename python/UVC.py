@@ -8,7 +8,7 @@ import files_manipulations
 
 def create(heart, base):
 
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_1","biv")
+    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + heart,"biv")
     path2scripts = os.path.join("/home","crg17","Desktop",
                                 "KCL_projects","fitting")
     exe = os.path.join(path2scripts, "python", "model_arch_ek.py")
