@@ -5,7 +5,7 @@ import shutil
 import files_manipulations
 
 
-def carp2init(heart, lastFECtag, CV_l, CV_t, CV_FEC):
+def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC):
     """Function with CARP arguments that creates an init file to then run
     ekbatch.
 
@@ -13,6 +13,9 @@ def carp2init(heart, lastFECtag, CV_l, CV_t, CV_FEC):
         lastFECtag (int): Last tag to include in the FEC layer. Minimum 25,
         maximum tag is 38. The rest of the tags is myocardium.
     """
+
+    CV_t = float(CV_l)*float(k_fibre)
+    CV_FEC = float(CV_l)*float(k_FEC)
 
     path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
                             "biv")
@@ -32,7 +35,7 @@ def carp2init(heart, lastFECtag, CV_l, CV_t, CV_FEC):
     f.write('retro_delay:0 antero_delay:0\n') # If there's no PS, it's ignored.
 
     # number of stimuli and regions
-    f.write('%d %d\n' % (1, int(len(tags_myo)) + len(tags_FEC)))
+    f.write('%d %d\n' % (bottom_third.size, int(len(tags_myo)) + len(tags_FEC)))
 
     # stimulus
     for n in bottom_third.indices:

@@ -1,2 +1,11 @@
 __pycache__/*
 __pycache__/prepare_mesh.cpython-36.pyc
+gpytGPE/
+deformetrica_support/
+decomposition/
+__init__.py
+Historia/
+DataOutput/
+CardiacShapeModel/
+CardiacMeshConstruction/
+__pycache__/prepare_mesh.cpython-36.pyc
