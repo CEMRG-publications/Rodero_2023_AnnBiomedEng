@@ -21,22 +21,27 @@ def main():
     alpha_endo = 50
     alpha_epi = -50
     mesh_ID = 1
+    UVC_base = "MVTV"
 
-    # generate.input_EP_param()
-    # generate.synthetic_mesh(mesh_ID)
-    # generate.EP_pipeline(mesh_ID)
+    # generate.template_mesh_setup()
+    # generate.EP_funct_param(200)
+    # generate.template_EP(50)
+    # generate.template_EP_parallel(line_from = 35, line_to = 39, n_jobs = 20)
+    generate.EP_output()
 
     # prepare_mesh.download_zip(bundle_number)
     # prepare_mesh.unzip_meshes(bundle_number)
     # prepare_mesh.vtk_mm2carp_um(heart)
+
+    # fibres.FibreCorrection(heart, alpha_epi, alpha_endo)
 
     # prepare_mesh.extract_LDRB_biv(heart)
     # prepare_mesh.extract_MVTV_base(heart)
     # fibres.run_laplacian(heart)
     # fibres.full_pipeline(heart, alpha_epi, alpha_endo)
     # UVC.create(1, "MVTV")
-    UVC.bottom_third(1, "MVTV")
-    debug.bottom_third(1)
+    # UVC.bottom_third(1, "MVTV")
+    # debug.bottom_third(1)
     # UVC.create_FEC(1, "MVTV")
     # debug.create_FEC(1, "MVTV")
     # run_EP.carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC)
