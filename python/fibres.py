@@ -92,56 +92,59 @@ def FibreCorrection(heart, alpha_epi, alpha_endo):
     t0=time.clock()
 
     tets_ind = np.where(np.abs(biv_lon.f3) < 1e-6)[0]
-    print("Correcting fibres...")
-    for index_to_correct in tqdm.tqdm(tets_ind):
+    if len(tets_ind) > 1e5:
+        print("Too many fibres to correct. Skipping...")
+    else:
+        print("Correcting fibres...")
+        for index_to_correct in tqdm.tqdm(tets_ind):
 
-        # Compute centre of gravity of the element
-        g0 = (biv_pts.p1[biv_elem.i1[index_to_correct]] + \
-             biv_pts.p1[biv_elem.i2[index_to_correct]] + \
-             biv_pts.p1[biv_elem.i3[index_to_correct]] + \
-             biv_pts.p1[biv_elem.i4[index_to_correct]]) / 4.
+            # Compute centre of gravity of the element
+            g0 = (biv_pts.p1[biv_elem.i1[index_to_correct]] + \
+                biv_pts.p1[biv_elem.i2[index_to_correct]] + \
+                biv_pts.p1[biv_elem.i3[index_to_correct]] + \
+                biv_pts.p1[biv_elem.i4[index_to_correct]]) / 4.
 
-        g1 = (biv_pts.p2[biv_elem.i1[index_to_correct]] + \
-             biv_pts.p2[biv_elem.i2[index_to_correct]] + \
-             biv_pts.p2[biv_elem.i3[index_to_correct]] + \
-             biv_pts.p2[biv_elem.i4[index_to_correct]]) / 4.
+            g1 = (biv_pts.p2[biv_elem.i1[index_to_correct]] + \
+                biv_pts.p2[biv_elem.i2[index_to_correct]] + \
+                biv_pts.p2[biv_elem.i3[index_to_correct]] + \
+                biv_pts.p2[biv_elem.i4[index_to_correct]]) / 4.
 
-        g2 = (biv_pts.p3[biv_elem.i1[index_to_correct]] + \
-             biv_pts.p3[biv_elem.i2[index_to_correct]] + \
-             biv_pts.p3[biv_elem.i3[index_to_correct]] + \
-             biv_pts.p3[biv_elem.i4[index_to_correct]]) / 4.
+            g2 = (biv_pts.p3[biv_elem.i1[index_to_correct]] + \
+                biv_pts.p3[biv_elem.i2[index_to_correct]] + \
+                biv_pts.p3[biv_elem.i3[index_to_correct]] + \
+                biv_pts.p3[biv_elem.i4[index_to_correct]]) / 4.
 
-        # Find neighbours points in the sphere centred in the centre of gravity
-        def create_sphere(radius = 800):
-            sphere = np.intersect1d(np.where(np.abs(biv_pts.p1-g0) < radius)[0],
-                                np.intersect1d(np.where(np.abs(biv_pts.p2-g1) < radius)[0],
-                                               np.where(np.abs(biv_pts.p3-g2) < radius)[0]
-                                               )
-                                    )
-            if len(sphere) <= 4:
-                print("Increasing sphere radius...")
-                create_sphere(radius + 100)
-            else:
-                return sphere
-
-        sphere = create_sphere()
-
-        tets_in_sphere_i1 = np.where(np.isin(biv_elem.i1, sphere))
-        tets_in_sphere_i2 = np.where(np.isin(biv_elem.i2, sphere))
-        tets_in_sphere_i3 = np.where(np.isin(biv_elem.i3, sphere))
-        tets_in_sphere_i4 = np.where(np.isin(biv_elem.i4, sphere))
-
-        tets_in_sphere = np.intersect1d(
-                        np.intersect1d(
-                        np.intersect1d(tets_in_sphere_i1, tets_in_sphere_i2),
-                                        tets_in_sphere_i3), tets_in_sphere_i4
+            # Find neighbours points in the sphere centred in the centre of gravity
+            def create_sphere(radius = 800):
+                sphere = np.intersect1d(np.where(np.abs(biv_pts.p1-g0) < radius)[0],
+                                    np.intersect1d(np.where(np.abs(biv_pts.p2-g1) < radius)[0],
+                                                np.where(np.abs(biv_pts.p3-g2) < radius)[0]
+                                                )
                                         )
+                if len(sphere) <= 4:
+                    print("Increasing sphere radius...")
+                    create_sphere(radius + 100)
+                else:
+                    return sphere
 
-        # We take the average direction
+            sphere = create_sphere()
 
-        biv_lon.f1[index_to_correct] = np.mean(biv_lon.f1[tets_in_sphere])
-        biv_lon.f2[index_to_correct] = np.mean(biv_lon.f2[tets_in_sphere])
-        biv_lon.f3[index_to_correct] = np.mean(biv_lon.f3[tets_in_sphere])
+            tets_in_sphere_i1 = np.where(np.isin(biv_elem.i1, sphere))
+            tets_in_sphere_i2 = np.where(np.isin(biv_elem.i2, sphere))
+            tets_in_sphere_i3 = np.where(np.isin(biv_elem.i3, sphere))
+            tets_in_sphere_i4 = np.where(np.isin(biv_elem.i4, sphere))
+
+            tets_in_sphere = np.intersect1d(
+                            np.intersect1d(
+                            np.intersect1d(tets_in_sphere_i1, tets_in_sphere_i2),
+                                            tets_in_sphere_i3), tets_in_sphere_i4
+                                            )
+
+            # We take the average direction
+
+            biv_lon.f1[index_to_correct] = np.mean(biv_lon.f1[tets_in_sphere])
+            biv_lon.f2[index_to_correct] = np.mean(biv_lon.f2[tets_in_sphere])
+            biv_lon.f3[index_to_correct] = np.mean(biv_lon.f3[tets_in_sphere])
 
     print(time.clock())
     return biv_lon
