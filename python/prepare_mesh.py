@@ -391,3 +391,58 @@ def extract_MVTV_base(heart):
     for vtx_file in ["MVTV_base.surf.vtx"]:
         vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
         vtx.write(os.path.join(path2biv,vtx_file))
+
+def extract_peri_base(fourch_name):
+    
+    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2biv = path2fourch + "/biv"
+
+    # The base is intersection of the ventricles with the aorta, MV, TV, PV and AV
+
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) + \
+                        " -surf=" + os.path.join(path2fourch,"peri_base") + \
+                        " -op=1,2:5,7,8,9,10" + \
+                        " -ifmt=carp_txt" + \
+                        " -ofmt=carp_txt")
+
+    os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") + \
+                           " -files=" + os.path.join(path2fourch,"peri_base.surf") + "," + \
+                                        os.path.join(path2fourch,"peri_base.surf.vtx") + "," + \
+                            " -outdir=" + path2biv)
+
+    for vtx_file in ["peri_base.surf.vtx"]:
+        vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
+        vtx.write(os.path.join(path2biv,vtx_file))
+
+def close_LV_endo(fourch_name):
+
+    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2biv = os.path.join(path2fourch,"biv")
+    
+    chamber_open_biv = "biv.lvendo.surf"
+    chamber_open_fourch = "lvendo_open"
+    valve_atrium = "MV.surmesh"
+    chamber_valve = "lvendo_mv"
+    valve_artery = ""
+
+    # Create elem and pts of both the chamber (open) and the valves
+
+    os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") +\
+              " -files=" + os.path.join(path2biv,chamber_open_biv) +\
+              " -outdir=" + path2fourch + " -mode=s2m")
+    os.rename(os.path.join(path2fourch,chamber_open_biv),
+              os.path.join(path2fourch,chamber_open_fourch + ".elem"))
+
+    shutil.copy(os.path.join(path2biv, "biv.pts"),
+                os.path.join(path2fourch,chamber_open_fourch + ".pts"))
+    
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,chamber_open_fourch) +\
+              " -msh2=" + os.path.join(path2fourch,valve_atrium) +\
+              " -ifmt=carp_txt -ofmt=carp_txt " +\
+              " -outmsh=" + os.path.join(path2fourch,chamber_valve))
+
+    # We need now to extract the AV so we can append it to the previous mesh.
+
+
+    # Strategy: Close the LV with the whole MV, then run extract unreachable
+    # and keep the biggest file. First need .elem and .pts of both.
