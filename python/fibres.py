@@ -89,7 +89,7 @@ def FibreCorrection(heart, alpha_epi, alpha_endo):
     biv_elem = files_manipulations.elem.read(os.path.join(path2biv,"biv.elem"))
 
     # Identify tets with wrong fibres
-    t0=time.clock()
+    t0=time.perf_counter()
 
     tets_ind = np.where(np.abs(biv_lon.f3) < 1e-6)[0]
     if len(tets_ind) > 1e5:
@@ -146,7 +146,7 @@ def FibreCorrection(heart, alpha_epi, alpha_endo):
             biv_lon.f2[index_to_correct] = np.mean(biv_lon.f2[tets_in_sphere])
             biv_lon.f3[index_to_correct] = np.mean(biv_lon.f3[tets_in_sphere])
 
-    print(time.clock())
+    print(time.perf_counter())
     return biv_lon
 
 def full_pipeline(heart, alpha_epi = -60, alpha_endo = 80):
@@ -157,19 +157,21 @@ def full_pipeline(heart, alpha_epi = -60, alpha_endo = 80):
     fibre_dir = biv_dir + "/fibres"
     outname = "rb" + "_" + str(alpha_epi) + "_" + str(alpha_endo)
 
-    rb_bayer(heart, alpha_epi, alpha_endo)
-    biv_lon_corrected = FibreCorrection(heart, alpha_epi, alpha_endo)
-    biv_lon_corrected.normalise
-    biv_lon_corrected.write(os.path.join(fibre_dir,outname + ".lon"))
+    if not os.path.isfile(os.path.join(fibre_dir,outname + ".lon")):
+
+        rb_bayer(heart, alpha_epi, alpha_endo)
+        biv_lon_corrected = FibreCorrection(heart, alpha_epi, alpha_endo)
+        biv_lon_corrected.normalise
+        biv_lon_corrected.write(os.path.join(fibre_dir,outname + ".lon"))
 
     shutil.copy(os.path.join(biv_dir,"biv.pts"),os.path.join(fibre_dir, outname + ".pts"))
     shutil.copy(os.path.join(biv_dir,"biv.elem"),os.path.join(fibre_dir, outname + ".elem"))
 
-    pathlib.Path(os.path.join(fourch_dir,"fibres")).mkdir(parents=True, exist_ok=True)
+    # pathlib.Path(os.path.join(fourch_dir,"fibres")).mkdir(parents=True, exist_ok=True)
 
-    os.system("meshtool insert meshdata -imsh=" + \
-              os.path.join(fibre_dir,outname) + \
-             " -msh=" + os.path.join(fourch_dir,fourch_name) + \
-             " -op=1 -ifmt=carp_txt -ofmt=carp_txt" + \
-             " -outmsh=" + os.path.join(fourch_dir,"fibres",outname))
+    # os.system("meshtool insert meshdata -imsh=" + \
+    #           os.path.join(fibre_dir,outname) + \
+    #          " -msh=" + os.path.join(fourch_dir,fourch_name) + \
+    #          " -op=1 -ifmt=carp_txt -ofmt=carp_txt" + \
+    #          " -outmsh=" + os.path.join(fourch_dir,"fibres",outname))
 

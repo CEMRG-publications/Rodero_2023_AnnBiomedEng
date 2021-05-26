@@ -5,7 +5,8 @@ import shutil
 import files_manipulations
 
 
-def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, suffix = None):
+def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, simulation_file_name,
+              path_EP = ""):
     """Function with CARP arguments that creates an init file to then run
     ekbatch.
 
@@ -23,17 +24,14 @@ def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, suffix = None):
     tags_myo = np.append([1, 2],range(lastFECtag + 1, 39))
     tags_FEC = np.array(range(25,lastFECtag + 1))
 
-    bottom_third = files_manipulations.vtx.read(os.path.join(path2biv,"EP",
+    bottom_third = files_manipulations.vtx.read(os.path.join(path2biv,
                                                 "bottom_third.vtx"),
                                                 "biv")
 
     # write .init file
-    if(suffix is None):
-        outname = "bottom_third.init"
-    else:
-        outname = "bottom_third_" + str(suffix) + ".init"
+    outname = simulation_file_name.split('/')[-1][:-4] + ".init"
 
-    f = open(os.path.join(path2biv, "EP", outname), "w")
+    f = open(os.path.join(path_EP, outname), "w")
 
     # header
     f.write('vf:0 vs:0 vn:0 vPS:0\n') # Default properties
@@ -54,47 +52,28 @@ def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, suffix = None):
     
     f.close()
 
-def launch_init(heart, alpha_endo, alpha_epi, suffix = None):
+def launch_init(heart, alpha_endo, alpha_epi, simulation_file_name, path_EP = ""):
     path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
                             "biv")
-    path2sim = os.path.join(path2biv,"EP")
+    path2sim = path_EP
 
-    if(suffix is None):
-        shutil.copy(os.path.join(path2biv,"biv_FEC.elem"),
-            os.path.join(path2sim,"biv_EP.elem")
-            )
+    outname = simulation_file_name.split('/')[-1][:-4]
 
-        shutil.copy(os.path.join(path2biv,"fibres",
-            "rb_"+str(alpha_epi)+"_"+str(alpha_endo)+".lon"
-            ),
-            os.path.join(path2sim,"biv_EP.lon")
-            )
-
-        shutil.copy(os.path.join(path2biv,"biv.pts"),
-                    os.path.join(path2sim,"biv_EP.pts")
-                    )
-
-        outname = "bottom_third"
-
-        os.system("ekbatch " + os.path.join(path2sim,"biv_EP") + " " + \
-                        os.path.join(path2sim,outname)
+    
+    shutil.copy(os.path.join(path2biv,"biv_FEC.elem"),
+        os.path.join(path2sim, outname + ".elem")
         )
-    else:
-        shutil.copy(os.path.join(path2biv,"biv_FEC.elem"),
-            os.path.join(path2sim,"biv_EP_" + str(suffix) + ".elem")
-            )
 
-        shutil.copy(os.path.join(path2biv,"fibres",
-            "rb_"+str(alpha_epi)+"_"+str(alpha_endo)+".lon"
-            ),
-            os.path.join(path2sim,"biv_EP_" + str(suffix) + ".lon")
-            )
-
-        shutil.copy(os.path.join(path2biv,"biv.pts"),
-                    os.path.join(path2sim,"biv_EP_" + str(suffix) + ".pts")
-                    )
-        outname = "bottom_third_" + str(suffix)
-
-        os.system("ekbatch " + os.path.join(path2sim,"biv_EP_" + str(suffix)) + " " + \
-                os.path.join(path2sim,outname)
+    shutil.copy(os.path.join(path2biv,"fibres",
+        "rb_"+str(alpha_epi)+"_"+str(alpha_endo)+".lon"
+        ),
+        os.path.join(path2sim,outname + ".lon")
         )
+
+    shutil.copy(os.path.join(path2biv,"biv.pts"),
+                os.path.join(path2sim,outname + ".pts")
+                )
+
+    os.system("ekbatch " + os.path.join(path2sim,outname) + " " + \
+            os.path.join(path2sim,outname)
+    )

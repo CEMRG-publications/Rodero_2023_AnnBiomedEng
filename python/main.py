@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import numpy as np
 
 import prepare_mesh 
 import files_manipulations
@@ -12,7 +13,7 @@ import generate
 
 def main():
     bundle_number = "01"
-    heart=1
+    heart="Template"
     scripts_folder = "/home/crg17/Desktop/KCL_projects/fitting/python"
     lastFECtag=30
     CV_l = 0.5
@@ -20,14 +21,21 @@ def main():
     k_FEC = 6.
     alpha_endo = 50
     alpha_epi = -50
-    mesh_ID = 1
+    mesh_ID = "Template"
     UVC_base = "MVTV"
 
     # generate.template_mesh_setup()
-    # generate.EP_funct_param(200)
+    # goal_training_set_size = 5*40
+    # at_least = int(goal_training_set_size/(0.8*0.8))
+    # generate.EP_funct_param(at_least)
     # generate.template_EP(50)
-    # generate.template_EP_parallel(line_from = 35, line_to = 39, n_jobs = 20)
-    generate.EP_output()
+    # generate.template_EP_parallel(line_from = 156, line_to = at_least-1, waveno = 0)
+    # generate.EP_output(15, waveno = 1)
+    # ISWT, WT, EDD, LV_mass = generate.anatomical_output("Full_Heart_Mesh_Template_backup")
+    # print(ISWT)
+    # print(WT)
+    # print(EDD)
+    # print(LV_mass)
 
     # prepare_mesh.download_zip(bundle_number)
     # prepare_mesh.unzip_meshes(bundle_number)
@@ -37,7 +45,7 @@ def main():
 
     # prepare_mesh.extract_LDRB_biv(heart)
     # prepare_mesh.extract_MVTV_base(heart)
-    # fibres.run_laplacian(heart)
+    fibres.run_laplacian(heart)
     # fibres.full_pipeline(heart, alpha_epi, alpha_endo)
     # UVC.create(1, "MVTV")
     # UVC.bottom_third(1, "MVTV")
