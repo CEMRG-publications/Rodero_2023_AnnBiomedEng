@@ -418,31 +418,192 @@ def close_LV_endo(fourch_name):
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = os.path.join(path2fourch,"biv")
-    
-    chamber_open_biv = "biv.lvendo.surf"
-    chamber_open_fourch = "lvendo_open"
-    valve_atrium = "MV.surmesh"
-    chamber_valve = "lvendo_mv"
-    valve_artery = ""
-
-    # Create elem and pts of both the chamber (open) and the valves
 
     os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") +\
-              " -files=" + os.path.join(path2biv,chamber_open_biv) +\
+              " -files=" + os.path.join(path2biv,"biv.lvendo.surf") +\
               " -outdir=" + path2fourch + " -mode=s2m")
-    os.rename(os.path.join(path2fourch,chamber_open_biv),
-              os.path.join(path2fourch,chamber_open_fourch + ".elem"))
+
+    os.rename(os.path.join(path2fourch,"biv.lvendo.surf"),
+              os.path.join(path2fourch,"lvendo_open.elem"))
 
     shutil.copy(os.path.join(path2biv, "biv.pts"),
-                os.path.join(path2fourch,chamber_open_fourch + ".pts"))
+                os.path.join(path2fourch,"lvendo_open.pts"))
     
-    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,chamber_open_fourch) +\
-              " -msh2=" + os.path.join(path2fourch,valve_atrium) +\
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,"lvendo_open") +\
+              " -msh2=" + os.path.join(path2fourch,"MV.surfmesh") +\
               " -ifmt=carp_txt -ofmt=carp_txt " +\
-              " -outmsh=" + os.path.join(path2fourch,chamber_valve))
+              " -outmsh=" + os.path.join(path2fourch,"lvendo_floating_mv"))
 
-    # We need now to extract the AV so we can append it to the previous mesh.
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"lvendo_floating_mv") + \
+                            " -submsh=" + os.path.join(path2fourch,"lvendo_mv_split") + \
+                            " -ifmt=carp_txt" + \
+                            " -ofmt=carp_txt")
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"lvendo_mv_split*part*elem"))
 
+    size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
 
-    # Strategy: Close the LV with the whole MV, then run extract unreachable
-    # and keep the biggest file. First need .elem and .pts of both.
+    idx_chamber = size_files.index(max(size_files))
+    idx_valve = size_files.index(max(size_files[:idx_chamber] + size_files[(idx_chamber + 1):]))
+
+    shutil.copy(chamber_or_valve_files[idx_chamber], os.path.join(path2fourch, "lvendo_mv.elem"))
+    shutil.copy(chamber_or_valve_files[idx_chamber][:-5] + ".pts", os.path.join(path2fourch, "lvendo_mv.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "mv_la.elem"))
+    shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "mv_la.pts"))
+
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
+              " -surf=" + os.path.join(path2fourch,"AV") +\
+              " -op=9-1,5 -ifmt=carp_txt -ofmt=carp_txt")
+
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,"lvendo_mv") +\
+              " -msh2=" + os.path.join(path2fourch,"AV.surfmesh") +\
+              " -ifmt=carp_txt -ofmt=carp_txt " +\
+              " -outmsh=" + os.path.join(path2fourch,"lvendo_floating_av"))
+
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"lvendo_floating_av") + \
+                            " -submsh=" + os.path.join(path2fourch,"lvendo_av_split") + \
+                            " -ifmt=carp_txt" + \
+                            " -ofmt=carp_txt")
+
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"lvendo_av_split*part*elem"))
+
+    size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
+
+    idx_chamber = size_files.index(max(size_files))
+    idx_valve = size_files.index(max(size_files[:idx_chamber] + size_files[(idx_chamber + 1):]))
+
+    shutil.copy(chamber_or_valve_files[idx_chamber], os.path.join(path2fourch, "lvendo_closed.elem"))
+    shutil.copy(chamber_or_valve_files[idx_chamber][:-5] + ".pts", os.path.join(path2fourch, "lvendo_closed.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "av_ao.elem"))
+    shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "av_ao.pts"))
+
+def close_RV_endo(fourch_name):
+
+    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2biv = os.path.join(path2fourch,"biv")
+
+    os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") +\
+              " -files=" + os.path.join(path2biv,"biv.rvendo.surf") +\
+              " -outdir=" + path2fourch + " -mode=s2m")
+
+    os.rename(os.path.join(path2fourch,"biv.rvendo.surf"),
+              os.path.join(path2fourch,"rvendo_open.elem"))
+
+    shutil.copy(os.path.join(path2biv, "biv.pts"),
+                os.path.join(path2fourch,"rvendo_open.pts"))
+    
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
+              " -surf=" + os.path.join(path2fourch,"tv") +\
+              " -op=8-2,4 -ifmt=carp_txt -ofmt=carp_txt")
+    
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,"rvendo_open") +\
+              " -msh2=" + os.path.join(path2fourch,"tv.surfmesh") +\
+              " -ifmt=carp_txt -ofmt=carp_txt " +\
+              " -outmsh=" + os.path.join(path2fourch,"rvendo_floating_tv"))
+
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"rvendo_floating_tv") + \
+                            " -submsh=" + os.path.join(path2fourch,"rvendo_tv_split") + \
+                            " -ifmt=carp_txt" + \
+                            " -ofmt=carp_txt")
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"rvendo_tv_split*part*elem"))
+
+    size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
+
+    idx_chamber = np.argsort(size_files)[-1]
+    idx_valve = np.argsort(size_files)[-2]
+
+    shutil.copy(chamber_or_valve_files[idx_chamber], os.path.join(path2fourch, "rvendo_tv.elem"))
+    shutil.copy(chamber_or_valve_files[idx_chamber][:-5] + ".pts", os.path.join(path2fourch, "rvendo_tv.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "tv_la.elem"))
+    shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "tv_la.pts"))
+
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
+              " -surf=" + os.path.join(path2fourch,"pv") +\
+              " -op=10-2,6 -ifmt=carp_txt -ofmt=carp_txt")
+
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,"rvendo_tv") +\
+              " -msh2=" + os.path.join(path2fourch,"pv.surfmesh") +\
+              " -ifmt=carp_txt -ofmt=carp_txt " +\
+              " -outmsh=" + os.path.join(path2fourch,"rvendo_floating_pv"))
+
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"rvendo_floating_pv") + \
+                            " -submsh=" + os.path.join(path2fourch,"rvendo_pv_split") + \
+                            " -ifmt=carp_txt" + \
+                            " -ofmt=carp_txt")
+
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"rvendo_pv_split*part*elem"))
+
+    size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
+
+    idx_chamber = np.argsort(size_files)[-1]
+    idx_valve = np.argsort(size_files)[-2]
+
+    shutil.copy(chamber_or_valve_files[idx_chamber], os.path.join(path2fourch, "rvendo_closed.elem"))
+    shutil.copy(chamber_or_valve_files[idx_chamber][:-5] + ".pts", os.path.join(path2fourch, "rvendo_closed.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "pv_pa.elem"))
+    shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "pv_pa.pts"))
+
+def close_LA_endo(fourch_name):
+    ## ATRIA: Extract the surfaces with the veins and the valve. The biggest
+    # file will be the epi with the veins. The second will be the endo closed and
+    # the third will be the valve in the ventricle.
+    path2fourch = os.path.join("/data","fitting",fourch_name)
+
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
+              " -surf=" + os.path.join(path2fourch,"la_epi_endo_floating_mv") +\
+              " -op=3,7,11,12,13,14,15-1 -ifmt=carp_txt -ofmt=carp_txt")
+
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"la_epi_endo_floating_mv") + \
+                            " -submsh=" + os.path.join(path2fourch,"la_epi_endo_mv_split") + \
+                            " -ifmt=carp_txt" + \
+                            " -ofmt=carp_txt")
+
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"la_epi_endo_mv_split*part*elem"))
+
+    size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
+    
+    idx_epi = np.argsort(size_files)[-1]
+    idx_endo = np.argsort(size_files)[-2]
+    idx_valve = np.argsort(size_files)[-3]
+
+    shutil.copy(chamber_or_valve_files[idx_endo], os.path.join(path2fourch, "laendo_closed.elem"))
+    shutil.copy(chamber_or_valve_files[idx_endo][:-5] + ".pts", os.path.join(path2fourch, "laendo_closed.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_epi], os.path.join(path2fourch, "laepi.elem"))
+    shutil.copy(chamber_or_valve_files[idx_epi][:-5] + ".pts", os.path.join(path2fourch, "laepi.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "mv_lv.elem"))
+    shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "mv_lv.pts"))
+
+def close_RA_endo(fourch_name):
+
+    path2fourch = os.path.join("/data","fitting",fourch_name)
+
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
+              " -surf=" + os.path.join(path2fourch,"ra_epi_endo_floating_tv") +\
+              " -op=4,8,16,17-2 -ifmt=carp_txt -ofmt=carp_txt")
+
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"ra_epi_endo_floating_tv") + \
+                            " -submsh=" + os.path.join(path2fourch,"ra_epi_endo_tv_split") + \
+                            " -ifmt=carp_txt" + \
+                            " -ofmt=carp_txt")
+
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"ra_epi_endo_tv_split*part*elem"))
+
+    size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
+    
+    idx_epi = np.argsort(size_files)[-1]
+    idx_endo = np.argsort(size_files)[-2]
+    idx_valve = np.argsort(size_files)[-3]
+
+    shutil.copy(chamber_or_valve_files[idx_endo], os.path.join(path2fourch, "raendo_closed.elem"))
+    shutil.copy(chamber_or_valve_files[idx_endo][:-5] + ".pts", os.path.join(path2fourch, "raendo_closed.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_epi], os.path.join(path2fourch, "raepi.elem"))
+    shutil.copy(chamber_or_valve_files[idx_epi][:-5] + ".pts", os.path.join(path2fourch, "raepi.pts"))
+
+    shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "tv_rv.elem"))
+    shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "tv_rv.pts"))
