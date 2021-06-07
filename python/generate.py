@@ -361,7 +361,8 @@ def anatomical_output(heart_name, return_ISWT = True, return_WT = True,
                       return_LVOTdiam = True, return_RVOTdiam = True,
                       close_RV = True, close_LA = True, return_LAendovol = True,
                       close_RA = True, return_RAendovol = True,
-                      return_RVlongdiam = True, return_RVbasaldiam = True):
+                      return_RVlongdiam = True, return_RVbasaldiam = True,
+                      return_RVendovol = True):
     
     path2fourch = os.path.join("/data","fitting",heart_name)
     biv_path = os.path.join(path2fourch,"biv")
@@ -383,7 +384,7 @@ def anatomical_output(heart_name, return_ISWT = True, return_WT = True,
 
         output_list["LVOT diameter, mm"] = round(LVOTdiam,2)
 
-    if close_RV and (return_RVOTdiam or return_RVlongdiam or return_RVbasaldiam):
+    if close_RV and (return_RVOTdiam or return_RVlongdiam or return_RVbasaldiam or return_RVendovol):
         prepare_mesh.close_RV_endo(heart_name)
 
     if return_RVOTdiam:
@@ -397,11 +398,23 @@ def anatomical_output(heart_name, return_ISWT = True, return_WT = True,
 
         RVOTdiam = 2*np.sqrt(RVOT_area/np.pi)
 
-        output_list["RVOT diameter, mm"] = round(RVOTdiam,2)
+        output_list["RVOT diameter, mm"] = round(RVOTdiam,2)        
+
+    if return_RVendovol or return_RVlongdiam:
+        rvendo_closed = files_manipulations.pts.read(os.path.join(path2fourch,"rvendo_closed.pts"))
+
+        if return_RVendovol:
+            rvendo_closed_surf = files_manipulations.surf.read(os.path.join(path2fourch,"rvendo_closed.elem"), heart_name)
+            vol_array = files_manipulations.area_or_vol_surface(pts_file = rvendo_closed,
+                        surf_file = rvendo_closed_surf, with_vol = True,
+                        with_area = False)
+            RVendovol = sum(vol_array)*1e-12 # In mL
+
+            output_list["RV volume, mL"] = np.abs(round(RVendovol,2))
+
 
     if return_RVlongdiam or return_RVbasaldiam:
         tvrv_pts = files_manipulations.pts.read(os.path.join(path2fourch,"tv_rv.pts"))
-        rvendo_closed = files_manipulations.pts.read(os.path.join(path2fourch,"rvendo_closed.pts"))
 
         tvrv_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","tv_rv.elem"),heart_name)
 
