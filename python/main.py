@@ -31,8 +31,14 @@ def main():
     # generate.template_EP(50)
     # generate.template_EP_parallel(line_from = 156, line_to = at_least-1, waveno = 0)
     # generate.EP_output(15, waveno = 1)
-    # ISWT, WT, EDD, LV_mass = generate.anatomical_output("Full_Heart_Mesh_Template_backup")
-    # print(ISWT)
+    anatomical_output = generate.anatomical_output("Full_Heart_Mesh_Template_backup",return_ISWT = False, return_WT = False,
+                      return_EDD = False, return_LVmass = False,
+                      return_LVendovol = False, close_LV = False,
+                      return_LVOTdiam = False, close_RV = False,
+                      return_RVOTdiam = False, close_LA = False,
+                      return_LAendovol = False, close_RA = False,
+                      return_RAendovol = False, return_RVlongdiam = True)
+    [print(key,':',value) for key, value in anatomical_output.items()]
     # print(WT)
     # print(EDD)
     # print(LV_mass)
@@ -45,7 +51,7 @@ def main():
 
     # prepare_mesh.extract_LDRB_biv(heart)
     # prepare_mesh.extract_MVTV_base(heart)
-    fibres.run_laplacian(heart)
+    # fibres.run_laplacian(heart)
     # fibres.full_pipeline(heart, alpha_epi, alpha_endo)
     # UVC.create(1, "MVTV")
     # UVC.bottom_third(1, "MVTV")

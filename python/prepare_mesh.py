@@ -554,9 +554,9 @@ def close_LA_endo(fourch_name):
 
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
               " -surf=" + os.path.join(path2fourch,"la_epi_endo_floating_mv") +\
-              " -op=3,7,11,12,13,14,15-1 -ifmt=carp_txt -ofmt=carp_txt")
-
-    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"la_epi_endo_floating_mv") + \
+              " -op=3,7,11,12,13,14,15,18,19,20,21,22-1 -ifmt=carp_txt -ofmt=carp_txt")
+    
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"la_epi_endo_floating_mv.surfmesh") + \
                             " -submsh=" + os.path.join(path2fourch,"la_epi_endo_mv_split") + \
                             " -ifmt=carp_txt" + \
                             " -ofmt=carp_txt")
@@ -584,9 +584,9 @@ def close_RA_endo(fourch_name):
 
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
               " -surf=" + os.path.join(path2fourch,"ra_epi_endo_floating_tv") +\
-              " -op=4,8,16,17-2 -ifmt=carp_txt -ofmt=carp_txt")
+              " -op=4,8,16,17,23,24-2 -ifmt=carp_txt -ofmt=carp_txt")
 
-    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"ra_epi_endo_floating_tv") + \
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"ra_epi_endo_floating_tv.surfmesh") + \
                             " -submsh=" + os.path.join(path2fourch,"ra_epi_endo_tv_split") + \
                             " -ifmt=carp_txt" + \
                             " -ofmt=carp_txt")
@@ -595,9 +595,23 @@ def close_RA_endo(fourch_name):
 
     size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
     
-    idx_epi = np.argsort(size_files)[-1]
-    idx_endo = np.argsort(size_files)[-2]
+    # idx_epi = np.argsort(size_files)[-1]
+    idx_epi_or_endo = np.argsort(size_files)[-2]
     idx_valve = np.argsort(size_files)[-3]
+
+    # The size criterion for the epi/endo doesn't seem to work for the RA. So
+    # we read the smallest of the two and check the tags.
+    is_this_epi_or_endo_elem = files_manipulations.surf.read(chamber_or_valve_files[idx_epi_or_endo],fourch_name)
+
+    for tag_num in is_this_epi_or_endo_elem.tags:
+        if tag_num == 23 or tag_num == 24:
+            idx_epi = np.argsort(size_files)[-2]
+            idx_endo = np.argsort(size_files)[-1]
+            break
+        elif tag_num == 8:
+            idx_endo = np.argsort(size_files)[-2]
+            idx_epi = np.argsort(size_files)[-1]
+            break
 
     shutil.copy(chamber_or_valve_files[idx_endo], os.path.join(path2fourch, "raendo_closed.elem"))
     shutil.copy(chamber_or_valve_files[idx_endo][:-5] + ".pts", os.path.join(path2fourch, "raendo_closed.pts"))

@@ -96,7 +96,7 @@ class surf:
         """
 
         surfmesh_str = pathname.split(".")[-1]
-        if(surfmesh_str == "surfmesh"):
+        if(surfmesh_str == "surfmesh" or pathname.split(".")[-2][0:4] == "part"):
             num_cols = (1,2,3,4)
             is_surfmesh = True
         else:
@@ -287,6 +287,26 @@ class pts:
         new_p3 = self.p3[vtx_array.indices]
 
         return pts(new_p1, new_p2, new_p3, self.name)
+
+    def min_dist(self, p):
+
+
+        dist_vec = np.array([])
+        for i in range(self.size):
+            dist_vec = np.append(dist_vec,
+                                np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
+                                              )
+                                )
+        return min(dist_vec)
+    
+    def where_min(self, p):
+        dist_vec = np.array([])
+        for i in range(self.size):
+            dist_vec = np.append(dist_vec,
+                                np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
+                                              )
+                                )
+        return dist_vec.index(min(dist_vec))
 
     def write(self,pathname):
         """Function to write a pts object to a file.
@@ -522,3 +542,51 @@ def reescale(value_aray, lower_boundary = 0, upper_boundary = 1):
     intercept = lower_boundary - slope * min(value_aray)
 
     return(slope*value_aray + intercept)
+
+def area_or_vol_surface(pts_file, surf_file, with_vol, with_area):
+
+    d12 = np.array([np.nan,np.nan,np.nan])
+    d13 = np.array([np.nan,np.nan,np.nan])
+    if with_vol:
+        vol = np.array([])
+    if with_area:
+        area = np.array([])
+    
+    for i in range(surf_file.size):
+        d13[0] = pts_file.p1[surf_file.i1[i]] - \
+                pts_file.p1[surf_file.i3[i]]
+        d13[1] = pts_file.p2[surf_file.i1[i]] - \
+                pts_file.p2[surf_file.i3[i]]
+        d13[2] = pts_file.p3[surf_file.i1[i]] - \
+                pts_file.p3[surf_file.i3[i]]
+
+        d12[0] = pts_file.p1[surf_file.i1[i]] - \
+                pts_file.p1[surf_file.i2[i]]
+        d12[1] = pts_file.p2[surf_file.i1[i]] - \
+                pts_file.p2[surf_file.i2[i]]
+        d12[2] = pts_file.p3[surf_file.i1[i]] - \
+                pts_file.p3[surf_file.i2[i]]
+        
+        cr = np.cross(d13,d12)
+        crNorm = np.linalg.norm(cr)
+
+        area_tr = 0.5*crNorm
+        
+        if with_area:
+            area = np.append(area,area_tr)
+        if with_vol:
+            zMean = (pts_file.p3[surf_file.i1[i]] + \
+                    pts_file.p3[surf_file.i2[i]] + \
+                    pts_file.p3[surf_file.i3[i]])/3.
+
+            nz = cr[2]/crNorm
+
+            vol = np.append(vol,area_tr*zMean*nz)
+    
+    if with_area and not with_vol:
+        return area
+    if with_vol and not with_area:
+        return vol
+    if with_area and with_vol:
+        return area, vol
+
