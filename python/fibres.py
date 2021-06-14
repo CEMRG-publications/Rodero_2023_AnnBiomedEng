@@ -9,7 +9,7 @@ import time
 import files_manipulations
 
 
-def run_laplacian(heart, experiment = None):
+def run_laplacian(fourch_name = "Full_Heart_Mesh_Template", experiment = None):
     """Function to run all the laplacian simulations of Bayer 2012.
 
     Args:
@@ -27,15 +27,13 @@ def run_laplacian(heart, experiment = None):
 
     scripts_folder = os.path.join("/home","crg17","Desktop","KCL_projects",
                                   "fitting", "python")
-    meshdir  = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
-                            "biv")
 
     for exp in experiment_vec:
         os.system(os.path.join(scripts_folder,"run_fibres.py") + \
-            " --experiment " + exp + " --current_case " + str(heart) + \
+            " --experiment " + exp + " --current_case " + fourch_name + \
             " --np 20 --overwrite-behaviour overwrite")
 
-def rb_bayer(heart, alpha_epi = -60, alpha_endo = 80):
+def rb_bayer(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_endo = 80):
     """Function to create the fibre file based on the laplacian solves.
 
     Args:
@@ -50,7 +48,7 @@ def rb_bayer(heart, alpha_epi = -60, alpha_endo = 80):
         endocardium. Defaults to -65.
     """
 
-    biv_dir = "/data/fitting/Full_Heart_Mesh_" + str(heart) + "/biv"
+    biv_dir = "/data/fitting/" + fourch_name + "/biv"
     fibre_dir = biv_dir + "/fibres"
     outname = "rb" + "_" + str(alpha_epi) + "_" + str(alpha_endo)
 
@@ -76,9 +74,9 @@ def rb_bayer(heart, alpha_epi = -60, alpha_endo = 80):
 
     corrected_biv_lon.write(os.path.join(fibre_dir,outname + ".lon"))
 
-def FibreCorrection(heart, alpha_epi, alpha_endo):
+def FibreCorrection(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_endo = 80):
 
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
+    path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
     biv_lon = files_manipulations.lon.read(os.path.join(path2biv,"fibres",\
                                             "rb" + "_" + str(alpha_epi) + \
@@ -89,7 +87,7 @@ def FibreCorrection(heart, alpha_epi, alpha_endo):
     biv_elem = files_manipulations.elem.read(os.path.join(path2biv,"biv.elem"))
 
     # Identify tets with wrong fibres
-    t0=time.perf_counter()
+    # t0=time.perf_counter()
 
     tets_ind = np.where(np.abs(biv_lon.f3) < 1e-6)[0]
     if len(tets_ind) > 1e5:
@@ -146,12 +144,12 @@ def FibreCorrection(heart, alpha_epi, alpha_endo):
             biv_lon.f2[index_to_correct] = np.mean(biv_lon.f2[tets_in_sphere])
             biv_lon.f3[index_to_correct] = np.mean(biv_lon.f3[tets_in_sphere])
 
-    print(time.perf_counter())
+    # print(time.perf_counter())
     return biv_lon
 
-def full_pipeline(heart, alpha_epi = -60, alpha_endo = 80):
+def full_pipeline(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_endo = 80):
     
-    fourch_name = "Full_Heart_Mesh_" + str(heart)
+    
     fourch_dir = os.path.join("/data/fitting",fourch_name)
     biv_dir =  os.path.join(fourch_dir,"biv")
     fibre_dir = biv_dir + "/fibres"
@@ -159,8 +157,8 @@ def full_pipeline(heart, alpha_epi = -60, alpha_endo = 80):
 
     if not os.path.isfile(os.path.join(fibre_dir,outname + ".lon")):
 
-        rb_bayer(heart, alpha_epi, alpha_endo)
-        biv_lon_corrected = FibreCorrection(heart, alpha_epi, alpha_endo)
+        rb_bayer(fourch_name, alpha_epi, alpha_endo)
+        biv_lon_corrected = FibreCorrection(fourch_name, alpha_epi, alpha_endo)
         biv_lon_corrected.normalise
         biv_lon_corrected.write(os.path.join(fibre_dir,outname + ".lon"))
 

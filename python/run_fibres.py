@@ -27,7 +27,7 @@ def jobID(args):
     Generate name of top level output directory.
     """
     subtest = args.experiment
-    meshdir  = "/data/fitting/Full_Heart_Mesh_" + args.current_case + "/biv"
+    meshdir  = "/data/fitting/" + args.current_case + "/biv"
     simdir = os.path.join(meshdir,"fibres")
 
     if not os.path.exists(simdir):
@@ -38,7 +38,7 @@ def jobID(args):
 @tools.carpexample(parser, jobID)
 def run(args, job):
 
-    meshdir  = "/data/fitting/Full_Heart_Mesh_" + args.current_case + "/biv"
+    meshdir  = "/data/fitting/" + args.current_case + "/biv"
     meshname = '{}/biv'.format(meshdir)
     experiment = args.experiment
 
