@@ -498,7 +498,7 @@ class elem:
         Returns:
             elem: elem object extracted from the file.
         """
-        print("Reading elem file...")
+        print("Reading " + pathname + "...")
         elemfile = np.genfromtxt(pathname, delimiter = ' ',
                                     dtype = int, skip_header = True,
                                     usecols= (1,2,3,4,5)
