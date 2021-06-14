@@ -6,9 +6,9 @@ import collections
 
 import files_manipulations
 
-def create(heart, base):
+def create(fourch_name, base):
 
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + heart,"biv")
+    path2biv = os.path.join("/data","fitting",fourch_name,"biv")
     path2scripts = os.path.join("/home","crg17","Desktop",
                                 "KCL_projects","fitting")
     exe = os.path.join(path2scripts, "python", "model_arch_ek.py")
@@ -39,9 +39,9 @@ def create(heart, base):
             for item in scaled:
                 f.write("%s\n" % item)
 
-def bottom_third(heart, UVC_base):
+def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
 
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
+    path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
     path2UVC = os.path.join(path2biv,"UVC_" + UVC_base, "UVC")
 
@@ -65,9 +65,8 @@ def bottom_third(heart, UVC_base):
 
     bottom_third_vtx.write(os.path.join(path2biv,"EP","bottom_third.vtx"))
 
-def create_FEC(heart, UVC_base):
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
-                            "biv")
+def create_FEC(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
+    path2biv = os.path.join("/data","fitting",fourch_name,"biv")
     path2UVC = os.path.join(path2biv,"UVC_" + UVC_base, "UVC")
 
     UVC_Z = np.genfromtxt(os.path.join(path2UVC,"COORDS_Z_elem.dat"), dtype = float)
