@@ -69,7 +69,7 @@ def unzip_meshes(bundle_number):
 
     os.rmdir(pathmeshes)
 
-def vtk_mm2carp_um(heart):
+def vtk_mm2carp_um(fourch_name):
     """Function to convert to carp format and convert the pts to micrometre
     instead of millimetre.
 
@@ -77,8 +77,13 @@ def vtk_mm2carp_um(heart):
         heart (int or str): Number of the mesh, part of the path.
     """
 
-    mesh_name = "Full_Heart_Mesh_" + str(heart)
+    mesh_name = fourch_name
     mesh_dir = os.path.join("/data","fitting",mesh_name)
+
+    print("meshtool convert -imsh=" + os.path.join(mesh_dir,mesh_name) + \
+                              " -omsh=" + os.path.join(mesh_dir,mesh_name) + \
+                              " -ifmt=vtk" + \
+                              " -ofmt=carp_txt")
 
     os.system("meshtool convert -imsh=" + os.path.join(mesh_dir,mesh_name) + \
                               " -omsh=" + os.path.join(mesh_dir,mesh_name) + \
@@ -96,7 +101,7 @@ def vtk_mm2carp_um(heart):
     shutil.copy(os.path.join(mesh_dir,mesh_name + ".elem"),
                 os.path.join(mesh_dir,mesh_name + "_default.elem"))
 
-def extract_LDRB_biv(heart):
+def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
     """Function to extract the boundary conditions for the LDRB method from
     Bayer 2012, except for the base and the apex.
 
@@ -104,7 +109,6 @@ def extract_LDRB_biv(heart):
         heart (int or str): Number of the mesh, part of the path.
     """
 
-    fourch_name = "Full_Heart_Mesh_" + str(heart)
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = os.path.join(path2fourch,"biv")
     path2nomapped = os.path.join(path2biv,"no_mapped")
@@ -133,9 +137,9 @@ def extract_LDRB_biv(heart):
     ##### For debugging purposes
     biv_epi_endo_surf = files_manipulations.surf.read(os.path.join(path2biv,"biv.epi_endo.surf"),"biv")
 
-    biv_epi_endo_surfmesh = files_manipulations.surf.tosurfmesh(biv_epi_endo_surf)
+    # biv_epi_endo_surfmesh = files_manipulations.surf.tosurfmesh(biv_epi_endo_surf)
 
-    biv_epi_endo_surfmesh.write(os.path.join(path2biv,"biv.epi_endo.surf.elem"))
+    # biv_epi_endo_surfmesh.write(os.path.join(path2biv,"biv.epi_endo.surf.elem"))
     #####
 
     
@@ -329,14 +333,13 @@ def extract_LDRB_biv(heart):
     biv_noLVendo_vtx.write(os.path.join(path2biv,"biv_noLVendo.surf.vtx"))
     biv_noRVendo_vtx.write(os.path.join(path2biv,"biv_noRVendo.surf.vtx"))
 
-def extract_MVTV_base(heart):
+def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template"):
     """Function to extract the base and the apex as boundary conditions for the
     LDRB method from Bayer 2012.
 
     Args:
         heart (int or str): Number of the mesh, part of the path.
     """
-    fourch_name = "Full_Heart_Mesh_" + str(heart)
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = path2fourch + "/biv"
 

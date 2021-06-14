@@ -5,8 +5,9 @@ import shutil
 import files_manipulations
 
 
-def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, simulation_file_name,
-              path_EP = ""):
+def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
+              CV_l = None, k_fibre = None, k_FEC = None,
+              simulation_file_name = None, path_EP = ""):
     """Function with CARP arguments that creates an init file to then run
     ekbatch.
 
@@ -18,13 +19,12 @@ def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, simulation_file_name,
     CV_t = float(CV_l)*float(k_fibre)
     CV_FEC = float(CV_l)*float(k_FEC)
 
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
-                            "biv")
-    lastFECtag = int(lastFECtag)
+    path2biv = os.path.join("/data","fitting",fourch_name, "biv")
+    lastFECtag = int(float(lastFECtag))
     tags_myo = np.append([1, 2],range(lastFECtag + 1, 39))
     tags_FEC = np.array(range(25,lastFECtag + 1))
 
-    bottom_third = files_manipulations.vtx.read(os.path.join(path2biv,
+    bottom_third = files_manipulations.vtx.read(os.path.join(path2biv,"EP",
                                                 "bottom_third.vtx"),
                                                 "biv")
 
@@ -52,8 +52,9 @@ def carp2init(heart, lastFECtag, CV_l, k_fibre, k_FEC, simulation_file_name,
     
     f.close()
 
-def launch_init(heart, alpha_endo, alpha_epi, simulation_file_name, path_EP = ""):
-    path2biv = os.path.join("/data","fitting","Full_Heart_Mesh_" + str(heart),
+def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
+                alpha_epi = None, simulation_file_name = None, path_EP = ""):
+    path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
     path2sim = path_EP
 
