@@ -1,20 +1,34 @@
 from datetime import date
+from functools import partial
+from itertools import combinations
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as grsp
+import multiprocessing
 from scipy.stats import iqr
 import random
 import torch
 import os
+from SALib.analyze import sobol
+from SALib.sample import saltelli
+from scipy.special import binom
 import seaborn as sns
+import tqdm
 import pandas as pd
 
-from Historia.shared.design_utils import read_labels
+from Historia.shared.design_utils import read_labels, get_minmax
 from gpytGPE.gpe import GPEmul
+from gpytGPE.utils.plotting import gsa_box, gsa_donut, gsa_network, gsa_heat
 from Historia.history import hm
 from Historia.shared.plot_utils import interp_col, get_col
 
+SEED = 2
+# ----------------------------------------------------------------
+# Make the code reproducible
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
 
 def plot_wave(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
              reduction_function = "min", plot_title = "Implausibility space",
@@ -29,7 +43,6 @@ def plot_wave(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
     cmap = "jet"
     vmin = 1.0
     vmax = W.cutoff
-    cbar_label = "Implausibility measure"
 
     height = 9.36111
     width = 5.91667
@@ -54,6 +67,7 @@ def plot_wave(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
                 hexagon_size = 25
             
             if reduction_function == "min":
+                cbar_label = "Implausibility measure"
                 im = axis.hexbin(
                     X[:, j],
                     X[:, i],
@@ -65,6 +79,7 @@ def plot_wave(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
                     vmax=vmax,
                 )
             if reduction_function == "max":
+                cbar_label = "Implausibility measure"
                 im = axis.hexbin(
                     X[:, j],
                     X[:, i],
@@ -74,6 +89,23 @@ def plot_wave(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
                     cmap=cmap,
                     vmin=vmin,
                     vmax=vmax,
+                )
+            if reduction_function == "prob_IMP":
+                cbar_label = "Implasible points (%)"
+                def prob_IMP(x, threshold):
+                    return 100*sum(i >= threshold for i in x)/len(x)
+
+                reduce_function = partial(prob_IMP, threshold=vmax)
+
+                im = axis.hexbin(
+                    X[:, j],
+                    X[:, i],
+                    C=C,
+                    reduce_C_function=reduce_function,
+                    gridsize=hexagon_size,
+                    cmap=cmap,
+                    vmin=0,
+                    vmax=100,
                 )
 
             if param_ranges is None:
@@ -300,7 +332,7 @@ def plot_output_evolution_complete(first_wave = 0, last_wave = 9,
 
 def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
                                    subfolder = "."):
-    matplotlib.rcParams.update({'font.size': 12})
+    matplotlib.rcParams.update({'font.size': 9})
     SEED = 2
     # ----------------------------------------------------------------
     # Make the code reproducible
@@ -536,7 +568,7 @@ def plot_accumulated_waves_points(subfolder, last_wave):
     plt.savefig(os.path.join(os.path.join("/data","fitting",subfolder,"figures"),"NROY_reduction_"  + subfolder + ".png"), bbox_inches="tight", dpi=300)
     print("Printed in " + os.path.join(os.path.join("/data","fitting",subfolder,"figures"),"NROY_reduction_"  + subfolder + ".png"))
 
-def plot_percentages_NROY(subfolder = ".", last_wave = 9):
+def plot_percentages_NROY_break(subfolder = ".", last_wave = 9):
     matplotlib.rcParams.update({'font.size': 22})
     NROY_rel = []
     NROY_abs = []
@@ -599,3 +631,114 @@ def plot_percentages_NROY(subfolder = ".", last_wave = 9):
     plt.legend(loc='lower center', bbox_to_anchor=(0.5, -1.6))
     fig.tight_layout()
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","NROY_size.png"), bbox_inches="tight", dpi=300)
+
+def plot_percentages_NROY(subfolder = ".", last_wave = 9):
+    matplotlib.rcParams.update({'font.size': 22})
+    NROY_rel = []
+    NROY_abs = []
+    NROY_reduction = []
+    for w in range(last_wave + 1):
+        NROY_perc = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "NROY_rel.dat"),dtype=float)
+        NROY_rel.append(float(NROY_perc))
+        if w == 0:
+            NROY_abs.append(float(NROY_perc))
+        else:
+            NROY_abs.append(1e-2*float(NROY_perc)*NROY_abs[w-1])
+            NROY_reduction.append(NROY_abs[w-1]-NROY_abs[w])
+    
+    height = 9.36111
+    width = 7.5
+    fig = plt.figure(figsize=(3 * width, 3 * height / 3))
+
+    plt.plot(range(last_wave+1),NROY_abs, '.r-',
+            label = "NROY region w.r.t. original space", markersize = 16)
+    plt.plot(range(last_wave+1),NROY_rel,'.k-',
+            label = "NROY region w.r.t. previous wave", markersize = 16)
+    plt.plot(range(1,last_wave+1),NROY_reduction,'.m-',
+            label = "NROY region reduction", markersize = 16)
+    
+
+    plt.ylim(0, 100)  
+    plt.ylabel('%')
+    plt.title("Evolution of NROY region size\n for " + subfolder)
+    plt.xlabel("Wave")
+    plt.xticks(np.arange(0, last_wave, step=1))
+    plt.legend(loc='lower left')
+    plt.savefig(os.path.join("/data","fitting",subfolder,"figures","NROY_size.png"), bbox_inches="tight", dpi=300)
+
+def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder ="."):
+
+    in_out_path = os.path.join("/data","fitting",subfolder,"wave" + str(emul_num))
+
+    # ================================================================
+    # GPE loading
+    # ================================================================
+
+    X_train = np.loadtxt(os.path.join(in_out_path, "X.dat"), dtype=float)
+    y_train = np.loadtxt(os.path.join(in_out_path, feature + ".dat"), dtype=float)
+
+    emul = GPEmul.load(X_train, y_train,
+                        loadpath=in_out_path + "/",
+                        filename = "wave" + str(emul_num) + "_" + feature + ".gpe")
+
+    # ================================================================
+    # Estimating Sobol' sensitivity indices
+    # ================================================================
+    n = 1000 # Increase this to reduce the integral uncertainty. The output grows as n x (2*input + 2), so careful!
+    n_draws = 1000
+
+    D = X_train.shape[1]
+    I = get_minmax(X_train)
+
+    index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
+    # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
+    index_ij = [list(c) for c in combinations(index_i, 2)]
+
+    if generate_Sobol:
+        problem = {"num_vars": D, "names": index_i, "bounds": I}
+
+        X_sobol = saltelli.sample(
+            problem, n, calc_second_order=True
+        )  # n x (2D + 2) | if calc_second_order == False --> n x (D + 2)
+        Y = emul.sample(X_sobol, n_draws=n_draws)
+
+        ST = np.zeros((0, D), dtype=float)
+        S1 = np.zeros((0, D), dtype=float)
+        S2 = np.zeros((0, int(binom(D, 2))), dtype=float)
+
+        for i in tqdm.tqdm(range(n_draws)):
+            S = sobol.analyze(
+                problem,
+                Y[i],
+                calc_second_order=True,
+                parallel=True,
+                n_processors=multiprocessing.cpu_count(),
+                seed=SEED,
+            )
+            total_order, first_order, (_, second_order) = sobol.Si_to_pandas_dict(S)
+
+            ST = np.vstack((ST, total_order["ST"].reshape(1, -1)))
+            S1 = np.vstack((S1, first_order["S1"].reshape(1, -1)))
+            S2 = np.vstack((S2, np.array(second_order["S2"]).reshape(1, -1)))
+
+        np.savetxt(os.path.join(in_out_path,"STi_" + feature + ".txt"), ST, fmt="%.6f")
+        np.savetxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), S1, fmt="%.6f")
+        np.savetxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), S2, fmt="%.6f")
+    else:
+
+        ST = np.loadtxt(os.path.join(in_out_path,"STi_" + feature + ".txt"), dtype=float)
+        S1 = np.loadtxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), dtype=float)
+        S2 = np.loadtxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), dtype=float)
+
+    # ================================================================
+    # Plotting
+    # ================================================================
+    thre = 1e-6
+
+    gsa_box(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
+    gsa_donut(ST, S1, index_i, ylabel = feature, savepath = in_out_path + "/", correction=thre)
+    gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
+
+    # gsa_donut(ST = ST, S1 = S1, index_i = index_i, ylabel = feature, savepath = in_out_path + "/", correction=None)
+    # gsa_box(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath= in_out_path + "/", correction=None)
+    # gsa_network(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath = in_out_path + "/", correction=None)

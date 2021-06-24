@@ -378,7 +378,7 @@ def experiment_7(only_plot = False):
     wave_to_plot = -1
 
     if only_plot:
-        summary_plots(wave_to_plot = 5, experiment_name = experiment_name)
+        summary_plots(wave_to_plot = 4, experiment_name = experiment_name)
     else:
 
         fitting_hm.run_new_wave(num_wave = 0, run_simulations = True, train_GPE = True,
@@ -432,7 +432,7 @@ def run_experiment(experiment_name):
     elif experiment_name == "6":
         experiment_6()
     elif experiment_name == "7":
-        experiment_7()
+        experiment_7(only_plot=True)
     elif experiment_name == "all":
         for i in range(1,8):
             run_experiment(i)

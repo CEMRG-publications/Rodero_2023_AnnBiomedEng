@@ -48,7 +48,7 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
     space = skopt.space.Space(param_ranges)
 
     sobol = skopt.sampler.Sobol(min_skip = SEED, max_skip = SEED)
-    x = sobol.generate(space.dimensions, n_samples, random_state = SEED)
+    x = sobol.generate(space.dimensions, int(n_samples), random_state = SEED)
 
     x_EP = []
     x_anatomy = []
@@ -81,7 +81,7 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
     # f = open(os.path.join(path_gpes, "X_anatomy.dat"), "w")
     # [f.write('%s\n' % ' '.join(map(str,[format(i, '.2f') for i in lhs_array]))) for lhs_array in x]
     # f.close()
-def build_meshes(waveno = 0, subfolder = "."):
+def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
     
     path_lab = os.path.join("/data","fitting")
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
@@ -93,12 +93,12 @@ def build_meshes(waveno = 0, subfolder = "."):
 
     pathlib.Path(temp_outpath).mkdir(parents = True, exist_ok = True)
     
-    for i in range(len(anatomy_values)-1):
+    for i in tqdm.tqdm(range(len(anatomy_values)-1)):
         temp_base_name = "wave" + str(waveno) + "_" + str(i) + "_0"
         final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-27]
         mesh_path = os.path.join(path_lab, final_base_name)
 
-        if not os.path.isfile(os.path.join(mesh_path,final_base_name + ".elem")):
+        if (not os.path.isfile(os.path.join(mesh_path,final_base_name + ".elem")) and not os.path.isfile(os.path.join(mesh_path,final_base_name + "_default.elem"))) or force_construction:
             had_to_run_new = True
             if not os.path.isfile(os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + "_0.vtk")):
                 csv_file_name = os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + ".csv")
@@ -112,8 +112,11 @@ def build_meshes(waveno = 0, subfolder = "."):
             os.system("cp " + os.path.join(temp_outpath,temp_base_name + ".vtk") +\
                     " " + os.path.join(mesh_path, final_base_name + ".vtk"))
             prepare_mesh.vtk_mm2carp_um(fourch_name = final_base_name)
+
+            print(temp_base_name)
+            print(final_base_name)
     
-    os.system("rm -rf " + temp_outpath)
+    # os.system("rm -rf " + temp_outpath)
     return had_to_run_new
 def EP_setup(waveno = 0, subfolder = "."):
 
@@ -123,8 +126,8 @@ def EP_setup(waveno = 0, subfolder = "."):
     with open(os.path.join(path_gpes,"X_anatomy.csv")) as f:
         anatomy_values = f.read().splitlines()
     
-    for i in range(len(anatomy_values)-1):
-        final_base_name = "heart_" + anatomy_values[1].replace(",","")[:-27]
+    for i in tqdm.tqdm(range(len(anatomy_values)-1)):
+        final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-27]
         mesh_path = os.path.join(path_lab, final_base_name)
 
         if not os.path.isfile(os.path.join(mesh_path,"biv","biv_noRVendo.surf.vtx")):
@@ -185,7 +188,7 @@ def EP_simulations(waveno = 0, subfolder = "."):
                                 95:38,
                                 100:39}
 
-    for line_num in range(len(param_values)):
+    for line_num in tqdm.tqdm(range(len(param_values))):
         FEC_height = round(float(param_values[line_num].split(' ')[FEC_height_idx]),2)
         height_key = find_nearest(list(FEC_height_to_lastFECtag.keys()),round(float(FEC_height)))
 
@@ -260,6 +263,8 @@ def output(heart_name, return_ISWT = True, return_WT = True,
     if return_LVOTdiam:
         av_la_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","av_ao.pts"))
         av_la_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","av_ao.elem"),heart_name)
+
+        print(os.path.join(biv_path,"..","av_ao.pts"))
 
         area_array = files_manipulations.area_or_vol_surface(pts_file = av_la_pts,
                         surf_file = av_la_surf, with_vol = False,
@@ -558,6 +563,7 @@ def output(heart_name, return_ISWT = True, return_WT = True,
             
             output_list["TAT LV endo, ms"] = round(max(np.array(AT_vec_float)[Z_90_endo.astype(int)]),2)
 
+    print(output_list)
     return output_list
 def write_output(waveno = 0, subfolder = "."):
     outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
@@ -609,6 +615,7 @@ def write_output(waveno = 0, subfolder = "."):
     mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-27] for i in range(len(anatomy_values)-1)]
 
     for i in tqdm.tqdm(range(len(mesh_names))):
+        print("Computing output...")
         EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
                           "EP_simulations")
         if os.path.isfile(os.path.join(EP_dir, simulation_names[i] + ".dat")):
@@ -668,6 +675,179 @@ def write_output(waveno = 0, subfolder = "."):
                         LVmass, LVWT, LVEDD, SeptumWT,
                         RVlongdiam, RVbasaldiam,
                         TAT,TATLVendo]
+
+    for i,varname in enumerate(output_names):
+        np.savetxt(os.path.join(outpath, varname + ".dat"),
+                    output_numbers[i],
+                    fmt="%.2f")
+def write_output_casewise(waveno = 0, subfolder = "."):
+    outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
+    labels_dir = os.path.join("/data","fitting",subfolder)
+
+
+    with open(os.path.join(outpath,"X_anatomy.csv")) as f:
+        anatomy_values = f.read().splitlines()
+    with open(os.path.join(outpath,"X_EP.dat")) as f:
+        param_values = f.read().splitlines()
+
+
+    output_names = ["LVV","RVV","LAV","RAV",
+                    "LVOTdiam", "RVOTdiam",
+                    "LVmass", "LVWT", "LVEDD", "SeptumWT",
+                    "RVlongdiam", "RVbasaldiam",
+                    "TAT","TATLVendo"]
+    output_units = ["mL", "mL", "mL", "mL",
+                    "mm", "mm",
+                    "g", "mm", "mm", "mm",
+                    "mm", "mm",
+                    "ms", "ms"]
+
+
+    f = open(os.path.join(labels_dir,"output_labels.txt"), "w")
+    [f.write("%s\n" % phenotype) for phenotype in output_names]
+    f.close()
+
+    f = open(os.path.join(labels_dir,"output_units.txt"), "w")
+    [f.write("%s\n" % phenotype) for phenotype in output_units]
+    f.close()
+
+    simulation_names = [line.replace(" ","") for line in param_values]
+    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-27] for i in range(len(anatomy_values)-1)]
+
+    # for i in tqdm.tqdm(range(len(mesh_names))):
+    for i in tqdm.tqdm(range(1,3)):
+        print("Computing output...")
+        EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
+                          "EP_simulations")
+        # if os.path.isfile(os.path.join(EP_dir,output_names[-1] + ".dat")):
+        #     continue 
+        if os.path.isfile(os.path.join(EP_dir, simulation_names[i] + ".dat")):
+            
+            flag_close_LV = True
+            flag_close_RV = True
+            flag_close_LA = True
+            flag_close_RA = True
+
+            if(os.path.isfile(os.path.join(mesh_names[i], "lvendo_closed.elem"))):
+                flag_close_LV = False
+            if(os.path.isfile(os.path.join(mesh_names[i], "laendo_closed.elem"))):
+                flag_close_LA = False
+            if(os.path.isfile(os.path.join(mesh_names[i], "rvendo_closed.elem"))):
+                flag_close_RV = False
+            if(os.path.isfile(os.path.join(mesh_names[i], "raendo_closed.elem"))):
+                flag_close_RA = False
+            
+            # output_list = output(heart_name = mesh_names[i],
+            #                     simulation_name = simulation_names[i],
+            #                     return_ISWT = True, return_WT = True,
+            #                     return_EDD = True, return_LVmass = True,
+            #                     return_LVendovol = True, return_LVOTdiam = True,
+            #                     return_RVOTdiam = True, return_LAendovol = True,
+            #                     return_RAendovol = True,
+            #                     return_RVlongdiam = True,
+            #                     return_RVbasaldiam = True, 
+            #                     return_RVendovol = True, return_TAT = True,
+            #                     return_TATLVendo = True,
+            #                     close_LV = flag_close_LV,
+            #                     close_RV = flag_close_RV,
+            #                     close_LA = flag_close_LA,
+            #                     close_RA = flag_close_RA, 
+            #            )
+
+            output_list = output(heart_name = mesh_names[i],
+                                simulation_name = simulation_names[i],
+                                return_ISWT = False, return_WT = False,
+                                return_EDD = False, return_LVmass = False,
+                                return_LVendovol = False, return_LVOTdiam = True,
+                                return_RVOTdiam = False, return_LAendovol = False,
+                                return_RAendovol = False,
+                                return_RVlongdiam = False,
+                                return_RVbasaldiam = False, 
+                                return_RVendovol = False, return_TAT = False,
+                                return_TATLVendo = False,
+                                close_LV = flag_close_LV,
+                                close_RV = flag_close_RV,
+                                close_LA = flag_close_LA,
+                                close_RA = flag_close_RA, 
+                       )
+            continue
+
+
+            LVV = output_list["LV end-diastolic volume, mL"]
+            RVV = output_list["RV volume, mL"]
+            LAV = output_list["LA volume, mL"]
+            RAV = output_list["RA volume, mL"]
+            LVOTdiam = output_list["LVOT diameter, mm"]
+            RVOTdiam = output_list["RVOT diameter, mm"]
+            LVmass = output_list["LV mass, g"]
+            LVWT = output_list["Posterior wall thickness, mm"]
+            LVEDD = output_list["Diastolic LV internal dimension, mm"]
+            SeptumWT = output_list["Interventricular septal wall thickness, mm"]
+            RVlongdiam = output_list["RV long. diameter, mm"]
+            RVbasaldiam = output_list["RV basal diameter, mm"]
+            TAT = output_list["TAT, ms"]
+            TATLVendo = output_list["TAT LV endo, ms"]
+
+        else:
+            EP_setup(waveno = waveno, subfolder = subfolder)
+            EP_simulations(waveno = waveno, subfolder = subfolder)
+            i = i - 1
+        
+        output_numbers = [LVV, RVV, LAV, RAV,
+                        LVOTdiam, RVOTdiam,
+                        LVmass, LVWT, LVEDD, SeptumWT,
+                        RVlongdiam, RVbasaldiam,
+                        TAT,TATLVendo]
+
+        for var_i, varname in enumerate(output_names):
+            np.savetxt(os.path.join(EP_dir, varname + ".dat"),
+                        [output_numbers[var_i]],
+                        fmt="%s")
+def collect_output(waveno = 0, subfolder = "."):
+    outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
+
+    with open(os.path.join(outpath,"X_anatomy.csv")) as f:
+        anatomy_values = f.read().splitlines()
+    with open(os.path.join(outpath,"X_EP.dat")) as f:
+        param_values = f.read().splitlines()
+
+
+    output_names = ["LVV","RVV","LAV","RAV",
+                    "LVOTdiam", "RVOTdiam",
+                    "LVmass", "LVWT", "LVEDD", "SeptumWT",
+                    "RVlongdiam", "RVbasaldiam",
+                    "TAT","TATLVendo"]
+    
+    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-27] for i in range(len(anatomy_values)-1)]
+
+    LVV = []
+    RVV = []
+    LAV = []
+    RAV = []
+    LVOTdiam = []
+    RVOTdiam = []
+    LVmass = []
+    LVWT = []
+    LVEDD = []
+    SeptumWT = []
+    RVlongdiam = []
+    RVbasaldiam = []
+    TAT = []
+    TATLVendo =[]
+
+    output_numbers = [LVV, RVV, LAV, RAV,
+                        LVOTdiam, RVOTdiam,
+                        LVmass, LVWT, LVEDD, SeptumWT,
+                        RVlongdiam, RVbasaldiam,
+                        TAT,TATLVendo]
+
+    print("Gathering output...")
+    for i in tqdm.tqdm(range(len(mesh_names))):
+        EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
+                          "EP_simulations")
+        for i,outname in enumerate(output_names):
+            output_number = np.loadtxt(os.path.join(EP_dir, outname + ".dat"), dtype=float)
+            output_numbers[i].append(output_number)
 
     for i,varname in enumerate(output_names):
         np.savetxt(os.path.join(outpath, varname + ".dat"),

@@ -15,15 +15,22 @@ from scipy.special import binom
 from SALib.analyze import sobol
 import multiprocessing
 import tqdm
-import generate
+import template_EP
+from scipy.stats import gaussian_kde
+import pandas as pd
+import seaborn as sns
+import skopt
+import time
 
 from Historia.shared.design_utils import get_minmax, lhd, read_labels
 from Historia.shared.plot_utils import plot_pairwise_waves, interp_col, get_col
 from gpytGPE.gpe import GPEmul
 from gpytGPE.utils.metrics import IndependentStandardError as ISE
-from gpytGPE.utils.metrics import ISE_bounded
 from Historia.history import hm
 from gpytGPE.utils.plotting import gsa_box, gsa_donut
+
+import anatomy
+import custom_plots
 
 SEED = 2
 # ----------------------------------------------------------------
@@ -32,35 +39,9 @@ random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-
-def plot_waves(wavesno = 3, path_lab = os.path.join("/data","fitting"), subfolder = "."):
-    """Function to make the triangular plot showing waveno waves at once.
-
-    Args:
-        wavesno (int, optional): Number of waves to show, including wave0.
-        Defaults to 3.
-        path_lab (str, optional): Path where the labels file is. Defaults to
-        os.path.join("/data","fitting").
-    """
-    labels = read_labels(os.path.join(path_lab, "EP_funct_labels_latex.txt"))
-    XL = []
-
-    for i in range(wavesno):
-        path_gpes = os.path.join(path_lab, subfolder,"wave" + str(i))
-        X_test = np.loadtxt(os.path.join(path_gpes, "X_test.dat"), dtype=float)
-        XL.append(X_test)
-
-    colors = interp_col([get_col("light_blue")[0],get_col("blue")[1]], wavesno)
-    wnames = ["Wave " + str(i) for i in range(wavesno)]
-
-    outpath = os.path.join(path_lab, subfolder, "figures")
-    pathlib.Path(outpath).mkdir(parents=True, exist_ok=True)
-
-    plot_pairwise_waves(XL,colors,labels, wnames = wnames, outpath = outpath)
-
 def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
               start_size = np.inf, figure_name = "inference_on_testset",
-              return_scores = False, subfolder = "."):
+              return_scores = False, subfolder = ".",only_feasible = True):
     """Function to run the GPE with the original training set and testing it.
 
     Args:
@@ -81,7 +62,11 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
     path_gpes = os.path.join("/data","fitting",subfolder, "wave0")
     path_figures = os.path.join("/data","fitting",subfolder, "figures")
 
-    X = np.loadtxt(os.path.join(path_gpes, "X_feasible.dat"), dtype=float)
+
+    if only_feasible:
+        X = np.loadtxt(os.path.join(path_gpes, "X_feasible.dat"), dtype=float)
+    else:
+        X = np.loadtxt(os.path.join(path_gpes, "X.dat"), dtype=float)
 
     n_samples = min(X.shape[0], start_size)
 
@@ -107,7 +92,10 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
 
     for i, output_name in enumerate(active_features):
         print(output_name)
-        y = np.loadtxt(os.path.join(path_gpes, output_name + "_feasible.dat"),dtype=float)
+        if only_feasible:
+            y = np.loadtxt(os.path.join(path_gpes, output_name + "_feasible.dat"),dtype=float)
+        else:
+            y = np.loadtxt(os.path.join(path_gpes, output_name + ".dat"),dtype=float)
         y_train = y[:idx_train]
         y_val = y[idx_train:idx_val]
         y_test =  y[idx_val:idx_test]
@@ -206,7 +194,9 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
     else:
         return X_train, y_train, emulator
 
-def run_GPE(waveno = 2, train = False, active_feature = ["TAT"], n_samples = 125, training_set_memory = 100, subfolder = "."):
+def run_GPE(waveno = 2, train = False, active_feature = ["TAT"],
+            n_samples = 125, training_set_memory = 100, subfolder = ".",
+            only_feasible = True):
 
     SEED = 2
     # ----------------------------------------------------------------
@@ -216,10 +206,18 @@ def run_GPE(waveno = 2, train = False, active_feature = ["TAT"], n_samples = 125
     torch.manual_seed(SEED)
 
     if waveno == 0:
-        X_train, y_train, emul = first_GPE(active_features = active_feature, train = train, saveplot=False, start_size = n_samples, subfolder = subfolder)
+        X_train, y_train, emul = first_GPE(active_features = active_feature,
+                                            train = train, saveplot=False,
+                                            start_size = n_samples,
+                                            subfolder = subfolder,
+                                            only_feasible = only_feasible)
     else:
-        current_X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(waveno),"X_feasible.dat"), dtype=float)
-        current_y = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(waveno), active_feature[0] + "_feasible.dat"),dtype=float)
+        if only_feasible:
+            current_X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(waveno),"X_feasible.dat"), dtype=float)
+            current_y = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(waveno), active_feature[0] + "_feasible.dat"),dtype=float)
+        else:
+            current_X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(waveno),"X.dat"), dtype=float)
+            current_y = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(waveno), active_feature[0] + ".dat"),dtype=float)
         
         if training_set_memory > 0:
             X_prev, y_prev, _ = run_GPE(waveno = waveno - 1, train = False,
@@ -244,7 +242,8 @@ def run_GPE(waveno = 2, train = False, active_feature = ["TAT"], n_samples = 125
 
 def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
                 fill_wave_space = False, cutoff = 2.0, n_samples = 150,
-                generate_simul_pts = 10, subfolder = ".", training_set_memory = 100):
+                generate_simul_pts = 10, subfolder = ".", training_set_memory = 100,
+                skip_filtering = True):
 
     #==========================================================================
     # For each wave i, with a implausibility threshold cutoff_i and a maximum
@@ -264,22 +263,14 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
     torch.manual_seed(SEED)
 
     #========== Constant variables =============#
-    if run_simulations:
-        train_GPE = True
-    if train_GPE:
-        fill_wave_space = True
 
     xlabels = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
     idx_train = round(0.8*0.8*n_samples)
 
-    X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave0","X_feasible.dat"), dtype=float)
-    X_train = X[:idx_train]
-    I = get_minmax(X_train)
-
     active_features = ["TAT","TATLV"]
     emulator = []
 
-    n_tests = 100000
+    n_tests = int(1e5)
     path_match = os.path.join("/data","fitting", "match")
     exp_mean = np.loadtxt(os.path.join(path_match, "exp_mean.txt"), dtype=float)
     exp_std = np.loadtxt(os.path.join(path_match, "exp_std.txt"), dtype=float)
@@ -287,10 +278,35 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
 
     #================ Load training sets or run simulations =================#
     if run_simulations:
-        n_simuls_done = generate.template_EP_parallel(line_from = 0, line_to = np.inf,
+        if num_wave == 0:
+            template_EP.EP_funct_param(n_samples = round(n_samples/(0.8*0.8)),
+            waveno = 0, subfolder = subfolder)
+        had_to_run_new = template_EP.template_EP_parallel(line_from = 0, line_to = np.inf,
                                             waveno = num_wave, subfolder = subfolder)
-        generate.EP_output(waveno = num_wave, subfolder = subfolder)
-        generate.filter_output(waveno = num_wave, subfolder = subfolder)
+    
+        if not had_to_run_new:
+            if os.path.isfile(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_feasible.dat")):
+                for i in range(len(active_features)):
+                    if os.path.isfile(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),active_features[i] + ".dat")):
+                        Y_QC = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),active_features[i] + ".dat"), dtype=float)
+                        if max(Y_QC) > 1e5:
+                            had_to_run_new = True
+                            break
+                    else:
+                        had_to_run_new = True
+                        break
+            else:
+                had_to_run_new = True
+
+
+        if had_to_run_new:
+            template_EP.EP_output(waveno = num_wave, subfolder = subfolder)
+            template_EP.filter_output(waveno = num_wave, subfolder = subfolder, skip = skip_filtering)
+
+    X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave0","X_feasible.dat"), dtype=float)
+    X_train = X[:idx_train]
+    I = get_minmax(X_train)
+
 
     #=================== Train or load GPE =========================#
     for output_name in active_features:
@@ -327,16 +343,22 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
 
 
     #============= Load or run the cloud technique =========================#
+    param_ranges_lower = np.loadtxt(os.path.join(path_match, "input_range_lower.dat"), dtype=float)
+    param_ranges_upper = np.loadtxt(os.path.join(path_match, "input_range_upper.dat"), dtype=float)
 
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
     if fill_wave_space:
-        print("Adding points...")
+        print("Experiment " + subfolder + ", wave " + str(num_wave))
+        print("Adding points at " + time.strftime("%H:%M",time.localtime()))
         if num_wave == 0:
-            TESTS = lhd(I, n_tests, SEED)
+            TESTS = lhd(param_ranges, n_tests, SEED)
+            
         else:
-            TESTS = W.add_points(n_tests)  # use the "cloud technique" to populate
+            TESTS = W.add_points(n_tests, scale = 0.05, param_ranges = param_ranges)  # use the "cloud technique" to populate
         print("Points added")
         # what is left from W.NIMP\SIMULS (set difference) if points left are <
         # the chosen n_tests
+
         np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_test.dat"), TESTS, fmt="%.2f")
     else:
         TESTS = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_test.dat"),
@@ -358,8 +380,25 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
     pathlib.Path(os.path.join("/data","fitting",subfolder,"figures")).mkdir(parents=True, exist_ok=True)
 
 
-    W.plot_wave(xlabels=xlabels, display="impl", filename = os.path.join("/data","fitting",subfolder,"figures","wave" + str(num_wave) + "_impl"))
-    W.plot_wave(xlabels=xlabels, display="var", filename = os.path.join("/data","fitting",subfolder,"figures","wave" + str(num_wave) + "_var"))
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_impl_min"),
+                            waveno = num_wave, reduction_function = "min",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the min of each slice",
+                            param_ranges = param_ranges)
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_impl_max"),
+                            waveno = num_wave, reduction_function = "max",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the max of each slice",
+                            param_ranges = param_ranges)
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_prob_imp"),
+                            waveno = num_wave, reduction_function = "prob_IMP",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": percentage of implausible points",
+                            param_ranges = param_ranges)
+    W.plot_wave(xlabels=xlabels, display="var", filename=os.path.join("/data","fitting",subfolder,"figures","wave" + str(num_wave) + "_var.png"))
 
     #=================== Generate data for next wave =====================#
     SIMULS = W.get_points(generate_simul_pts)  # actual matrix of selected points
@@ -371,48 +410,10 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
                     "wave_" + str(num_wave)))
     np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"variance_quotient.dat"), W.PV, fmt="%.2f")
 
-def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = "."):
-
-        matplotlib.rcParams.update({'font.size': 22})
-
-        max_var_quotient_vec = []
-        median_var_quotient_vec = []
-        mean_var_quotient_vec = []
-
-        for i in range(first_wave,last_wave + 1):
-            emulator = []
-            W_PV = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(i),"variance_quotient.dat"),
-                            dtype=float)
-
-            max_var_quot = np.min([np.percentile(W_PV, 75) + 1.5 * iqr(W_PV),
-                                    W_PV.max()])
-            median_var_quot = np.median(W_PV)
-            mean_var_quot = np.mean(W_PV)
-
-            max_var_quotient_vec.append(max_var_quot)
-            median_var_quotient_vec.append(median_var_quot)
-            mean_var_quotient_vec.append(mean_var_quot)
-
-        height = 9.36111
-        width = 5.91667
-        fig = plt.figure(figsize=(3 * width, 3 * height / 3))
-        plt.plot(range(first_wave,last_wave+1),max_var_quotient_vec, '.r-',
-                label = "Upper whisker", markersize = 16)
-        plt.plot(range(first_wave,last_wave+1),median_var_quotient_vec,'.k-',
-                label = "Median", markersize = 16)
-        plt.plot(range(first_wave,last_wave+1),mean_var_quotient_vec,'.b-',
-                label = "Mean", markersize = 16)
-        plt.title("Evolution of variance quotient")
-        plt.xlabel("wave")
-        plt.ylabel("GPE variance / EXP. variance")
-        plt.legend(loc='upper right')
-        fig.tight_layout()
-        plt.savefig(os.path.join("/data","fitting",subfolder,"figures","variance_quotient.png"), bbox_inches="tight", dpi=300)
-
-def plot_output_evolution(first_wave = 1, last_wave = 9,
-                          add_training_points = True, subfolder = "."):
-
-    matplotlib.rcParams.update(matplotlib.rcParamsDefault)
+def anatomy_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
+                fill_wave_space = False, cutoff = 0, n_samples = 150,
+                generate_simul_pts = 10, subfolder = "anatomy", training_set_memory = 100,
+                only_feasible = False):
 
     SEED = 2
     # ----------------------------------------------------------------
@@ -421,225 +422,211 @@ def plot_output_evolution(first_wave = 1, last_wave = 9,
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    exp_means = np.loadtxt(os.path.join("/data","fitting","match", "exp_mean.txt"), dtype=float)
-    exp_stds = np.loadtxt(os.path.join("/data","fitting","match", "exp_std.txt"), dtype=float)
-    output_labels = read_labels(os.path.join("/data","fitting", "EP_output_labels.txt"))
+    #========== Constant variables =============#
 
-    for i in range(len(output_labels)):
+    xlabels_EP = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data","fitting", "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP] for lab in sublist]
+    
+    idx_train = round(0.8*0.8*n_samples)
 
-        output_list = []
-        fig, ax = plt.subplots()
+    active_features = ["LVV","RVV","LAV","RAV","LVOTdiam","RVOTdiam","LVmass",
+                        "LVWT","LVEDD","SeptumWT","RVlongdiam","RVbasaldiam",
+                        "TAT","TATLVendo"]
+    emulator = []
 
+    n_tests = int(1e5)
+    path_match = os.path.join("/data","fitting", "match")
+    exp_mean = np.loadtxt(os.path.join(path_match, "exp_mean_anatomy_EP.txt"), dtype=float)
+    exp_std = np.loadtxt(os.path.join(path_match, "exp_std_anatomy_EP.txt"), dtype=float)
+    exp_var = np.power(exp_std, 2)
 
-        for w in range(first_wave, last_wave + 1):
-            new_output = []
+    #================ Load training sets or run simulations =================#
+    if run_simulations:
+        if num_wave == 0:
+            anatomy.input(n_samples = n_samples/(0.8*0.8), waveno = num_wave, subfolder = subfolder)
 
-            X_test = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_test.dat"),dtype=float)
-            X_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_feasible.dat"),dtype=float)
-            y_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), output_labels[i] + "_feasible.dat"),dtype=float)
-            emul = GPEmul.load(X_train, y_train, loadpath=os.path.join("/data","fitting",subfolder,"wave" + str(w) + "/"),filename = "wave" + str(w) + "_" + output_labels[i] + ".gpe")
+        anatomy.build_meshes(waveno = num_wave, subfolder = subfolder)
+        anatomy.EP_setup(waveno = num_wave, subfolder = subfolder)
+        anatomy.EP_simulations(waveno = num_wave, subfolder = subfolder)
 
-            new_output, _ = emul.predict(X_test)
-            output_list.append(new_output)
+        anatomy.write_output_casewise(waveno = num_wave, subfolder = subfolder)
+        anatomy.collect_output(waveno = num_wave, subfolder = subfolder)
 
-            width = 0.4
-            if add_training_points:
-                x_scatter = np.ones(len(y_train))*(w+1) + (np.random.rand(len(y_train))*width-width/2.)
-                ax.scatter(x_scatter, y_train, color='k', s=25)
-
-
-        ax.fill_between(np.array([0.5, len(output_list) + 0.5]),
-                        exp_means[i] - 3*exp_stds[i],
-                        exp_means[i] + 3*exp_stds[i],
-                        facecolor='gray', alpha=0.2)
-
-        ax.fill_between(np.array([0.5, len(output_list) + 0.5]),
-                        exp_means[i] - 2*exp_stds[i],
-                        exp_means[i] + 2*exp_stds[i],
-                        facecolor='gray', alpha=0.4)
-
-
-        legend_3SD, = ax.fill(np.NaN, np.NaN, 'gray', alpha=0.2, linewidth=0)
-        legend_2SD, = ax.fill(np.NaN, np.NaN, 'gray', alpha=0.4, linewidth=0)
-
-        if add_training_points:
-            black_dot = matplotlib.lines.Line2D([], [], color='black',
-                                                marker = 'o', linestyle='None',
-                                                markersize=6)
-
-        ax.violinplot(output_list, showmedians = True)
-
-        
-        if add_training_points:
-            ax.legend([legend_2SD, legend_3SD, black_dot],[r'Exp. mean $\pm 2$SD', r'Exp. mean $\pm 3$SD', "Added training set"])
-        else:
-            ax.legend([legend_2SD, legend_3SD],[r'Exp. mean $\pm 2$SD', r'Exp. mean $\pm 3$SD'])
-        plt.title("Distribution of the emulation outputs\n for " + output_labels[i])
-        plt.xlabel("wave")
-        plt.ylabel("ms")
-        plt.xlim([0.5, len(output_list) + 0.5])
-        plt.xticks(np.arange(1, len(output_list) + 1, 1.0))
-        ax.set_xticklabels(np.arange(first_wave, last_wave + 1, 1.0))
-        fig.tight_layout()
-        plt.savefig(os.path.join("/data","fitting",subfolder,"figures", output_labels[i] + "_evolution.png"), bbox_inches="tight", dpi=300)
-
-def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder ="."):
-
-    in_out_path = os.path.join("/data","fitting",subfolder,"wave" + str(emul_num))
-
-    # ================================================================
-    # GPE loading
-    # ================================================================
-
-    X_train = np.loadtxt(os.path.join(in_out_path, "X.dat"), dtype=float)
-    y_train = np.loadtxt(os.path.join(in_out_path, feature + ".dat"), dtype=float)
-
-    emul = GPEmul.load(X_train, y_train,
-                        loadpath=in_out_path + "/",
-                        filename = "wave" + str(emul_num) + "_" + feature + ".gpe")
-
-    # ================================================================
-    # Estimating Sobol' sensitivity indices
-    # ================================================================
-    n = 1000 # Increase this to reduce the integral uncertainty. The output grows as n x (2*input + 2), so careful!
-    n_draws = 1000
-
-    D = X_train.shape[1]
+    X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave0","X.dat"), dtype=float)
+    X_train = X[:idx_train]
     I = get_minmax(X_train)
 
-    index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
-    index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
 
-    if generate_Sobol:
-        problem = {"num_vars": D, "names": index_i, "bounds": I}
-
-        X_sobol = saltelli.sample(
-            problem, n, calc_second_order=True
-        )  # n x (2D + 2) | if calc_second_order == False --> n x (D + 2)
-        Y = emul.sample(X_sobol, n_draws=n_draws)
-
-        ST = np.zeros((0, D), dtype=float)
-        S1 = np.zeros((0, D), dtype=float)
-        S2 = np.zeros((0, int(binom(D, 2))), dtype=float)
-
-        for i in tqdm.tqdm(range(n_draws)):
-            S = sobol.analyze(
-                problem,
-                Y[i],
-                calc_second_order=True,
-                parallel=True,
-                n_processors=multiprocessing.cpu_count(),
-                seed=SEED,
-            )
-            total_order, first_order, (_, second_order) = sobol.Si_to_pandas_dict(S)
-
-            ST = np.vstack((ST, total_order["ST"].reshape(1, -1)))
-            S1 = np.vstack((S1, first_order["S1"].reshape(1, -1)))
-            S2 = np.vstack((S2, np.array(second_order["S2"]).reshape(1, -1)))
-
-        np.savetxt(os.path.join(in_out_path,"STi_" + feature + ".txt"), ST, fmt="%.6f")
-        np.savetxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), S1, fmt="%.6f")
-        np.savetxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), S2, fmt="%.6f")
-
-
-    # ================================================================
-    # Plotting
-    # ================================================================
-    thre = 1e-6
-
-    gsa_donut(in_out_path + "/", thre, index_i, feature, savefig=True, STname = "STi_" + feature + ".txt", S1name = "Si_" + feature + ".txt", discrete_colors = True)
-    gsa_box(in_out_path + "/", thre, index_i, index_ij, feature, savefig=True, STname = "STi_" + feature + ".txt", S1name = "Si_" + feature + ".txt", S2name = "Sij_" + feature + ".txt", violin = True)
-
-def plot_scores_training_size():
-
-        matplotlib.rcParams.update({'font.size': 22})
-
-        R2_TAT = np.loadtxt(os.path.join("/data","fitting","figures","R2_TAT.dat"),
-                            dtype=float)
-        R2_TATLV = np.loadtxt(os.path.join("/data","fitting","figures","R2_TATLV.dat"),
-                            dtype=float)
-        ISE_TAT = np.loadtxt(os.path.join("/data","fitting","figures","ISE_TAT.dat"),
-                            dtype=float)
-        ISE_TATLV = np.loadtxt(os.path.join("/data","fitting","figures","ISE_TAT.dat"),
-                            dtype=float)
-
-        height = 9.36111
-        width = 5.91667
-        fig = plt.figure(figsize=(3 * width, 3 * height / 3))
-
-        axes1 = plt.gca()
-        axes2 = axes1.twiny()
-
-        X1 = np.arange(79,313,1)
-        X2 = 0.8*0.8*X1
-
-        axes1.set_xlabel("Total set size")
-        axes2.set_xlabel("Training set size")
+    #=================== Train or load GPE =========================#
+    for output_name in active_features:
+        _, _, emul = run_GPE(waveno = num_wave, train = train_GPE,
+                            active_feature = [output_name],
+                            n_samples = n_samples,
+                            training_set_memory = training_set_memory,
+                            subfolder = subfolder, only_feasible=only_feasible)
+        emulator.append(emul)
+    # emulator now might be a list of list, we need to flatten it
+    em_shape = (np.array(emulator)).shape
+    if len(em_shape) > 1:
+        emulator_flat = [item for sublist in emulator for item in sublist]
+        emulator = emulator_flat
+    #=================== Load or create the wave object ===================#
+    if num_wave > 0:
+        W = hm.Wave()
+        W.load(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave-1),
+                    "wave_" + str(num_wave-1)))
+        W.emulator = emulator
+        W.Itrain = I
+        W.cutoff = cutoff
+        W.maxno = 1
+        W.mean = exp_mean
+        W.var = exp_var
+    else:
+        W = hm.Wave(emulator = emulator,
+                    Itrain = I,
+                    cutoff = cutoff,
+                    maxno = 1,
+                    mean = exp_mean,
+                    var = exp_var)
 
 
-        plt.plot(X1,100*R2_TAT, '.k-',
-                label = "R2 score for the TAT emulator", markersize = 16)
-        plt.plot(X1,100*R2_TATLV, '.r-',
-                label = "R2 score for the TATLV emulator", markersize = 16)
-        plt.plot(X1,ISE_TAT, 'k--',
-                label = "ISE score for the TAT emulator", markersize = 16)
-        plt.plot(X1,ISE_TATLV, 'r--',
-                label = "ISE score for the TATLV emulator", markersize = 16)
 
-        # axes2.set_xlim(axes1.get_xlim())
+    #============= Load or run the cloud technique =========================#
 
-        # axes2.set_xticks(np.arange(79,313,30))
-        # axes2.set_xticklabels(X2)
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_upper.dat"), dtype=float)
 
-        plt.title("Scores with different set sizes")
+    param_ranges_lower_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_upper.dat"), dtype=float)
 
-        plt.ylabel("Percentage of score")
-        plt.legend(loc='lower right')
-        fig.tight_layout()
-        plt.savefig("/data/fitting/figures/setsize.png", bbox_inches="tight", dpi=300)
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_EP)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_EP)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+    if fill_wave_space:
+        print("Experiment " + subfolder + ", wave " + str(num_wave))
+        print("Adding points at " + time.strftime("%H:%M",time.localtime()))
+        if num_wave == 0:
+            TESTS = lhd(param_ranges, n_tests, SEED)
+            
+        else:
+            TESTS = W.add_points(n_tests, scale = 0.05, param_ranges = param_ranges)  # use the "cloud technique" to populate
+        print("Points added")
+        # what is left from W.NIMP\SIMULS (set difference) if points left are <
+        # the chosen n_tests
+
+        np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_test.dat"), TESTS, fmt="%.2f")
+    else:
+        TESTS = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_test.dat"),
+                        dtype=float)
+
+
+    #============= We finally print and show the wave we wanted =============#
+    W.find_regions(TESTS)  # enforce the implausibility criterion to detect regions of
+                            # non-implausible and of implausible points
+    W.print_stats()  # show statistics about the two obtained spaces
+    
+    nimp = len(W.nimp_idx)
+    imp = len(W.imp_idx)
+    tests = nimp + imp
+    perc = 100 * nimp / tests
+
+    np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"NROY_rel.dat"), [perc], fmt='%.2f')
+
+    pathlib.Path(os.path.join("/data","fitting",subfolder,"figures")).mkdir(parents=True, exist_ok=True)
+
+
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_impl_min"),
+                            waveno = num_wave, reduction_function = "min",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the min of each slice",
+                            param_ranges = param_ranges)
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_impl_max"),
+                            waveno = num_wave, reduction_function = "max",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the max of each slice",
+                            param_ranges = param_ranges)
+    W.plot_wave(xlabels=xlabels, display="var", filename=os.path.join("/data","fitting",subfolder,"figures","wave" + str(num_wave) + "_var.png"))
+
+    #=================== Generate data for next wave =====================#
+    SIMULS = W.get_points(generate_simul_pts)  # actual matrix of selected points
+
+    pathlib.Path(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave + 1))).mkdir(parents=True, exist_ok=True)
+    np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave + 1),"X.dat"), SIMULS, fmt="%.2f")
+
+    W.save(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),
+                    "wave_" + str(num_wave)))
+    np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"variance_quotient.dat"), W.PV, fmt="%.2f")
 
 if __name__ == "__main__":
 
+    num_input_param = 14
+
+    anatomy_new_wave(num_wave = 0, run_simulations = True, train_GPE = True,
+                    fill_wave_space = True, cutoff = 3.2, n_samples = int(14*20),
+                generate_simul_pts = int(14*10), subfolder = "anatomy",
+                training_set_memory = 2)
+
     # original_training_set_size = 400
-    # generate.EP_funct_param(original_training_set_size)
-    # generate.template_EP_parallel(line_from = 312, line_to = original_training_set_size - 1, waveno = 0)
-    # generate.EP_output(at_least, waveno = 0)
-    # generate.filter_output(waveno = 0)
+    # template_EP.EP_funct_param(original_training_set_size)
+    # template_EP.template_EP_parallel(line_from = 312, line_to = original_training_set_size - 1, waveno = 0)
+    # template_EP.EP_output(at_least, waveno = 0)
+    # template_EP.filter_output(waveno = 0)
 
     # for num_wave in range(1,11):
     #     run_new_wave(num_wave = num_wave, run_simulations = False, train_GPE = False, fill_wave_space = False, cutoff = 2.0)
-    #-------------------------------------------------
-    """
-    run_new_wave(num_wave = 1, run_simulations = False, train_GPE = True,
-                fill_wave_space = True, cutoff = 4, n_samples = 150,
-                generate_simul_pts = 50, subfolder = "experiment_4")
-    run_new_wave(num_wave = 2, run_simulations = True, train_GPE = False,
-                fill_wave_space = True, cutoff = 3.8, n_samples = 150,
-                generate_simul_pts = 50, subfolder = "experiment_4")
-    run_new_wave(num_wave = 3, run_simulations = True, train_GPE = False,
-                fill_wave_space = True, cutoff = 3.6, n_samples = 150,
-                generate_simul_pts = 50, training_set_memory = 2,
-                subfolder = "experiment_4")
-    run_new_wave(num_wave = 4, run_simulations = True, train_GPE = False,
-                fill_wave_space = True, cutoff = 3.4, n_samples = 150,
-                generate_simul_pts = 50, training_set_memory = 2,
-                subfolder = "experiment_4")
-    run_new_wave(num_wave = 5, run_simulations = True, train_GPE = False,
-                fill_wave_space = True, cutoff = 3.2, n_samples = 150,
-                generate_simul_pts = 50, training_set_memory = 2,
-                subfolder = "experiment_4")
-    run_new_wave(num_wave = 6, run_simulations = True, train_GPE = False,
-                fill_wave_space = True, cutoff = 3., n_samples = 150,
-                generate_simul_pts = 50, training_set_memory = 2,
-                subfolder = "experiment_4")
-    run_new_wave(num_wave = 7, run_simulations = True, train_GPE = False,
-                fill_wave_space = True, cutoff = 3., n_samples = 150,
-                generate_simul_pts = 50, training_set_memory = 2,
-                subfolder = "experiment_4")
-                """
-    #-------------------------------------------------
-    plot_waves(wavesno = 7, subfolder = "experiment_4")
-    # plot_var_quotient(first_wave = 0, last_wave = 6, subfolder = "experiment_4")
-    # plot_output_evolution(first_wave = 0, last_wave = 6, subfolder = "experiment_4")
-    # GSA(emul_num = 5, feature = "TAT", generate_Sobol = False)
-    # GSA(emul_num = 5, feature = "TATLV", generate_Sobol = False)
+    
+    # subfolders_array = ["coveney","longobardi","experiment_3","experiment_4","experiment_5","experiment_6","experiment_7"]
+    # number_waves = np.array([9,5,6,6,9,5,5])
+
+    # for i in range(len(number_waves)):
+    #     plot_percentages_NROY(subfolder = subfolders_array[i], last_wave = number_waves[i])
+        # plot_waves(wavesno = number_waves[i], subfolder = subfolders_array[i])
+        # plot_var_quotient(first_wave = 0, last_wave = number_waves[i], subfolder =subfolders_array[i])
+        # plot_output_evolution_complete(first_wave = 0, last_wave = number_waves[i], subfolder =subfolders_array[i])
+        # plot_output_evolution(first_wave = 0, last_wave = number_waves[i], subfolder = subfolders_array[i])
+
+    # GSA(emul_num = 6, feature = "TAT", generate_Sobol = True, subfolder ="coveney")
+    # GSA(emul_num = 6, feature = "TATLV", generate_Sobol = True, subfolder ="coveney")
+
+    # GSA(emul_num = 0, feature = "TAT", generate_Sobol = True, subfolder ="longobardi")
+    # GSA(emul_num = 0, feature = "TATLV", generate_Sobol = True, subfolder ="longobardi")
+
+    # GSA(emul_num = 4, feature = "TAT", generate_Sobol = True, subfolder ="experiment_3")
+    # GSA(emul_num = 4, feature = "TATLV", generate_Sobol = True, subfolder ="experiment_3")
+
+    # GSA(emul_num = 7, feature = "TAT", generate_Sobol = True, subfolder ="experiment_5")
+    # GSA(emul_num = 7, feature = "TATLV", generate_Sobol = True, subfolder ="experiment_5")
+
+    # GSA(emul_num = 5, feature = "TAT", generate_Sobol = True, subfolder ="experiment_6")
+    # GSA(emul_num = 5, feature = "TATLV", generate_Sobol = True, subfolder ="experiment_6")
+
+    # custom_plots.GSA(emul_num = 4, feature = "TAT", generate_Sobol = False, subfolder ="experiment_7")
+    # custom_plots.GSA(emul_num = 4, feature = "TATLV", generate_Sobol = False, subfolder ="experiment_7")
+
+    # Xdata =  np.loadtxt(os.path.join("/data","fitting","coveney","wave0", "X_test.dat"),dtype=float)
+    # xlabels = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
+    # # plot_output_evolution(first_wave = 0, last_wave = 9, subfolder = "coveney")
+    # W = hm.Wave()
+    # W.load(os.path.join("/data","fitting","coveney","wave0","wave_0"))
+
+    # # X_test = W.reconstruct_tests()
+    # # print(W.__dict__.keys())
+    # Impl = W.I
+    # cutoff = W.cutoff
+    
+    # custom_plots.plot_dataset_modified(Xdata, xlabels, Impl, cutoff)
+    # custom_plots.plot_dataset_modified(W.IMP, xlabels, Impl[W.imp_idx], cutoff)
+    # custom_plots.plot_dataset_modified(W.NIMP, xlabels, Impl[W.nimp_idx], cutoff)
+    # custom_plots.plot_dataset_modified(np.vstack([W.NIMP,W.IMP]), xlabels, np.append(Impl[W.nimp_idx],Impl[W.imp_idx]), cutoff)
+    # plot_impl_binary(W,xlabels)
+    # W.print_stats()
+
+    # plot_accumulated_waves_points(xlabels)
+
+    # run_new_wave(num_wave = 4, run_simulations = False, train_GPE = False,
+    #             fill_wave_space = False, cutoff = 3., n_samples = 100,
+    #             generate_simul_pts = 50, subfolder = "experiment_7", training_set_memory = 2)
