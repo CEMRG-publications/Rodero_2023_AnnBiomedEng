@@ -85,8 +85,19 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
             f_writer.writerow(["{0:.2f}".format(round(i,2)) for i in output])
 
     f.close()
-
 def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
+    """Function to generate meshes using deformetrica given the modes values.
+
+    Args:
+        waveno (int, optional): Wave number, defines the folder. Defaults to 0.
+        subfolder (str, optional): Subfolder where to work on. Defaults to ".".
+        force_construction (bool, optional): If True, it generates the meshes,
+        even if they already exit. Defaults to False.
+
+    Returns:
+        had_to_run_new (bool): Boolean variable to know if a new mesh was 
+        created.
+    """
     
     path_lab = os.path.join("/data","fitting")
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
