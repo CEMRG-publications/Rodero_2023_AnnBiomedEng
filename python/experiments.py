@@ -526,8 +526,8 @@ def experiment_anatomy():
     exp_mean_name = "exp_mean_anatomy_EP.txt"
     exp_std_name = "exp_std_anatomy_EP.txt"
 
-    xlabels_EP = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
-    xlabels_anatomy = read_labels(os.path.join("/data","fitting", "modes_labels.txt"))
+    xlabels_EP = read_labels(os.path.join("/data","fitting", experiment_name, "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data","fitting", experiment_name, "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP] for lab in sublist]
 
     # fitting_hm.anatomy_new_wave(num_wave = 0, run_simulations = True, train_GPE = True,
@@ -552,14 +552,14 @@ def experiment_anatomy():
 
     wave_to_plot = wave_to_plot + 1
     
-    # summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name,
-    #                     only_feasible = False, output_labels_dir = output_labels_dir,
-    #                     exp_mean_name = exp_mean_name, exp_std_name = exp_std_name,
-    #                     units_dir = units_dir)
-    # print("Summary plots finished")
-    custom_plots.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
-                        output_labels_dir = output_labels_dir,
-                        input_labels = xlabels)
+    summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name,
+                        only_feasible = False, output_labels_dir = output_labels_dir,
+                        exp_mean_name = exp_mean_name, exp_std_name = exp_std_name,
+                        units_dir = units_dir)
+    print("Summary plots finished")
+    # custom_plots.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
+    #                     output_labels_dir = output_labels_dir,
+    #                     input_labels = xlabels)
 
 def run_experiment(experiment_name):
     """Function to run one of the previously defined history matching pipelines.

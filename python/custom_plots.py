@@ -290,25 +290,17 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
 
         min_value_axis = min(min_value_axis, max(0,exp_means[i] - 3*exp_stds[i]))
         max_value_axis = max(max_value_axis, exp_means[i] + 3*exp_stds[i])
-
-
-        ax.fill_between(np.array([first_wave-0.5, len(range(first_wave,last_wave)) + 0.5]),
-                        max(0,exp_means[i] - exp_stds[i]**2),
-                        exp_means[i] + exp_stds[i]**2,
-                        facecolor='palegreen', alpha=0.2)
-        
-        min_value_axis = min(min_value_axis, max(0,exp_means[i] - exp_stds[i]**2))
-        max_value_axis = max(max_value_axis, exp_means[i] + exp_stds[i]**2)
         
 
         legend_3SD, = ax.fill(np.NaN, np.NaN, 'gray', alpha=0.2, linewidth=0)
-        legend_var, = ax.fill(np.NaN, np.NaN, 'palegreen', alpha=0.2, linewidth=0)
         emul_box, = ax.fill(np.NaN, np.NaN, 'dodgerblue', alpha=0.75, linewidth=0)
         simul_box, = ax.fill(np.NaN, np.NaN, 'blue', alpha=0.75, linewidth=0)
 
+        hor_line = plt.axhline(y=exp_means[i], c='red', linestyle='dashed', label="Exp. mean")
 
-        ax.legend([legend_3SD, legend_var, emul_box, simul_box],
-                    [r'Exp. mean $\pm 3$SD', r'Exp. mean $\pm $ var.',"Emulation mean of the previous NROY", "Added training points"])
+
+        ax.legend([hor_line, legend_3SD, emul_box, simul_box],
+                    ["Exp. mean", r'Exp. mean $\pm 3$SD',"Emulation mean of the previous NROY", "Added training points"])
 
         plt.title("Distribution of the outputs for " + output_labels[i])
         plt.xlabel("Wave")
