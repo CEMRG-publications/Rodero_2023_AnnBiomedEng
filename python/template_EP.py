@@ -95,6 +95,27 @@ def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = ".
     def template_EP_explicit_arguments(alpha_endo_vec, lastFECtag_vec, CV_l_vec,
                                        k_fibre_vec, k_FEC_vec, param_line,
                                        path_EP,FEC_height_vec, had_to_run_new):
+        """Function to prepare the mesh and run a simulation with specific 
+        parameter values.
+
+        Args:
+            alpha_endo_vec (array): Array with fibre angle values.
+            lastFECtag_vec (array): Array with the FEC tag that marks the 
+            difference between normal CV and FEC CV.
+            CV_l_vec (array): Array with the values of the fibre-direction CV.
+            k_fibre_vec (array): Array with the values of the fibre anisotropy.
+            k_FEC_vec (array): Array with the values of the FEC layer 
+            anisotropy.
+            param_line (int): Specific line from which to take the param values.
+            path_EP (str): Path where to run and save the EP simulations.
+            FEC_height_vec (array): Array of the % of FEC height marking the
+            difference between normal CV and FEC CV.
+            had_to_run_new (bool): Boolean to know if a simulation was already
+            ran. If a new mesh or simulation is run, it changes to True.
+
+        Returns:
+            had_to_run_new
+        """
 
         simulation_file_name = os.path.join(path_EP,
                                 str(format(alpha_endo_vec[param_line],'.2f')) +\
