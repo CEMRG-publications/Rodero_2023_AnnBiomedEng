@@ -304,7 +304,8 @@ def filter_output(waveno = 0, subfolder = ".", skip = False):
         Defaults to 0.
         subfolder (str, optional): Folder in /data/fitting where to work in. 
         Defaults to ".".
-        skip (bool, optional): If True, does nothing. Defaults to False.
+        skip (bool, optional): If True, just copies the X and y to X_feasible 
+        and y_feasible. Defaults to False.
     """
     
     path_match = os.path.join("/data","fitting","match")
