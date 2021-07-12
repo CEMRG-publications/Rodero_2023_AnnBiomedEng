@@ -297,6 +297,15 @@ def EP_output(waveno = 0, subfolder = "."):
                     fmt="%.2f")
 
 def filter_output(waveno = 0, subfolder = ".", skip = False):
+    """Function to filter output for unfeasible values (mean+- 5SD)
+
+    Args:
+        waveno (int, optional): Wave number, defines the name of the folder. 
+        Defaults to 0.
+        subfolder (str, optional): Folder in /data/fitting where to work in. 
+        Defaults to ".".
+        skip (bool, optional): If True, does nothing. Defaults to False.
+    """
     
     path_match = os.path.join("/data","fitting","match")
     path_lab = os.path.join("/data","fitting")
