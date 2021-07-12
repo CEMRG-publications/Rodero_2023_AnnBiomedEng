@@ -135,6 +135,17 @@ def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
     os.system("rm -rf " + temp_outpath)
     return had_to_run_new
 def EP_setup(waveno = 0, subfolder = "."):
+    """Function to prepare the mesh ready for an EP simulation.
+
+    Args:
+        waveno (int, optional): Wave number, defines the folder. Defaults to 0.
+        subfolder (str, optional): Subfolder name of /data/fitting to work on. 
+        Defaults to ".".
+
+    Returns:
+        had_to_run_new (bool): If a new simulation was run, returns to True.
+        Otherwise is False.
+    """
 
     path_lab = os.path.join("/data","fitting")
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
