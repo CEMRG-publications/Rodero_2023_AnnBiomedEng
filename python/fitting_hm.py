@@ -65,7 +65,7 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
         work on. Defaults to ".".
         only_feasible (bool, optional): If True, works only with "feasible"
         point (within 5SD of the mean). Defaults to True.
-
+        
     Returns:
         X_train, y_train, emul (list): List with the vector (or matrix) of
         training points, simulations of those points and the resulting emulator.
