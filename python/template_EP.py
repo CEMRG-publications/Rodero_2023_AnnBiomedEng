@@ -16,14 +16,6 @@ from Historia.shared.design_utils import read_labels
 
 SEED = 2
 
-def template_mesh_setup():
-    prepare_mesh.extract_LDRB_biv("Template")
-    prepare_mesh.extract_MVTV_base("Template")
-    UVC.create("Full_Heart_Mesh_Template", "MVTV")
-    UVC.bottom_third("Template", "MVTV")
-    UVC.create_FEC("Template", "MVTV")
-    fibres.run_laplacian("Template")
-
 def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
     """Function to generate the first points to run EP in the template.
 
@@ -65,7 +57,6 @@ def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
     f = open(os.path.join(path_gpes, "X.dat"), "w")
     [f.write('%s\n' % ' '.join(map(str,[format(i, '.2f') for i in lhs_array]))) for lhs_array in x]
     f.close()
-
 def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = "."):
     """Function to prepare the mesh and run the EP simulation. It works in a 
     sequential way to improve debugging.
@@ -221,7 +212,6 @@ def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = ".
                                         FEC_height_vec,
                                         had_to_run_new = had_to_run_new)
     return had_to_run_new
-
 def EP_output(waveno = 0, subfolder = "."):
     """Function to postprocess the output of the simulations. Writes the output
     in a file: TAT and TATLVendo.
@@ -295,7 +285,6 @@ def EP_output(waveno = 0, subfolder = "."):
         np.savetxt(os.path.join(outpath, varname + ".dat"),
                     output_numbers[i],
                     fmt="%.2f")
-
 def filter_output(waveno = 0, subfolder = ".", skip = False):
     """Function to filter output for unfeasible values (mean+- 5SD)
 
