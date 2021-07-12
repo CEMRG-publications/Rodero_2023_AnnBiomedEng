@@ -42,10 +42,6 @@ def rb_bayer(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_en
         epicardium. Defaults to -60.
         alpha_endo (int, optional): Angle of the fibre direction in the
         endocardium. Defaults to 80.
-        beta_epi (int, optional): Angle of the sheet direction in the
-        epicardium. Defaults to 25.
-        beta_endo (int, optional): Angle of the sheet direction in the
-        endocardium. Defaults to -65.
     """
 
     biv_dir = "/data/fitting/" + fourch_name + "/biv"
