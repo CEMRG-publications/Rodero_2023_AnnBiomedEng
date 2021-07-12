@@ -7,6 +7,12 @@ import collections
 import files_manipulations
 
 def create(fourch_name, base):
+    """Function to create Universal Ventricular Coordinates
+
+    Args:
+        fourch_name (str): Name of the four chamber mesh.
+        base (str): preffix of the surf of the base.
+    """
 
     path2biv = os.path.join("/data","fitting",fourch_name,"biv")
     path2scripts = os.path.join("/home","crg17","Desktop",
