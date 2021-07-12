@@ -308,7 +308,7 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_GPE = False,
         simulation input for the next wave. Defaults to 10.
         subfolder (str, optional):  Name of the subfolder in /data/fitting to
         work on. Defaults to ".".
-        training_set_memory (int, optional):  The training set of the current 
+        training_set_memory (int, optional): The training set of the current 
         emulator will be expanded with the previous training_set_memory training
         sets. Defaults to 100.
         skip_filtering (bool, optional): If False, filters the simulations and 
@@ -485,6 +485,32 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
                 fill_wave_space = False, cutoff = 0, n_samples = 150,
                 generate_simul_pts = 10, subfolder = "anatomy", training_set_memory = 100,
                 only_feasible = False):
+    """Pipeline to run a new wave including anatomy and EP.
+
+    Args:
+        num_wave (int, optional): Wave number (establishes the folder name). 
+        Defaults to 0.
+        run_simulations (bool, optional): If True, runs the simulations.
+        Otherwise it loads them. Defaults to False.
+        train_GPE (bool, optional): If True, trains the emulators. Otherwise it
+        loads them. Defaults to False.
+        fill_wave_space (bool, optional): If True, generates the new points in 
+        the NROY. Defaults to False.
+        cutoff (int, optional): Implausibility threshold. Defaults to 0.
+        n_samples (int, optional): Number of points to use in train/validation.
+        Validation will be 20% of that value, and the 80% remaining will be
+        split in 80%/20% for training/test. Defaults to 150.
+        generate_simul_pts (int, optional): Number of points to generate as
+        simulation input for the next wave. Defaults to 10.
+        subfolder (str, optional): Name of the subfolder in /data/fitting to
+        work on. Defaults to "anatomy".
+        training_set_memory (int, optional): The training set of the current 
+        emulator will be expanded with the previous training_set_memory training
+        sets. Defaults to 100.
+        only_feasible (bool, optional): If True, filters the simulations and 
+        emulations that are out of a specific range (5SD of the mean). 
+        Defaults to False.
+    """
 
     SEED = 2
     # ----------------------------------------------------------------
