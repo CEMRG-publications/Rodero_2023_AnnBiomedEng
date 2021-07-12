@@ -25,6 +25,16 @@ def template_mesh_setup():
     fibres.run_laplacian("Template")
 
 def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
+    """Function to generate the first points to run EP in the template.
+
+    Args:
+        n_samples (int, optional): Number of points to generate. Defaults to 
+        None.
+        waveno (int, optional): Wave number, specifies the folder name. Defaults 
+        to 0.
+        subfolder (str, optional): Subfolder name of /data/fitting to work on. 
+        Defaults to ".".
+    """
 
     path_lab = os.path.join("/data","fitting")
     path_match = os.path.join("/data","fitting","match")
