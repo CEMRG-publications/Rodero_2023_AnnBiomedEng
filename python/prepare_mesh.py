@@ -5,69 +5,8 @@ import shutil
 import glob
 import numpy as np
 import pathlib
-import tqdm
 
 import files_manipulations
-
-
-def download_zip(bundle_number):
-    """Function to download the zip from zenodo.
-
-    Args:
-        bundle_number (str): Number of the zip folder (each with 20 cases).
-    """
-
-    def bar_custom(current, total, width = 80):
-        """Function to show a progress bar when downloading.
-
-        Args:
-            current (double): Current progress in Mb
-            total (double): Total progress in Mb
-            width (int, optional): Width of the bar. Defaults to 80.
-        """
-        os.system('clear')
-        current_format = current / 1e6
-        total_format = total / 1e6
-
-        print("Downloading to %s: %d%% [%.1f / %d] Mb" % (out_name, current / total * 100, current_format, total_format))
-    
-    url = "https://zenodo.org/record/4506930/files/Final_models_" + bundle_number + ".zip?download=1"
-
-    file_name = url.split("/")[-1]
-    file_name = file_name.split("?")[0]
-
-    out_name = "/data/fitting/" + file_name
-
-    wget.download(url, out = out_name, bar = bar_custom)
-
-def unzip_meshes(bundle_number):
-    """Function to unzip the bundle of meshes and create the approppriate 
-    directories.
-
-    Args:
-        bundle_number (str): Number of the zip folder (each with 20 cases).
-    """
-
-    pathmeshes = "/data/fitting/Final_models_" + bundle_number
-
-    print("Unzipping files...")
-    with zipfile.ZipFile(pathmeshes + ".zip", 'r') as zip_ref:
-        zip_ref.extractall(pathmeshes + "/..")
-    print("Files unzipped.")
-    
-    files_in_dir = [f for f in os.listdir(pathmeshes) if os.path.isfile(os.path.join(pathmeshes, f))]
-
-    for filename in files_in_dir:
-        if filename.split(".")[-1] != "csv":
-            if not os.path.isdir(os.path.join(pathmeshes, "..", filename.split(".")[0])):
-                os.mkdir(os.path.join(pathmeshes, "..", filename.split(".")[0]))
-            os.rename(os.path.join(pathmeshes,filename),os.path.join(pathmeshes,"..",filename.split(".")[0],filename))
-        else:
-            if not os.path.isdir(os.path.join(pathmeshes, "../Cases_weights")):
-                os.mkdir(os.path.join(pathmeshes, "../Cases_weights"))
-            os.rename(os.path.join(pathmeshes,filename),os.path.join(pathmeshes,"../Cases_weights",filename))
-
-    os.rmdir(pathmeshes)
 
 def vtk_mm2carp_um(fourch_name):
     """Function to convert to carp format and convert the pts to micrometre
@@ -102,13 +41,12 @@ def vtk_mm2carp_um(fourch_name):
                 os.path.join(mesh_dir,mesh_name + "_default.elem"))
     
     os.system("rm " + os.path.join(mesh_dir,mesh_name) + ".vtk")
-
 def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
     """Function to extract the boundary conditions for the LDRB method from
     Bayer 2012, except for the base and the apex.
 
     Args:
-        heart (int or str): Number of the mesh, part of the path.
+        fourch_name (str): Name of the four chamber mesh.
     """
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
@@ -135,16 +73,8 @@ def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
                            " -files=" + os.path.join(path2fourch,"biv.epi_endo.surf") + \
                             " -outdir=" + path2biv)
 
-
-    ##### For debugging purposes
     biv_epi_endo_surf = files_manipulations.surf.read(os.path.join(path2biv,"biv.epi_endo.surf"),"biv")
 
-    # biv_epi_endo_surfmesh = files_manipulations.surf.tosurfmesh(biv_epi_endo_surf)
-
-    # biv_epi_endo_surfmesh.write(os.path.join(path2biv,"biv.epi_endo.surf.elem"))
-    #####
-
-    
     biv_epi_endo_vtx = biv_epi_endo_surf.tovtx()
     biv_epi_endo_vtx.write(os.path.join(path2biv,"biv.epi_endo.surf.vtx"))
 
@@ -334,7 +264,6 @@ def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
     biv_epi_vtx.write(os.path.join(path2biv,"biv.epi.surf.vtx"))
     biv_noLVendo_vtx.write(os.path.join(path2biv,"biv_noLVendo.surf.vtx"))
     biv_noRVendo_vtx.write(os.path.join(path2biv,"biv_noRVendo.surf.vtx"))
-
 def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template"):
     """Function to extract the base and the apex as boundary conditions for the
     LDRB method from Bayer 2012.
@@ -396,7 +325,6 @@ def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template"):
     for vtx_file in ["MVTV_base.surf.vtx"]:
         vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
         vtx.write(os.path.join(path2biv,vtx_file))
-
 def extract_peri_base(fourch_name):
     
     path2fourch = os.path.join("/data","fitting",fourch_name)
@@ -418,7 +346,6 @@ def extract_peri_base(fourch_name):
     for vtx_file in ["peri_base.surf.vtx"]:
         vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
         vtx.write(os.path.join(path2biv,vtx_file))
-
 def close_LV_endo(fourch_name):
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
@@ -482,7 +409,6 @@ def close_LV_endo(fourch_name):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "av_ao.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "av_ao.pts"))
-
 def close_RV_endo(fourch_name):
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
@@ -550,7 +476,6 @@ def close_RV_endo(fourch_name):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "pv_pa.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "pv_pa.pts"))
-
 def close_LA_endo(fourch_name):
     ## ATRIA: Extract the surfaces with the veins and the valve. The biggest
     # file will be the epi with the veins. The second will be the endo closed and
@@ -582,7 +507,6 @@ def close_LA_endo(fourch_name):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "mv_lv.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "mv_lv.pts"))
-
 def close_RA_endo(fourch_name):
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
