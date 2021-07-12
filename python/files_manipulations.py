@@ -423,6 +423,11 @@ class lon:
 
     @classmethod
     def normalise(cls, self):
+        """Class method to normalize the value of the fibres.
+
+        Returns:
+            The fibre structure with normalized fibres.
+        """
         matrix_lon = np.transpose(np.array([self.f1, self.f2, self.f3]))
         row_norms = np.linalg.norm(matrix_lon, axis = 1)
         new_matrix = matrix_lon / row_norms[:, np.newaxis]
@@ -507,8 +512,6 @@ class elem:
 
         return cls(elemfile[:,0], elemfile[:,1], elemfile[:,2],
                    elemfile[:,3], elemfile[:,4])
-
-
     def write(self,pathname):
         """Function to write a elem object to a file.
 
