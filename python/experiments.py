@@ -4,16 +4,53 @@ import sys
 
 import custom_plots
 import fitting_hm
+from Historia.shared.design_utils import read_labels
 
-def summary_plots(wave_to_plot, experiment_name):
+
+def summary_plots(wave_to_plot, experiment_name,
+                    output_labels_dir = os.path.join("/data","fitting", "EP_output_labels.txt"),
+                    exp_mean_name = "exp_mean.txt", exp_std_name = "exp_std.txt",
+                    only_feasible = True, units_dir = ""):
+    """Function to plot a series of different plots after a wave to analyse
+    the output.
+
+    Args:
+        wave_to_plot (int): Number of wave to plot.
+        experiment_name (str): Name of the folder for the output.
+        output_labels_dir (str, optional): Directory where the output labels 
+        are. Defaults to os.path.join("/data","fitting", "EP_output_labels.txt").
+        exp_mean_name (str, optional): Name of the file where the experimental
+        mean is. Defaults to "exp_mean.txt".
+        exp_std_name (str, optional): Name of the file where the experimental
+        standard deviation is. Defaults to "exp_std.txt".
+        only_feasible (bool, optional): If True, it uses only the feasible
+        points (under 5SD). Defaults to True.
+        units_dir (str, optional): Directory where the file with the units of
+        the output is. Defaults to "".
+    """
+
     custom_plots.plot_var_quotient(first_wave = 1, last_wave = wave_to_plot,
                                     subfolder = experiment_name,
                                     plot_title = "Evolution of variance quotient for " + experiment_name)
     custom_plots.plot_output_evolution_seaborn(first_wave = 0, last_wave = wave_to_plot,
-                                            subfolder = experiment_name)
+                                            subfolder = experiment_name,
+                                            only_feasible = only_feasible,
+                                            output_labels_dir = output_labels_dir,
+                                            exp_mean_name = exp_mean_name,
+                                            exp_std_name = exp_std_name,
+                                            units_dir = units_dir)
     custom_plots.plot_percentages_NROY(subfolder = experiment_name, last_wave = wave_to_plot)
 
 def summary_statistics(last_wave,experiment_name):
+    """Function to print some statistics about the history matching wave 
+    including the minimum variance, the wave where that minimal variance is 
+    reached and the NROY size in that wave.
+
+    Args:
+        last_wave (str): Last wave to include in the analysis. The first waves
+        are always included.
+        experiment_name (str): Name of the folder where the emulators are.
+    """
 
     mean_var_quotient_vec = []
     NROY_rel = []
@@ -37,9 +74,16 @@ def summary_statistics(last_wave,experiment_name):
     print("Min. variance: " + str(round(mean_var_quotient_vec[min_var_wave],2)))
     print("Wave with min. var.: " + str(min_var_wave))
     print("NROY size: " + str(round(NROY_abs[min_var_wave],2)))
-    
 
 def experiment_coveney(only_plot = True):
+    """History matching pipeline similar to the one presented in the paper
+    by Sam coveney. Implausibility thresholds, training sets size and number
+    of waves are detailed in the script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
     
     experiment_name = "coveney"
     original_training_set_size = 50
@@ -105,6 +149,14 @@ def experiment_coveney(only_plot = True):
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
 def experiment_longobardi(only_plot = True):
+    """History matching pipeline similar to the one presented in the paper
+    by Stefano Longobardi. Implausibility thresholds, training sets size and number
+    of waves are detailed in the script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
     
     experiment_name = "longobardi"
     original_training_set_size = 150
@@ -151,6 +203,15 @@ def experiment_longobardi(only_plot = True):
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
 def experiment_3(only_plot = True):
+    """History matching pipeline to test different scenarios. Implausibility 
+    thresholds, training sets size and number of waves are detailed in the 
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
+    
     
     original_training_set_size = 100
     experiment_name = "experiment_3"
@@ -203,6 +264,14 @@ def experiment_3(only_plot = True):
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
 def experiment_4(only_plot = True):
+    """History matching pipeline to test different scenarios. Implausibility 
+    thresholds, training sets size and number of waves are detailed in the 
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
     # Accurate initial emulator, slow descent (memory 2)
 
     original_training_set_size = 100
@@ -255,6 +324,14 @@ def experiment_4(only_plot = True):
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
 def experiment_5(only_plot = True):
+    """History matching pipeline to test different scenarios. Implausibility 
+    thresholds, training sets size and number of waves are detailed in the 
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
     # Balanced emulator, initial and pre-final convergence (memory 2)
 
     original_training_set_size = 50
@@ -325,6 +402,14 @@ def experiment_5(only_plot = True):
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
 def experiment_6(only_plot = True):
+    """History matching pipeline to test different scenarios. Implausibility 
+    thresholds, training sets size and number of waves are detailed in the 
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
     # Cut to the chase (total memory)
 
     original_training_set_size = 100
@@ -371,6 +456,14 @@ def experiment_6(only_plot = True):
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
 def experiment_7(only_plot = False):
+    """History matching pipeline to test different scenarios. Implausibility 
+    thresholds, training sets size and number of waves are detailed in the 
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
      # Cut to the chase (memory 2)
 
     original_training_set_size = 100
@@ -416,7 +509,64 @@ def experiment_7(only_plot = False):
         wave_to_plot += 1
         summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
 
+def experiment_anatomy():
+    """History matching pipeline for the EP + anatomy scenario. Implausibility 
+    thresholds, training sets size and number of waves are detailed in the 
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots. 
+        Defaults to True.
+    """
+    num_input_param = 14
+    experiment_name = "anatomy"
+    wave_to_plot = -1
+    output_labels_dir = os.path.join("/data","fitting",experiment_name,"output_labels.txt")
+    units_dir = os.path.join("/data","fitting",experiment_name,"output_units.txt")
+    exp_mean_name = "exp_mean_anatomy_EP.txt"
+    exp_std_name = "exp_std_anatomy_EP.txt"
+
+    xlabels_EP = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data","fitting", "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP] for lab in sublist]
+
+    # fitting_hm.anatomy_new_wave(num_wave = 0, run_simulations = True, train_GPE = True,
+    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2)
+
+    wave_to_plot = wave_to_plot + 1
+
+    # fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_GPE = True,
+    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2)
+    
+    wave_to_plot = wave_to_plot + 1
+
+
+    # fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_GPE = True,
+    #                     fill_wave_space = True, cutoff = 3.0, n_samples = int(num_input_param*20),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2)
+
+    wave_to_plot = wave_to_plot + 1
+    
+    # summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name,
+    #                     only_feasible = False, output_labels_dir = output_labels_dir,
+    #                     exp_mean_name = exp_mean_name, exp_std_name = exp_std_name,
+    #                     units_dir = units_dir)
+    # print("Summary plots finished")
+    custom_plots.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
+                        output_labels_dir = output_labels_dir,
+                        input_labels = xlabels)
+
 def run_experiment(experiment_name):
+    """Function to run one of the previously defined history matching pipelines.
+
+    Args:
+        experiment_name (str): Name of the scenario to run.
+    """
     experiment_name = str(experiment_name)
 
     if experiment_name == "1" or experiment_name == "coveney":
@@ -433,11 +583,11 @@ def run_experiment(experiment_name):
         experiment_6()
     elif experiment_name == "7":
         experiment_7(only_plot=True)
+    elif experiment_name == "anatomy":
+        experiment_anatomy()
     elif experiment_name == "all":
         for i in range(1,8):
             run_experiment(i)
     
-    
-
 if __name__ == "__main__":
     run_experiment(sys.argv[1])
