@@ -269,7 +269,7 @@ def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template"):
     LDRB method from Bayer 2012.
 
     Args:
-        heart (int or str): Number of the mesh, part of the path.
+        fourch_name (str): Name of the four chamber mesh.
     """
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = path2fourch + "/biv"
