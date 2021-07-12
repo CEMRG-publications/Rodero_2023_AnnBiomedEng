@@ -223,6 +223,14 @@ def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = ".
     return had_to_run_new
 
 def EP_output(waveno = 0, subfolder = "."):
+    """Function to postprocess the output of the simulations. Writes the output
+    in a file: TAT and TATLVendo.
+
+    Args:
+        waveno (int, optional): Wave number. Defaults to 0.
+        subfolder (str, optional): Folder name to write the output in 
+        /data/fitting. Defaults to ".".
+    """
 
     EP_dir = os.path.join("/data","fitting","Full_Heart_Mesh_Template","biv", 
                           "EP_simulations")
