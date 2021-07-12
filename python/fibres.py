@@ -71,7 +71,22 @@ def rb_bayer(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_en
     corrected_biv_lon.write(os.path.join(fibre_dir,outname + ".lon"))
 
 def FibreCorrection(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_endo = 80):
+    """Function to correct the fibre direction. For some reason, some fibres are
+    not created correctly, and the thing they have in common is having a 
+    z-coordinate = 0. It finds those fibres and takes the average direction
+    of the neighbouring elements.
 
+    Args:
+        fourch_name (str, optional): Name of the four chamber mesh. Defaults to 
+        "Full_Heart_Mesh_Template".
+        alpha_epi (int, optional): Angle value in the epicardium, in degrees.
+        Defaults to -60.
+        alpha_endo (int, optional): Angle value in the endocardium, in degrees. 
+        Defaults to 80.
+
+    Returns:
+        biv_lon (fibres): Fibre values for the biventricular mesh.
+    """
     path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
     biv_lon = files_manipulations.lon.read(os.path.join(path2biv,"fibres",\
