@@ -74,7 +74,7 @@ def vtk_mm2carp_um(fourch_name):
     instead of millimetre.
 
     Args:
-        heart (int or str): Number of the mesh, part of the path.
+        fourch_name (str): Name of the four chamber mesh.
     """
 
     mesh_name = fourch_name
@@ -100,6 +100,8 @@ def vtk_mm2carp_um(fourch_name):
 
     shutil.copy(os.path.join(mesh_dir,mesh_name + ".elem"),
                 os.path.join(mesh_dir,mesh_name + "_default.elem"))
+    
+    os.system("rm " + os.path.join(mesh_dir,mesh_name) + ".vtk")
 
 def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
     """Function to extract the boundary conditions for the LDRB method from
