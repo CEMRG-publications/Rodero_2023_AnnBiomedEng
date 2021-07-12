@@ -51,7 +51,6 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
     param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_EP)
 
     param_ranges = [(param_ranges_lower[i],param_ranges_upper[i]) for i in range(len(param_ranges_lower))]
-    # param_ranges = [(param_ranges_lower_anatomy[i],param_ranges_upper_anatomy[i]) for i in range(len(param_ranges_lower_anatomy))]
 
     if(n_samples is None):
         n_samples = 10*len(param_ranges)
@@ -66,8 +65,6 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
     for row in x:
         x_anatomy.append(row[:len(param_ranges_lower_anatomy)])
         x_EP.append(row[len(param_ranges_lower_anatomy):(len(param_ranges_lower_anatomy)+len(param_ranges_lower_EP))])
-        # x_EP.append(row[:len(param_ranges_lower_EP)])
-        # x_anatomy.append(row[len(param_ranges_lower_EP):(len(param_ranges_lower_EP)+len(param_ranges_lower_anatomy))])
 
     f = open(os.path.join(path_gpes, "X.dat"), "w")
     [f.write('%s\n' % ' '.join(map(str,[format(i, '.2f') for i in lhs_array]))) for lhs_array in x]
@@ -89,9 +86,6 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
 
     f.close()
 
-    # f = open(os.path.join(path_gpes, "X_anatomy.dat"), "w")
-    # [f.write('%s\n' % ' '.join(map(str,[format(i, '.2f') for i in lhs_array]))) for lhs_array in x]
-    # f.close()
 def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
     
     path_lab = os.path.join("/data","fitting")
@@ -870,6 +864,15 @@ def collect_output(waveno = 0, subfolder = "."):
                     output_numbers[i],
                     fmt="%.2f")
 def preprocess_input(waveno = 0, subfolder = "."):
+    """Function to split the input from a .dat file to a .csv file. This is
+    needed for deformetrica.
+
+    Args:
+        waveno (int, optional): Wave number, specifies the folder name.
+        Defaults to 0.
+        subfolder (str, optional): Subfolder name of /data/fitting to work on. 
+        Defaults to ".".
+    """
 
     path_gpes = os.path.join("/data","fitting", subfolder, "wave" + str(waveno))
 
