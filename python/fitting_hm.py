@@ -65,7 +65,7 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
         work on. Defaults to ".".
         only_feasible (bool, optional): If True, works only with "feasible"
         point (within 5SD of the mean). Defaults to True.
-        
+
     Returns:
         X_train, y_train, emul (list): List with the vector (or matrix) of
         training points, simulations of those points and the resulting emulator.
@@ -217,6 +217,30 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
 def run_GPE(waveno = 2, train = False, active_feature = ["TAT"],
             n_samples = 125, training_set_memory = 100, subfolder = ".",
             only_feasible = True):
+    """Function to train or evaluate a GPE of a given wave.
+
+    Args:
+        waveno (int, optional): Wave number (establishes the folder name).
+        Defaults to 2.
+        train (bool, optional): If True, trains the GPE, otherwise it loads it.
+        Defaults to False.
+        active_feature (list, optional): List of output features to train the
+        GPEs. Defaults to ["TAT"].
+        n_samples (int, optional): Number of points to use in train/validation.
+        Validation will be 20% of that value, and the 80% remaining will be
+        split in 80%/20% for training/test. Defaults to 125.
+        training_set_memory (int, optional): The training set of the current 
+        emulator will be expanded with the previous training_set_memory training
+        sets. Defaults to 100.
+        subfolder (str, optional): Name of the subfolder in /data/fitting to
+        work on. Defaults to ".".
+        only_feasible (bool, optional): If True, works only with "feasible"
+        point (within 5SD of the mean). Defaults to True.
+
+    Returns:
+        X_train, y_train, emul (list): List with the vector (or matrix) of
+        training points, simulations of those points and the resulting emulator.
+    """
 
     SEED = 2
     # ----------------------------------------------------------------
