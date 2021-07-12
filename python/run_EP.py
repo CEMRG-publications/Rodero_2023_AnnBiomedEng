@@ -8,12 +8,24 @@ import files_manipulations
 def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
               CV_l = None, k_fibre = None, k_FEC = None,
               simulation_file_name = None, path_EP = ""):
+              
+
     """Function with CARP arguments that creates an init file to then run
     ekbatch.
 
     Args:
-        lastFECtag (int): Last tag to include in the FEC layer. Minimum 25,
-        maximum tag is 38. The rest of the tags is myocardium.
+        fourch_name (str, optional): Name of the four-chamber mesh. Defaults to 
+        "Full_Heart_Mesh_Template".
+        lastFECtag (int, optional): Last tag to include in the FEC layer. Minimum 25,
+        maximum tag is 38. The rest of the tags is myocardium. Defaults to None.
+        CV_l (float, optional): Conduction velocity in the fibre direction. 
+        Defaults to None.
+        k_fibre (float, optional): Fibre anisotropy. Defaults to None.
+        k_FEC (float, optional): FEC layer anisotropy. Defaults to None.
+        simulation_file_name (str, optional): Name for the file containing the 
+        simulation results. Defaults to None.
+        path_EP (str, optional): Path where to save the EP simulations. Defaults
+        to "".
     """
 
     CV_t = float(CV_l)*float(k_fibre)
