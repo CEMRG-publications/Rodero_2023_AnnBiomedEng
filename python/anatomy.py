@@ -23,6 +23,17 @@ np.random.seed(SEED)
 
 
 def input(n_samples = None, waveno = 0, subfolder = "."):
+    """Function to generate the input parameter space using sobol' semi random
+    sequences.
+
+    Args:
+        n_samples (int, optional): Number of points to generate. Defaults to 
+        None.
+        waveno (int, optional):  Wave number, specifies the folder name. 
+        Defaults to 0.
+        subfolder (str, optional): Subfolder name of /data/fitting to work on. 
+        Defaults to ".".
+    """
 
     path_lab = os.path.join("/data","fitting")
     path_match = os.path.join("/data","fitting","match")
@@ -74,7 +85,7 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
         for current_line in range(len(x_anatomy)):
             output = np.zeros(18)
             output[0:9] = x_anatomy[current_line]
-            f_writer.writerow([round(i,2) for i in output])
+            f_writer.writerow(["{0:.2f}".format(round(i,2)) for i in output])
 
     f.close()
 
@@ -94,15 +105,18 @@ def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
     pathlib.Path(temp_outpath).mkdir(parents = True, exist_ok = True)
     
     for i in tqdm.tqdm(range(len(anatomy_values)-1)):
-        temp_base_name = "wave" + str(waveno) + "_" + str(i) + "_0"
-        final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-27]
+        temp_base_name = "wave" + str(waveno) + "_" + str(i)
+        final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-36]
         mesh_path = os.path.join(path_lab, final_base_name)
 
         if (not os.path.isfile(os.path.join(mesh_path,final_base_name + ".elem")) and not os.path.isfile(os.path.join(mesh_path,final_base_name + "_default.elem"))) or force_construction:
             had_to_run_new = True
-            if not os.path.isfile(os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + "_0.vtk")):
+            if not os.path.isfile(os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + ".vtk")):
                 csv_file_name = os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + ".csv")
                 np.savetxt(csv_file_name,np.array([anatomy_values[0],anatomy_values[i+1]]),fmt='%s',delimiter='\n')
+                
+                print(final_base_name)
+                print(time.strftime("%H:%M:%S", time.localtime()))
 
                 os.chdir(os.path.join("/home","crg17","Desktop","KCL_projects","fitting","python","CardiacMeshConstruction_outside"))
                 os.system("python3.6 ./pipeline.py " + csv_file_name + " " + temp_outpath + " " + str(waveno) + "_" + str(i))
@@ -112,11 +126,8 @@ def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
             os.system("cp " + os.path.join(temp_outpath,temp_base_name + ".vtk") +\
                     " " + os.path.join(mesh_path, final_base_name + ".vtk"))
             prepare_mesh.vtk_mm2carp_um(fourch_name = final_base_name)
-
-            print(temp_base_name)
-            print(final_base_name)
     
-    # os.system("rm -rf " + temp_outpath)
+    os.system("rm -rf " + temp_outpath)
     return had_to_run_new
 def EP_setup(waveno = 0, subfolder = "."):
 
@@ -127,15 +138,17 @@ def EP_setup(waveno = 0, subfolder = "."):
         anatomy_values = f.read().splitlines()
     
     for i in tqdm.tqdm(range(len(anatomy_values)-1)):
-        final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-27]
+        final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-36]
         mesh_path = os.path.join(path_lab, final_base_name)
 
         if not os.path.isfile(os.path.join(mesh_path,"biv","biv_noRVendo.surf.vtx")):
             prepare_mesh.extract_LDRB_biv(final_base_name)
         if not os.path.isfile(os.path.join(mesh_path,"biv","MVTV_base.surf.vtx")):
             prepare_mesh.extract_MVTV_base(final_base_name)
-        if not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC",
-                                   "COORDS_V_elem_scaled.dat")):
+        if (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_V_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_PHI_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_Z_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_RHO_elem_scaled.dat"))):
             UVC.create(final_base_name, "MVTV")
         if not os.path.isfile(os.path.join(mesh_path,"biv","EP","bottom_third.vtx")):
             UVC.bottom_third(final_base_name, "MVTV")
@@ -146,7 +159,7 @@ def EP_setup(waveno = 0, subfolder = "."):
             fibres.run_laplacian(final_base_name)
     
     return had_to_run_new
-def EP_simulations(waveno = 0, subfolder = "."):
+def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
 
     path_lab = os.path.join("/data","fitting")
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
@@ -198,7 +211,7 @@ def EP_simulations(waveno = 0, subfolder = "."):
         k_fibre = round(float(param_values[line_num].split(' ')[k_fibre_idx]),2)
         k_FEC = round(float(param_values[line_num].split(' ')[k_FEC_idx]),2)
 
-        fourch_name = "heart_" + anatomy_values[line_num+1].replace(",","")[:-27]
+        fourch_name = "heart_" + anatomy_values[line_num+1].replace(",","")[:-36]
         
         path_EP = os.path.join("/data","fitting",fourch_name,"biv",
                             "EP_simulations")
@@ -221,7 +234,8 @@ def EP_simulations(waveno = 0, subfolder = "."):
 
             fibres.full_pipeline(fourch_name = fourch_name,
                                 alpha_epi = -alpha,
-                                alpha_endo = alpha
+                                alpha_endo = alpha,
+                                map_fibres_to_fourch = map_fibres_to_fourch
                                 )
         if not os.path.isfile(os.path.join(path_EP,simulation_file_name)):
             had_to_run_new = True
@@ -543,10 +557,11 @@ def output(heart_name, return_ISWT = True, return_WT = True,
             AT_vec = g.read().splitlines()
         g.close()
 
-        AT_vec_float = [float(x) for x in AT_vec]
+        AT_vec_float = np.array([float(x) for x in AT_vec])
 
         if return_TAT:
-            output_list["TAT, ms"] = round(max(AT_vec_float),2)
+            filtered_TAT = AT_vec_float[np.where(AT_vec_float < 300)]
+            output_list["TAT, ms"] = round(max(filtered_TAT),2)
         
         if return_TATLVendo:
 
@@ -561,7 +576,9 @@ def output(heart_name, return_ISWT = True, return_WT = True,
             Z_90_endo_mask = np.in1d(lvendo_vtx.indices, Z_90)
             Z_90_endo = lvendo_vtx.indices[Z_90_endo_mask]
             
-            output_list["TAT LV endo, ms"] = round(max(np.array(AT_vec_float)[Z_90_endo.astype(int)]),2)
+            AT_vec_endo = np.array(AT_vec_float)[Z_90_endo.astype(int)]
+            filtered_TATLVendo = AT_vec_endo[np.where(AT_vec_endo < 300)]
+            output_list["TAT LV endo, ms"] = round(max(filtered_TATLVendo),2)
 
     print(output_list)
     return output_list
@@ -612,7 +629,7 @@ def write_output(waveno = 0, subfolder = "."):
     f.close()
 
     simulation_names = [line.replace(" ","") for line in param_values]
-    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-27] for i in range(len(anatomy_values)-1)]
+    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-36] for i in range(len(anatomy_values)-1)]
 
     for i in tqdm.tqdm(range(len(mesh_names))):
         print("Computing output...")
@@ -712,15 +729,14 @@ def write_output_casewise(waveno = 0, subfolder = "."):
     f.close()
 
     simulation_names = [line.replace(" ","") for line in param_values]
-    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-27] for i in range(len(anatomy_values)-1)]
+    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-36] for i in range(len(anatomy_values)-1)]
 
-    # for i in tqdm.tqdm(range(len(mesh_names))):
-    for i in tqdm.tqdm(range(1,3)):
+    for i in tqdm.tqdm(range(len(mesh_names))):
         print("Computing output...")
         EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
                           "EP_simulations")
-        # if os.path.isfile(os.path.join(EP_dir,output_names[-1] + ".dat")):
-        #     continue 
+        if os.path.isfile(os.path.join(EP_dir,output_names[-1] + ".dat")):
+            continue 
         if os.path.isfile(os.path.join(EP_dir, simulation_names[i] + ".dat")):
             
             flag_close_LV = True
@@ -737,40 +753,40 @@ def write_output_casewise(waveno = 0, subfolder = "."):
             if(os.path.isfile(os.path.join(mesh_names[i], "raendo_closed.elem"))):
                 flag_close_RA = False
             
-            # output_list = output(heart_name = mesh_names[i],
-            #                     simulation_name = simulation_names[i],
-            #                     return_ISWT = True, return_WT = True,
-            #                     return_EDD = True, return_LVmass = True,
-            #                     return_LVendovol = True, return_LVOTdiam = True,
-            #                     return_RVOTdiam = True, return_LAendovol = True,
-            #                     return_RAendovol = True,
-            #                     return_RVlongdiam = True,
-            #                     return_RVbasaldiam = True, 
-            #                     return_RVendovol = True, return_TAT = True,
-            #                     return_TATLVendo = True,
-            #                     close_LV = flag_close_LV,
-            #                     close_RV = flag_close_RV,
-            #                     close_LA = flag_close_LA,
-            #                     close_RA = flag_close_RA, 
-            #            )
-
             output_list = output(heart_name = mesh_names[i],
                                 simulation_name = simulation_names[i],
-                                return_ISWT = False, return_WT = False,
-                                return_EDD = False, return_LVmass = False,
-                                return_LVendovol = False, return_LVOTdiam = True,
-                                return_RVOTdiam = False, return_LAendovol = False,
-                                return_RAendovol = False,
-                                return_RVlongdiam = False,
-                                return_RVbasaldiam = False, 
-                                return_RVendovol = False, return_TAT = False,
-                                return_TATLVendo = False,
+                                return_ISWT = True, return_WT = True,
+                                return_EDD = True, return_LVmass = True,
+                                return_LVendovol = True, return_LVOTdiam = True,
+                                return_RVOTdiam = True, return_LAendovol = True,
+                                return_RAendovol = True,
+                                return_RVlongdiam = True,
+                                return_RVbasaldiam = True, 
+                                return_RVendovol = True, return_TAT = True,
+                                return_TATLVendo = True,
                                 close_LV = flag_close_LV,
                                 close_RV = flag_close_RV,
                                 close_LA = flag_close_LA,
                                 close_RA = flag_close_RA, 
                        )
-            continue
+
+            # output_list = output(heart_name = mesh_names[i],
+            #                     simulation_name = simulation_names[i],
+            #                     return_ISWT = False, return_WT = False,
+            #                     return_EDD = False, return_LVmass = False,
+            #                     return_LVendovol = False, return_LVOTdiam = True,
+            #                     return_RVOTdiam = False, return_LAendovol = False,
+            #                     return_RAendovol = False,
+            #                     return_RVlongdiam = False,
+            #                     return_RVbasaldiam = False, 
+            #                     return_RVendovol = False, return_TAT = False,
+            #                     return_TATLVendo = False,
+            #                     close_LV = flag_close_LV,
+            #                     close_RV = flag_close_RV,
+            #                     close_LA = flag_close_LA,
+            #                     close_RA = flag_close_RA, 
+            #            )
+            # continue
 
 
             LVV = output_list["LV end-diastolic volume, mL"]
@@ -818,7 +834,7 @@ def collect_output(waveno = 0, subfolder = "."):
                     "RVlongdiam", "RVbasaldiam",
                     "TAT","TATLVendo"]
     
-    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-27] for i in range(len(anatomy_values)-1)]
+    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-36] for i in range(len(anatomy_values)-1)]
 
     LVV = []
     RVV = []
@@ -853,3 +869,33 @@ def collect_output(waveno = 0, subfolder = "."):
         np.savetxt(os.path.join(outpath, varname + ".dat"),
                     output_numbers[i],
                     fmt="%.2f")
+def preprocess_input(waveno = 0, subfolder = "."):
+
+    path_gpes = os.path.join("/data","fitting", subfolder, "wave" + str(waveno))
+
+    with open(os.path.join(path_gpes,"X.dat")) as f:
+        anatomy_and_EP_values = f.read().splitlines()
+
+    x_anatomy = []
+    x_EP = []
+    
+    for full_line in anatomy_and_EP_values:
+        line = full_line.split(' ')
+        x_anatomy.append(line[0:9])
+        x_EP.append(line[9:14])
+
+    f = open(os.path.join(path_gpes, "X_EP.dat"), "w")
+    f.writelines(' '.join(row) + '\n' for row in x_EP)
+    f.close()
+
+    with open(os.path.join(path_gpes,"X_anatomy.csv"), mode='w') as f:
+        f_writer = csv.writer(f, delimiter=',')
+
+        f_writer.writerow(["Mode" + str(i) for i in range(1,19)])
+
+        for current_line in range(len(x_anatomy)):
+            output = np.zeros(18)
+            output[0:9] = x_anatomy[current_line]
+            f_writer.writerow(["{0:.2f}".format(round(i,2)) for i in output])
+
+    f.close()
