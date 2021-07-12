@@ -52,7 +52,6 @@ class vtx:
         with open(pathname, 'w') as f:
             for item in str_to_write:
                 f.write("%s\n" % item)
-
 class surf:
     
     def __init__(self, i1, i2, i3, mesh_from, tags = None):
@@ -212,6 +211,15 @@ class surf:
 
     @classmethod
     def extract(cls, self, vtx_var):
+        """Class method to extract a sub-surface defined by vertices from a 
+        surface.
+
+        Args:
+            vtx_var (vtx): Indices to extract
+
+        Returns:
+            surf: Subsurface defined by the vertices given.
+        """
         if(self.tags is not None):
             sub_tags = self.tags[vtx_var]
         else:
@@ -222,7 +230,6 @@ class surf:
         sub_i3 = self.i3[vtx_var]
 
         return cls(sub_i1, sub_i2, sub_i3, self.mesh_from, sub_tags)
-
 class pts:
     
     def __init__(self, p1, p2, p3, name):
@@ -322,7 +329,6 @@ class pts:
 
         with open(pathname, "ab") as datafile_id:
             np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
-
 class lon:
     
     def __init__(self, f1, f2, f3, s1 = None, s2 = None, s3 = None):
@@ -433,7 +439,6 @@ class lon:
         new_matrix = matrix_lon / row_norms[:, np.newaxis]
 
         return cls(new_matrix[:,0], new_matrix[:,1], new_matrix[:,2])
-
 def orthogonalise(f, s):
     """Function to rotate a vector to make it orthogonal to the other.
 
@@ -468,7 +473,6 @@ def orthogonalise(f, s):
     R = np.array([[R00, R01, R02], [R10, R11, R12], [R20, R21, R22]])
 
     return R.dot(s)
-
 class elem:
     
     def __init__(self, i1, i2, i3, i4, tags):
@@ -528,7 +532,6 @@ class elem:
 
         with open(pathname, "ab") as f:
             np.savetxt(f, np.transpose(data), fmt = "%s")
-
 def reescale(value_aray, lower_boundary = 0, upper_boundary = 1):
     """Function to reescale an array of values to the interval
     [lower_boundary, upper_boundary] with a linear transformation. 
@@ -545,7 +548,6 @@ def reescale(value_aray, lower_boundary = 0, upper_boundary = 1):
     intercept = lower_boundary - slope * min(value_aray)
 
     return(slope*value_aray + intercept)
-
 def area_or_vol_surface(pts_file, surf_file, with_vol, with_area):
 
     d12 = np.array([np.nan,np.nan,np.nan])
