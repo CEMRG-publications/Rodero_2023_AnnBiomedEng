@@ -67,6 +67,23 @@ def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
     f.close()
 
 def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = "."):
+    """Function to prepare the mesh and run the EP simulation. It works in a 
+    sequential way to improve debugging.
+
+    Args:
+        line_from (int, optional): Line from the input parameters file to start
+        running the simulations. Defaults to 0.
+        line_to (int, optional): Final line from the input parameters file to 
+        run the simulations. Defaults to 10.
+        waveno (int, optional): Wave number, defines the folder name. Defaults 
+        to 0.
+        subfolder (str, optional): Folder name in /data/fitting to work  on. 
+        Defaults to ".".
+
+    Returns:
+        had_to_run_new (bool): If a new simulation was run, returns to True.
+        Otherwise is False.
+    """
 
     path_lab = os.path.join("/data","fitting")
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
