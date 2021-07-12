@@ -147,8 +147,19 @@ def FibreCorrection(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, a
     # print(time.perf_counter())
     return biv_lon
 
-def full_pipeline(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_endo = 80):
-    
+def full_pipeline(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alpha_endo = 80, map_fibres_to_fourch = False):
+    """Function that automatizes the creation of fibres.
+
+    Args:
+        fourch_name (str, optional): Name of the mesh. Defaults to 
+        "Full_Heart_Mesh_Template".
+        alpha_epi (int, optional): Angle value in the epicardium, in degrees.
+        Defaults to -60.
+        alpha_endo (int, optional): Angle value in the endocardium, in degrees. 
+        Defaults to 80.
+        map_fibres_to_fourch (bool, optional): If True, maps the fibres from the
+        biventricular mesh to the four chamber mesh. Defaults to False.
+    """
     
     fourch_dir = os.path.join("/data/fitting",fourch_name)
     biv_dir =  os.path.join(fourch_dir,"biv")
@@ -167,9 +178,10 @@ def full_pipeline(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, alp
 
     # pathlib.Path(os.path.join(fourch_dir,"fibres")).mkdir(parents=True, exist_ok=True)
 
-    # os.system("meshtool insert meshdata -imsh=" + \
-    #           os.path.join(fibre_dir,outname) + \
-    #          " -msh=" + os.path.join(fourch_dir,fourch_name) + \
-    #          " -op=1 -ifmt=carp_txt -ofmt=carp_txt" + \
-    #          " -outmsh=" + os.path.join(fourch_dir,"fibres",outname))
+    if map_fibres_to_fourch:
+        os.system("meshtool insert meshdata -imsh=" + \
+                os.path.join(fibre_dir,outname) + \
+                " -msh=" + os.path.join(fourch_dir,fourch_name) + \
+                " -op=1 -ifmt=carp_txt -ofmt=carp_txt" + \
+                " -outmsh=" + os.path.join(fourch_dir,fourch_name))
 
