@@ -66,6 +66,20 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
 
 def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
                 alpha_epi = None, simulation_file_name = None, path_EP = ""):
+    """Function to run an EP simulation using ekbatch from an init file.
+
+    Args:
+        fourch_name (str, optional): Name of the four chamber mesh file.
+        Defaults to "Full_Heart_Mesh_Template".
+        alpha_endo (float, optional): Angle value in the endocardium, in 
+        degrees. Defaults to None.
+        alpha_epi (float, optional): Angle value in the epicardium, in 
+        degrees. Defaults to None.
+        simulation_file_name (str, optional): Name for the file containing the 
+        simulation results. Defaults to None. Defaults to None.
+        path_EP (str, optional): Path where to save the EP simulations. Defaults
+        to "".
+    """
     path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
     path2sim = path_EP
