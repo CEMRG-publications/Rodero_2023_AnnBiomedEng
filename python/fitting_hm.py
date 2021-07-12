@@ -1,3 +1,4 @@
+import diversipy as dp
 from pickle import FALSE, TRUE
 import random
 import numpy as np
@@ -31,6 +32,7 @@ from gpytGPE.utils.plotting import gsa_box, gsa_donut
 
 import anatomy
 import custom_plots
+import mechanics
 
 SEED = 2
 # ----------------------------------------------------------------
@@ -47,8 +49,26 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
     Args:
         active_features (list, optional): List of output features to train the
         GPEs. Defaults to ["TAT","TATLV"].
-        train (bool, optional): If False, loads the GPEs, otherwise it trains
-        them. Defaults to False.
+        train (bool, optional): If True, trains the GPE, otherwise it loads it.
+        Defaults to False.
+        saveplot (bool, optional): Boolean to save the plots or just show them.
+        Defaults to True.
+        start_size (int, optional): Number of points to use in train/validation.
+        Validation will be 20% of that value, and the 80% remaining will be
+        split in 80%/20% for training/test. Defaults to np.inf to read the whole
+        input file (just in case you want to use a subset of those points).
+        figure_name (str, optional): Filename of the plot. Defaults to 
+        "inference_on_testset".
+        return_scores (bool, optional): If True, shows the MSE and ISE. Defaults
+        to False.
+        subfolder (str, optional): Name of the subfolder in /data/fitting to
+        work on. Defaults to ".".
+        only_feasible (bool, optional): If True, works only with "feasible"
+        point (within 5SD of the mean). Defaults to True.
+
+    Returns:
+        X_train, y_train, emul (list): List with the vector (or matrix) of
+        training points, simulations of those points and the resulting emulator.
     """
     print(start_size)
 
@@ -223,7 +243,8 @@ def run_GPE(waveno = 2, train = False, active_feature = ["TAT"],
             X_prev, y_prev, _ = run_GPE(waveno = waveno - 1, train = False,
                                         active_feature = active_feature,
                                         n_samples = n_samples, subfolder = subfolder,
-                                        training_set_memory = training_set_memory - 1)
+                                        training_set_memory = training_set_memory - 1,
+                                        only_feasible = only_feasible)
 
             X_train = np.vstack((current_X, X_prev))
             y_train = np.append(current_y,y_prev)
@@ -445,6 +466,8 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
     if run_simulations:
         if num_wave == 0:
             anatomy.input(n_samples = n_samples/(0.8*0.8), waveno = num_wave, subfolder = subfolder)
+        else:
+            anatomy.preprocess_input(waveno = num_wave, subfolder = subfolder)
 
         anatomy.build_meshes(waveno = num_wave, subfolder = subfolder)
         anatomy.EP_setup(waveno = num_wave, subfolder = subfolder)
@@ -511,7 +534,8 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
             TESTS = lhd(param_ranges, n_tests, SEED)
             
         else:
-            TESTS = W.add_points(n_tests, scale = 0.05, param_ranges = param_ranges)  # use the "cloud technique" to populate
+            TESTS = modified_add_points(W = W, n_tests = n_tests, scale = 0.05, param_ranges = param_ranges)
+            # TESTS = W.add_points(n_tests, scale = 0.05, param_ranges = param_ranges)  # use the "cloud technique" to populate
         print("Points added")
         # what is left from W.NIMP\SIMULS (set difference) if points left are <
         # the chosen n_tests
@@ -536,19 +560,248 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
 
     pathlib.Path(os.path.join("/data","fitting",subfolder,"figures")).mkdir(parents=True, exist_ok=True)
 
-
+    print("Printing impl. min...")
     custom_plots.plot_wave(W = W, xlabels = xlabels,
                             filename = os.path.join("/data","fitting",
                             subfolder,"figures","wave" + str(num_wave) + "_impl_min"),
                             waveno = num_wave, reduction_function = "min",
                             plot_title = subfolder + ", wave " + str(num_wave) + ": taking the min of each slice",
                             param_ranges = param_ranges)
+    print("Printing impl. max...")
     custom_plots.plot_wave(W = W, xlabels = xlabels,
                             filename = os.path.join("/data","fitting",
                             subfolder,"figures","wave" + str(num_wave) + "_impl_max"),
                             waveno = num_wave, reduction_function = "max",
                             plot_title = subfolder + ", wave " + str(num_wave) + ": taking the max of each slice",
                             param_ranges = param_ranges)
+    print("Printing variance...")
+    W.plot_wave(xlabels=xlabels, display="var", filename=os.path.join("/data","fitting",subfolder,"figures","wave" + str(num_wave) + "_var.png"))
+
+    #=================== Generate data for next wave =====================#
+    SIMULS = W.get_points(generate_simul_pts)  # actual matrix of selected points
+
+    pathlib.Path(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave + 1))).mkdir(parents=True, exist_ok=True)
+    np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave + 1),"X.dat"), SIMULS, fmt="%.2f")
+
+    W.save(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),
+                    "wave_" + str(num_wave)))
+    np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"variance_quotient.dat"), W.PV, fmt="%.2f")
+
+def modified_add_points(W, n_tests, scale=0.1, param_ranges = None):
+# NOTE: the Wave object instance internal structure will be compromised after calling this method: we recommend calling self.save() beforehand!
+    nsidx = W.nsimul_idx
+    NROY = np.copy(W.NIMP[nsidx])
+
+    if param_ranges is None:
+        lbounds = W.Itrain[:, 0]
+        ubounds = W.Itrain[:, 1]
+    else:
+        lbounds = param_ranges[:, 0]
+        ubounds = param_ranges[:, 1]
+
+    print(
+        f"\nRequested points: {n_tests}\nAvailable points: {NROY.shape[0]}\nStart searching..."
+    )
+
+    count = 0
+    a, b = (
+        NROY.shape[0] if NROY.shape[0] < n_tests else n_tests,
+        n_tests - NROY.shape[0] if n_tests - NROY.shape[0] > 0 else 0,
+    )
+    print(
+        f"\n[Iteration: {count:<2}] Found: {a:<{len(str(n_tests))}} ({'{:.2f}'.format(100*a/n_tests):>6}%) | Missing: {b:<{len(str(n_tests))}}"
+    )
+
+    while NROY.shape[0] < n_tests:
+        count += 1
+
+        I = get_minmax(NROY)
+        SCALE = scale * np.array(
+            [I[i, 1] - I[i, 0] for i in range(NROY.shape[1])]
+        )
+
+        temp = np.random.normal(loc=NROY, scale=SCALE)
+        while True:
+            l = []
+            for i in range(temp.shape[0]):
+                d1 = temp[i, :] - lbounds
+                d2 = ubounds - temp[i, :]
+                if (
+                    np.sum(np.sign(d1)) != temp.shape[1]
+                    or np.sum(np.sign(d2)) != temp.shape[1]
+                ):
+                    l.append(i)
+            if l:
+                temp[l, :] = np.random.normal(loc=NROY[l, :], scale=SCALE)
+            else:
+                break
+
+        W.find_regions(temp)
+        NROY = np.vstack((NROY, W.NIMP))
+
+        a, b = (
+            NROY.shape[0] if NROY.shape[0] < n_tests else n_tests,
+            n_tests - NROY.shape[0] if n_tests - NROY.shape[0] > 0 else 0,
+        )
+        print(
+            f"[Iteration: {count:<2}] Found: {a:<{len(str(n_tests))}} ({'{:.2f}'.format(100*a/n_tests):>6}%) | Missing: {b:<{len(str(n_tests))}}"
+        )
+
+    print("\nDone.")
+    TESTS = np.vstack(
+        (
+            NROY[: len(nsidx)],
+            dp.subset.psa_select(NROY[len(nsidx) :], n_tests - len(nsidx)),
+        )
+    )
+    return TESTS
+
+def mechanics_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
+                fill_wave_space = False, cutoff = 0, n_samples = -1,
+                generate_simul_pts = -1, subfolder = "mechanics", training_set_memory = 2,
+                only_feasible = False):
+
+    SEED = 2
+    # ----------------------------------------------------------------
+    # Make the code reproducible
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    #========== Constant variables =============#
+    
+    xlabels_anatomy = read_labels(os.path.join("/data","fitting", "mechanics_anatomy_labels.txt"))
+    xlabels_EP = read_labels(os.path.join("/data","fitting", "mechanics_EP_funct_labels_latex.txt"))
+    xlabels_mechanics = read_labels(os.path.join("/data","fitting", "mechanics_funct_labels.txt"))
+
+    xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP,xlabels_mechanics] for lab in sublist]
+    
+    idx_train = round(0.8*0.8*n_samples)
+
+    active_features = ["LVV","RVV","LAV","RAV","LVOTdiam","RVOTdiam","LVmass",
+                        "LVWT","LVEDD","SeptumWT","RVlongdiam","RVbasaldiam",
+                        "TAT","TATLVendo","xxxx","xxxxx","xxxx"]
+    emulator = []
+
+    n_tests = int(1e5)
+    path_match = os.path.join("/data","fitting", "match")
+    exp_mean = np.loadtxt(os.path.join(path_match, "exp_mean_anatomy_EP_mechanics.txt"), dtype=float)
+    exp_std = np.loadtxt(os.path.join(path_match, "exp_std_anatomy_EP_mechanics.txt"), dtype=float)
+    exp_var = np.power(exp_std, 2)
+
+    #================ Load training sets or run simulations =================#
+    if run_simulations:
+        if num_wave == 0:
+            mechanics.input(n_samples = n_samples/(0.8*0.8), waveno = num_wave, subfolder = subfolder)
+        else:
+            mechanics.preprocess_input(waveno = num_wave, subfolder = subfolder)
+
+        mechanics.build_meshes(waveno = num_wave, subfolder = subfolder)
+        anatomy.EP_setup(waveno = num_wave, subfolder = subfolder)
+        anatomy.EP_simulations(waveno = num_wave, subfolder = subfolder)
+
+        anatomy.write_output_casewise(waveno = num_wave, subfolder = subfolder)
+        anatomy.collect_output(waveno = num_wave, subfolder = subfolder)
+
+    X = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave0","X.dat"), dtype=float)
+    X_train = X[:idx_train]
+    I = get_minmax(X_train)
+
+
+    #=================== Train or load GPE =========================#
+    for output_name in active_features:
+        _, _, emul = run_GPE(waveno = num_wave, train = train_GPE,
+                            active_feature = [output_name],
+                            n_samples = n_samples,
+                            training_set_memory = training_set_memory,
+                            subfolder = subfolder, only_feasible=only_feasible)
+        emulator.append(emul)
+    # emulator now might be a list of list, we need to flatten it
+    em_shape = (np.array(emulator)).shape
+    if len(em_shape) > 1:
+        emulator_flat = [item for sublist in emulator for item in sublist]
+        emulator = emulator_flat
+    #=================== Load or create the wave object ===================#
+    if num_wave > 0:
+        W = hm.Wave()
+        W.load(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave-1),
+                    "wave_" + str(num_wave-1)))
+        W.emulator = emulator
+        W.Itrain = I
+        W.cutoff = cutoff
+        W.maxno = 1
+        W.mean = exp_mean
+        W.var = exp_var
+    else:
+        W = hm.Wave(emulator = emulator,
+                    Itrain = I,
+                    cutoff = cutoff,
+                    maxno = 1,
+                    mean = exp_mean,
+                    var = exp_var)
+
+
+
+    #============= Load or run the cloud technique =========================#
+
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_EP)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_EP)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+    if fill_wave_space:
+        print("Experiment " + subfolder + ", wave " + str(num_wave))
+        print("Adding points at " + time.strftime("%H:%M",time.localtime()))
+        if num_wave == 0:
+            TESTS = lhd(param_ranges, n_tests, SEED)
+            
+        else:
+            TESTS = modified_add_points(W = W, n_tests = n_tests, scale = 0.05, param_ranges = param_ranges)
+            # TESTS = W.add_points(n_tests, scale = 0.05, param_ranges = param_ranges)  # use the "cloud technique" to populate
+        print("Points added")
+        # what is left from W.NIMP\SIMULS (set difference) if points left are <
+        # the chosen n_tests
+
+        np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_test.dat"), TESTS, fmt="%.2f")
+    else:
+        TESTS = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"X_test.dat"),
+                        dtype=float)
+
+
+    #============= We finally print and show the wave we wanted =============#
+    W.find_regions(TESTS)  # enforce the implausibility criterion to detect regions of
+                            # non-implausible and of implausible points
+    W.print_stats()  # show statistics about the two obtained spaces
+    
+    nimp = len(W.nimp_idx)
+    imp = len(W.imp_idx)
+    tests = nimp + imp
+    perc = 100 * nimp / tests
+
+    np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"NROY_rel.dat"), [perc], fmt='%.2f')
+
+    pathlib.Path(os.path.join("/data","fitting",subfolder,"figures")).mkdir(parents=True, exist_ok=True)
+
+    print("Printing impl. min...")
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_impl_min"),
+                            waveno = num_wave, reduction_function = "min",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the min of each slice",
+                            param_ranges = param_ranges)
+    print("Printing impl. max...")
+    custom_plots.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join("/data","fitting",
+                            subfolder,"figures","wave" + str(num_wave) + "_impl_max"),
+                            waveno = num_wave, reduction_function = "max",
+                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the max of each slice",
+                            param_ranges = param_ranges)
+    print("Printing variance...")
     W.plot_wave(xlabels=xlabels, display="var", filename=os.path.join("/data","fitting",subfolder,"figures","wave" + str(num_wave) + "_var.png"))
 
     #=================== Generate data for next wave =====================#
