@@ -347,6 +347,11 @@ def extract_peri_base(fourch_name):
         vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
         vtx.write(os.path.join(path2biv,vtx_file))
 def close_LV_endo(fourch_name):
+    """Function to generate the closed surface of the LV endocardium.
+
+    Args:
+        fourch_name (str): Name of the four chamber mesh file.
+    """
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = os.path.join(path2fourch,"biv")
@@ -410,6 +415,11 @@ def close_LV_endo(fourch_name):
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "av_ao.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "av_ao.pts"))
 def close_RV_endo(fourch_name):
+    """Function to generate the closed surface of the RV endocardium.
+
+    Args:
+        fourch_name (str): Name of the four chamber mesh file.
+    """
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
     path2biv = os.path.join(path2fourch,"biv")
@@ -477,6 +487,11 @@ def close_RV_endo(fourch_name):
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "pv_pa.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "pv_pa.pts"))
 def close_LA_endo(fourch_name):
+    """Function to generate the closed surface of the LA endocardium.
+
+    Args:
+        fourch_name (str): Name of the four chamber mesh file.
+    """
     ## ATRIA: Extract the surfaces with the veins and the valve. The biggest
     # file will be the epi with the veins. The second will be the endo closed and
     # the third will be the valve in the ventricle.
@@ -508,6 +523,11 @@ def close_LA_endo(fourch_name):
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "mv_lv.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "mv_lv.pts"))
 def close_RA_endo(fourch_name):
+    """Function to generate the closed surface of the RA endocardium.
+
+    Args:
+        fourch_name (str): Name of the four chamber mesh file.
+    """
 
     path2fourch = os.path.join("/data","fitting",fourch_name)
 

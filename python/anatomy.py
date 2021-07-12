@@ -176,6 +176,21 @@ def EP_setup(waveno = 0, subfolder = "."):
     
     return had_to_run_new
 def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
+    """Function to prepare the mesh and run the EP simulation. It works in a 
+    sequential way to improve debugging.
+
+    Args:
+        waveno (int, optional): Wave number, defines the folder name. Defaults 
+        to 0.
+        subfolder (str, optional): [description]. Folder name in /data/fitting to work  on. 
+        Defaults to ".".
+        map_fibres_to_fourch (bool, optional): If True, maps the fibres from the
+        biventricular mesh to the four chamber mesh. Defaults to False.
+
+    Returns:
+        had_to_run_new (bool): If a new simulation was run, returns to True.
+        Otherwise is False.
+    """
 
     path_lab = os.path.join("/data","fitting")
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
@@ -198,9 +213,18 @@ def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
     k_FEC_idx = int(np.where([x == "k_FEC" for x in param_names])[0])
 
     def find_nearest(array, value):
-            array = np.asarray(array)
-            idx = (np.abs(array - value)).argmin()
-            return array[idx]
+        """Function to find the closest value in an array to a given value.
+
+        Args:
+            array (array): Array to look into to find the closest value.
+            value (same as array): Value to find the closest number in array.
+
+        Returns:
+            Closest value to "value" in "array".
+        """
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return array[idx]
     FEC_height_to_lastFECtag = {33:25,
                                 35:26,
                                 40:27,
@@ -282,6 +306,53 @@ def output(heart_name, return_ISWT = True, return_WT = True,
                       return_RVlongdiam = True, return_RVbasaldiam = True,
                       return_RVendovol = True, return_TAT = True,
                       return_TATLVendo = True, simulation_name = None):
+    """Function that computes the output of the mesh generation and EP 
+    simulation.
+
+    Args:
+        heart_name (str): Name of the four chamber mesh file.
+        return_ISWT (bool, optional): If True, returns the intra-septal wall
+        thickness. Defaults to True.
+        return_WT (bool, optional): If True, returns the lateral wall thickness.
+        Defaults to True.
+        return_EDD (bool, optional): If True, returns the end-diastolic 
+        diameter. Defaults to True.
+        return_LVmass (bool, optional): If True, returns the mass of the LV. 
+        Defaults to True.
+        return_LVendovol (bool, optional): If True, returns the LV endocardial
+        volume. Defaults to True.
+        close_LV (bool, optional): If True, generates the closed LV endocardium
+        surface. Defaults to True.
+        return_LVOTdiam (bool, optional): If True, returns the diameter of the
+        LV outflow tract. Defaults to True.
+        return_RVOTdiam (bool, optional): If True, returns the diameter of the
+        RV outflow tract. Defaults to True.
+        close_RV (bool, optional):  If True, generates the closed RV endocardium
+        surface. Defaults to True.
+        close_LA (bool, optional):  If True, generates the closed LA endocardium
+        surface. Defaults to True.
+        return_LAendovol (bool, optional): If True, returns the LA endocardial
+        volume. Defaults to True.
+        close_RA (bool, optional): f True, generates the closed RA endocardium
+        surface. Defaults to True.
+        return_RAendovol (bool, optional): If True, returns the RA endocardial
+        volume. Defaults to True.
+        return_RVlongdiam (bool, optional): If True, returns the longitudinal
+        diameter of the RV. Defaults to True.
+        return_RVbasaldiam (bool, optional): If True, returns the basal
+        diameter of the RV. Defaults to True.
+        return_RVendovol (bool, optional): If True, returns the RV endocardial
+        volume. Defaults to True.
+        return_TAT (bool, optional): If True, returns the total activation time
+        of the ventricles. Defaults to True.
+        return_TATLVendo (bool, optional): If True, returns the total activation
+        time of the LV endocardium. Defaults to True.
+        simulation_name (str, optional): Name of the simulation file. Defaults 
+        to None.
+
+    Returns:
+        dictionary: Dictionary with the specified output.
+    """
     
     path2fourch = os.path.join("/data","fitting",heart_name)
     biv_path = os.path.join(path2fourch,"biv")
@@ -598,122 +669,15 @@ def output(heart_name, return_ISWT = True, return_WT = True,
 
     print(output_list)
     return output_list
-def write_output(waveno = 0, subfolder = "."):
-    outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
-    labels_dir = os.path.join("/data","fitting",subfolder)
 
-
-    with open(os.path.join(outpath,"X_anatomy.csv")) as f:
-        anatomy_values = f.read().splitlines()
-    with open(os.path.join(outpath,"X_EP.dat")) as f:
-        param_values = f.read().splitlines()
-
-
-    output_names = ["LVV","RVV","LAV","RAV",
-                    "LVOTdiam", "RVOTdiam",
-                    "LVmass", "LVWT", "LVEDD", "SeptumWT",
-                    "RVlongdiam", "RVbasaldiam",
-                    "TAT","TATLVendo"]
-    output_units = ["mL", "mL", "mL", "mL",
-                    "mm", "mm",
-                    "g", "mm", "mm", "mm",
-                    "mm", "mm",
-                    "ms", "ms"]
-
-    LVV = []
-    RVV = []
-    LAV = []
-    RAV = []
-    LVOTdiam = []
-    RVOTdiam = []
-    LVmass = []
-    LVWT = []
-    LVEDD = []
-    SeptumWT = []
-    RVlongdiam = []
-    RVbasaldiam = []
-    TAT = []
-    TATLVendo =[]
-
-
-    f = open(os.path.join(labels_dir,"output_labels.txt"), "w")
-    [f.write("%s\n" % phenotype) for phenotype in output_names]
-    f.close()
-
-    f = open(os.path.join(labels_dir,"output_units.txt"), "w")
-    [f.write("%s\n" % phenotype) for phenotype in output_units]
-    f.close()
-
-    simulation_names = [line.replace(" ","") for line in param_values]
-    mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-36] for i in range(len(anatomy_values)-1)]
-
-    for i in tqdm.tqdm(range(len(mesh_names))):
-        print("Computing output...")
-        EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
-                          "EP_simulations")
-        if os.path.isfile(os.path.join(EP_dir, simulation_names[i] + ".dat")):
-            
-            flag_close_LV = True
-            flag_close_RV = True
-            flag_close_LA = True
-            flag_close_RA = True
-
-            if(os.path.isfile(os.path.join(mesh_names[i], "lvendo_closed.elem"))):
-                flag_close_LV = False
-            if(os.path.isfile(os.path.join(mesh_names[i], "laendo_closed.elem"))):
-                flag_close_LA = False
-            if(os.path.isfile(os.path.join(mesh_names[i], "rvendo_closed.elem"))):
-                flag_close_RV = False
-            if(os.path.isfile(os.path.join(mesh_names[i], "raendo_closed.elem"))):
-                flag_close_RA = False
-            
-            output_list = output(heart_name = mesh_names[i],
-                                simulation_name = simulation_names[i],
-                                return_ISWT = True, return_WT = True,
-                                return_EDD = True, return_LVmass = True,
-                                return_LVendovol = True, return_LVOTdiam = True,
-                                return_RVOTdiam = True, return_LAendovol = True,
-                                return_RAendovol = True,
-                                return_RVlongdiam = True,
-                                return_RVbasaldiam = True, 
-                                return_RVendovol = True, return_TAT = True,
-                                return_TATLVendo = True,
-                                close_LV = flag_close_LV,
-                                close_RV = flag_close_RV,
-                                close_LA = flag_close_LA,
-                                close_RA = flag_close_RA, 
-                       )
-            LVV.append(output_list["LV end-diastolic volume, mL"])
-            RVV.append(output_list["RV volume, mL"])
-            LAV.append(output_list["LA volume, mL"])
-            RAV.append(output_list["RA volume, mL"])
-            LVOTdiam.append(output_list["LVOT diameter, mm"])
-            RVOTdiam.append(output_list["RVOT diameter, mm"])
-            LVmass.append(output_list["LV mass, g"])
-            LVWT.append(output_list["Posterior wall thickness, mm"])
-            LVEDD.append(output_list["Diastolic LV internal dimension, mm"])
-            SeptumWT.append(output_list["Interventricular septal wall thickness, mm"])
-            RVlongdiam.append(output_list["RV long. diameter, mm"])
-            RVbasaldiam.append(output_list["RV basal diameter, mm"])
-            TAT.append(output_list["TAT, ms"])
-            TATLVendo.append(output_list["TAT LV endo, ms"])
-
-        else:
-            EP_setup(waveno = waveno, subfolder = subfolder)
-            EP_simulations(waveno = waveno, subfolder = subfolder)
-            i = i - 1
-        
-        output_numbers = [LVV, RVV, LAV, RAV,
-                        LVOTdiam, RVOTdiam,
-                        LVmass, LVWT, LVEDD, SeptumWT,
-                        RVlongdiam, RVbasaldiam,
-                        TAT,TATLVendo]
-
-    for i,varname in enumerate(output_names):
-        np.savetxt(os.path.join(outpath, varname + ".dat"),
-                    output_numbers[i],
-                    fmt="%.2f")
 def write_output_casewise(waveno = 0, subfolder = "."):
+    """Function to write the output of a given wave. The outputs are specified
+    in the written output_labels file.
+
+    Args:
+        waveno (int, optional): Wave number. Defaults to 0.
+        subfolder (str, optional): Subfolder name. Defaults to ".".
+    """
     outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
     labels_dir = os.path.join("/data","fitting",subfolder)
 
@@ -786,25 +750,6 @@ def write_output_casewise(waveno = 0, subfolder = "."):
                                 close_RA = flag_close_RA, 
                        )
 
-            # output_list = output(heart_name = mesh_names[i],
-            #                     simulation_name = simulation_names[i],
-            #                     return_ISWT = False, return_WT = False,
-            #                     return_EDD = False, return_LVmass = False,
-            #                     return_LVendovol = False, return_LVOTdiam = True,
-            #                     return_RVOTdiam = False, return_LAendovol = False,
-            #                     return_RAendovol = False,
-            #                     return_RVlongdiam = False,
-            #                     return_RVbasaldiam = False, 
-            #                     return_RVendovol = False, return_TAT = False,
-            #                     return_TATLVendo = False,
-            #                     close_LV = flag_close_LV,
-            #                     close_RV = flag_close_RV,
-            #                     close_LA = flag_close_LA,
-            #                     close_RA = flag_close_RA, 
-            #            )
-            # continue
-
-
             LVV = output_list["LV end-diastolic volume, mL"]
             RVV = output_list["RV volume, mL"]
             LAV = output_list["LA volume, mL"]
@@ -836,6 +781,12 @@ def write_output_casewise(waveno = 0, subfolder = "."):
                         [output_numbers[var_i]],
                         fmt="%s")
 def collect_output(waveno = 0, subfolder = "."):
+    """Function to merge the output of all the simulations in a single file.
+
+    Args:
+        waveno (int, optional): Wave number. Defaults to 0.
+        subfolder (str, optional): Output subfolder. Defaults to ".".
+    """
     outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
 
     with open(os.path.join(outpath,"X_anatomy.csv")) as f:

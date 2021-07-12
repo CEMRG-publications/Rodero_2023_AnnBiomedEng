@@ -664,6 +664,21 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_GPE = False,
     np.savetxt(os.path.join("/data","fitting",subfolder,"wave" + str(num_wave),"variance_quotient.dat"), W.PV, fmt="%.2f")
 
 def modified_add_points(W, n_tests, scale=0.1, param_ranges = None):
+    """Function to add points in the NROY region to plot it and find the NROY
+    region of the next wave. It's a copy from add_points in Stefano's function
+    specifying the parameters range to sample in an adequate region.
+
+    Args:
+        W (wave): Wave to find the NROY region in.
+        n_tests (int): Number of points to find in the NROY region.
+        scale (float, optional): Parameter to amplify the region of the training
+        set. Defaults to 0.1.
+        param_ranges (array of lists, optional): Parameters ranges to set the
+        adequate plots. Defaults to None.
+
+    Returns:
+        array (I think): The points found in the NROY region.
+    """
 # NOTE: the Wave object instance internal structure will be compromised after calling this method: we recommend calling self.save() beforehand!
     nsidx = W.nsimul_idx
     NROY = np.copy(W.NIMP[nsidx])
