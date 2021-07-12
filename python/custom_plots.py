@@ -19,7 +19,7 @@ import pandas as pd
 
 from Historia.shared.design_utils import read_labels, get_minmax
 from gpytGPE.gpe import GPEmul
-from gpytGPE.utils.plotting import gsa_box, gsa_donut, gsa_network, gsa_heat
+from gpytGPE.utils.plotting import gsa_box, gsa_donut, gsa_network, gsa_heat, correct_index
 from Historia.history import hm
 from Historia.shared.plot_utils import interp_col, get_col
 
@@ -30,9 +30,29 @@ random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-def plot_wave(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
+def plot_wave(W, xlabels=None, filename="./wave_impl",
              reduction_function = "min", plot_title = "Implausibility space",
              param_ranges = None):
+    """Function to save a plot of a specific wave with the colorscale of the
+    implausibility. NROY regions are grey.
+
+    Args:
+        W (wave object): wave to plot
+        xlabels (array of string, optional): Array with the labels for the 
+        input parameters. Defaults to None.
+        filename (str, optional): Name of the file where the plot is saved. 
+        Defaults to "./wave_impl".
+        reduction_function (str, optional): For every pair of points there are
+        infinite points considering the other parameter values. This parameter
+        specifies how to color it. Defaults to "min", so plot the point with 
+        the minimum implausibility. prob_IMP is another option, in which case
+        it plot the percentage of points "behind" it that are implausible.
+        plot_title (str, optional): Title of the plot. Defaults to 
+        "Implausibility space".
+        param_ranges (matrix of lists, optional): Param ranges to set the 
+        axis correctly. If None, it sets the training points range. Defaults to 
+        None.
+    """
 
     X = W.reconstruct_tests()
 
@@ -331,7 +351,11 @@ def plot_output_evolution_complete(first_wave = 0, last_wave = 9,
         plt.savefig(os.path.join("/data","fitting",subfolder,"figures", output_labels[i] + "_complete_evolution.png"), bbox_inches="tight", dpi=300)
 
 def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
-                                   subfolder = "."):
+                                   subfolder = ".", only_feasible = True,
+                                   output_labels_dir = "",
+                                   exp_mean_name = "",
+                                   exp_std_name = "",
+                                   units_dir = ""):
     matplotlib.rcParams.update({'font.size': 9})
     SEED = 2
     # ----------------------------------------------------------------
@@ -340,25 +364,41 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    exp_means = np.loadtxt(os.path.join("/data","fitting","match", "exp_mean.txt"), dtype=float)
-    exp_stds = np.loadtxt(os.path.join("/data","fitting","match", "exp_std.txt"), dtype=float)
-    output_labels = read_labels(os.path.join("/data","fitting", "EP_output_labels.txt"))
+    exp_means = np.loadtxt(os.path.join("/data","fitting","match", exp_mean_name), dtype=float)
+    exp_stds = np.loadtxt(os.path.join("/data","fitting","match", exp_std_name), dtype=float)
+    output_labels = read_labels(output_labels_dir)
+
+    if units_dir != "":
+        units = read_labels(units_dir)
 
     for i in range(len(output_labels)):
+        if only_feasible:
+            X_name = "X_feasible.dat"
+            y_name = output_labels[i] + "_feasible.dat"
+        else:
+            X_name = "X.dat"
+            y_name = output_labels[i] + ".dat"
 
-        
         fig, ax = plt.subplots()
         
         data_for_df = []
+        min_value_axis = 1e5
+        max_value_axis = -1e5
 
         for w in range(first_wave, last_wave + 1):
 
             X_test = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_test.dat"),dtype=float)
-            X_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_feasible.dat"),dtype=float)
-            y_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), output_labels[i] + "_feasible.dat"),dtype=float)
+            X_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), X_name),dtype=float)
+            y_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), y_name),dtype=float)
             
             emul = GPEmul.load(X_train, y_train, loadpath=os.path.join("/data","fitting",subfolder,"wave" + str(w) + "/"),filename = "wave" + str(w) + "_" + output_labels[i] + ".gpe")
             emulated_means, _ = emul.predict(X_test)
+
+            min_value_axis = min(min_value_axis,min(y_train))
+            min_value_axis = min(min_value_axis,min(emulated_means))
+
+            max_value_axis = max(max_value_axis,max(y_train))
+            max_value_axis = max(max_value_axis,max(emulated_means))
 
             for mean_value in emulated_means:
                 data_for_df.append([mean_value, 'emulated', w, None])
@@ -380,11 +420,17 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
                         exp_means[i] + 3*exp_stds[i],
                         facecolor='gray', alpha=0.2)
 
+        min_value_axis = min(min_value_axis, max(0,exp_means[i] - 3*exp_stds[i]))
+        max_value_axis = max(max_value_axis, exp_means[i] + 3*exp_stds[i])
+
 
         ax.fill_between(np.array([first_wave-0.5, len(range(first_wave,last_wave)) + 0.5]),
                         max(0,exp_means[i] - exp_stds[i]**2),
                         exp_means[i] + exp_stds[i]**2,
                         facecolor='palegreen', alpha=0.2)
+        
+        min_value_axis = min(min_value_axis, max(0,exp_means[i] - exp_stds[i]**2))
+        max_value_axis = max(max_value_axis, exp_means[i] + exp_stds[i]**2)
         
 
         legend_3SD, = ax.fill(np.NaN, np.NaN, 'gray', alpha=0.2, linewidth=0)
@@ -398,9 +444,12 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
 
         plt.title("Distribution of the outputs for " + output_labels[i])
         plt.xlabel("Wave")
-        plt.ylabel("ms")
+        if units_dir == "":
+            plt.ylabel("ms")
+        else:
+            plt.ylabel(units[i])
         plt.xlim([first_wave-0.5, len(range(first_wave,last_wave)) + 0.5])
-        plt.ylim([-10,200])
+        plt.ylim([1.1*min_value_axis,1.1*max_value_axis])
         plt.xticks(np.arange(first_wave, len(range(first_wave,last_wave)) + 1, 1.0))
         ax.set_xticklabels(np.arange(first_wave,len(range(first_wave,last_wave)) + 1, 1.0))
         fig.tight_layout()
@@ -666,7 +715,8 @@ def plot_percentages_NROY(subfolder = ".", last_wave = 9):
     plt.legend(loc='lower left')
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","NROY_size.png"), bbox_inches="tight", dpi=300)
 
-def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder ="."):
+def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
+        input_labels = []):
 
     in_out_path = os.path.join("/data","fitting",subfolder,"wave" + str(emul_num))
 
@@ -689,8 +739,11 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder ="."):
 
     D = X_train.shape[1]
     I = get_minmax(X_train)
-
-    index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
+    
+    if input_labels == []:
+        index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
+    else:
+        index_i = input_labels
     # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
     index_ij = [list(c) for c in combinations(index_i, 2)]
 
@@ -735,10 +788,340 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder ="."):
     # ================================================================
     thre = 1e-6
 
-    gsa_box(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
-    gsa_donut(ST, S1, index_i, ylabel = feature, savepath = in_out_path + "/", correction=thre)
-    gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
+    # gsa_box(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
+    # gsa_donut_anotated(ST, S1, index_i, preffix = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
+    # gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
+    gsa_donut_single(ST, S1, index_i, feature = feature, savepath = in_out_path + "/../figures/", correction=thre)
 
     # gsa_donut(ST = ST, S1 = S1, index_i = index_i, ylabel = feature, savepath = in_out_path + "/", correction=None)
     # gsa_box(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath= in_out_path + "/", correction=None)
     # gsa_network(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath = in_out_path + "/", correction=None)
+
+def full_GSA(emul_num, subfolder, output_labels_dir, input_labels):
+
+    SEED = 2
+    # ----------------------------------------------------------------
+    # Make the code reproducible
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    output_labels = read_labels(output_labels_dir)
+    
+    for i in range(len(output_labels)):
+        if os.path.isfile(os.path.join("/data","fitting",subfolder,"wave" + str(emul_num),"Sij_" + output_labels[i] + ".txt")):
+            flag_Sobol = False
+        else:
+            flag_Sobol = True
+
+        GSA(emul_num = emul_num, feature = output_labels[i], generate_Sobol = flag_Sobol,
+        subfolder = subfolder, input_labels = input_labels)
+
+def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
+    if correction is not None:
+        ST = correct_index(ST, correction)
+        S1 = correct_index(S1, correction)
+
+    ST_mean = np.mean(ST, axis=0)
+    S1_mean = np.mean(S1, axis=0)
+
+    sum_s1 = S1_mean.sum()
+    sum_st = ST_mean.sum()
+    ho = sum_st - sum_s1
+    x_si = np.array(list(S1_mean) + [ho])
+    x_sti = ST_mean
+
+    height = 9.36111
+    width = 5.91667
+    fig, axes = plt.subplots(1, 2, figsize=(2 * width, 2 * height / 4))
+
+    # c = "blue"
+    # colors = interp_col(get_col(c), len(index_i))
+    # colors += [interp_col(get_col("gray"), 6)[2]]
+
+    colors_modes_list = sns.color_palette("colorblind", 9)
+    colors_EP_list = sns.color_palette("colorblind", 5)
+    colors = []
+    colors += [np.array(colors_modes_list[i]) for i in range(len(colors_modes_list))]
+    colors += [np.array(colors_EP_list[i]) for i in range(len(colors_EP_list))]
+    colors += [np.array([0,0,0])]
+
+    all_xlabels = index_i + ["higher-order int."]
+
+    x_si_indices_numbers = np.where(x_si>0.01*sum(x_si))
+    x_si_indices = np.in1d(range(x_si.shape[0]),x_si_indices_numbers)
+
+    x_si_combined = x_si[x_si_indices]
+    x_si_combined = np.append(x_si_combined,sum(x_si[~x_si_indices]))
+
+    colors_si_combined = np.array([], dtype=np.int64).reshape(0,3)
+    for i in x_si_indices_numbers[0]:
+        colors_si_combined = np.vstack([colors_si_combined,colors[i]])
+    colors_si_combined = np.vstack([colors_si_combined,np.array([220/256.,220/256.,220/256.])])
+
+    x_si_labels_combined = [np.array(all_xlabels[i]) for i in x_si_indices_numbers[0]]
+    x_si_labels_combined = np.append(x_si_labels_combined,"Other factors")
+
+
+    x_sti_indices_numbers = np.where(x_sti>0.01*sum(x_sti))
+    x_sti_indices = np.in1d(range(x_sti.shape[0]),x_sti_indices_numbers)
+
+    x_sti_combined = x_sti[x_sti_indices]
+    x_sti_combined = np.append(x_sti_combined,sum(x_sti[~x_sti_indices]))
+
+    colors_sti_combined = np.array([], dtype=np.int64).reshape(0,3)
+    for i in x_sti_indices_numbers[0]:
+        colors_sti_combined = np.vstack([colors_sti_combined,colors[i]])
+    colors_sti_combined = np.vstack([colors_sti_combined,np.array([220/256.,220/256.,220/256.])])
+
+    x_sti_labels_combined = [np.array(all_xlabels[i]) for i in x_sti_indices_numbers[0]]
+    x_sti_labels_combined = np.append(x_sti_labels_combined,"Other factors")
+
+    wedges_S1, _ = axes[0].pie(
+        x_si_combined,
+        radius=1,
+        colors=colors_si_combined,
+        startangle=90,
+        counterclock=False,
+        wedgeprops=dict(width=0.3, edgecolor="w", linewidth=1),
+        normalize=True,
+    )
+    axes[0].set_title("First order effects", fontsize=12, fontweight="bold", pad = 20)
+
+    wedges_ST, _ =axes[1].pie(
+        x_sti_combined,
+        radius=1,
+        colors=colors_sti_combined,
+        startangle=90,
+        counterclock=False,
+        wedgeprops=dict(width=0.3, edgecolor="w", linewidth=1),
+        normalize=True,
+    )
+    axes[1].set_title("Total effects", fontsize=12, fontweight="bold", pad = 20)
+
+    # hatches = ['x','x','x','x','x','x','x','x','x','/', '\\', '|', '-', '+','x']
+    # print(wedges[0])
+    # for patch, hatch in zip(wedges[0],hatches):
+    #     patch.set_hatch(hatch)
+
+    bbox_props = dict(boxstyle="square,pad=0", fc="w", ec="k", lw=0, alpha = 0)
+
+    kw = dict(arrowprops=dict(arrowstyle="-"),
+          bbox=bbox_props, zorder=0, va="center")
+
+    for i, p in enumerate(wedges_S1):
+        # if (p.theta2 - p.theta1) > 5:
+        ang = (p.theta2 - p.theta1)/2. + p.theta1
+        y = np.sin(np.deg2rad(ang))
+        x = np.cos(np.deg2rad(ang))
+        horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+        connectionstyle = "angle,angleA=0,angleB={}".format(ang)
+        kw["arrowprops"].update({"connectionstyle": connectionstyle})
+        if x_si_labels_combined[i] == "Other factors":
+            axes[0].annotate(x_si_labels_combined[i], xy=(x, y), xytext=(1.2*x, 1.3*y),
+                    horizontalalignment=horizontalalignment, **kw, size=10)
+        else:
+            axes[0].annotate(x_si_labels_combined[i], xy=(x, y), xytext=(1.2*x, 1.2*y),
+                    horizontalalignment=horizontalalignment, **kw, size=10)
+
+    for i, p in enumerate(wedges_ST):
+        # if (p.theta2 - p.theta1) > 5:
+        ang = (p.theta2 - p.theta1)/2. + p.theta1
+        y = np.sin(np.deg2rad(ang))
+        x = np.cos(np.deg2rad(ang))
+        horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+        connectionstyle = "angle,angleA=0,angleB={}".format(ang)
+        kw["arrowprops"].update({"connectionstyle": connectionstyle})
+        if x_sti_labels_combined[i] == "Other factors":
+            axes[1].annotate(x_sti_labels_combined[i], xy=(x, y), xytext=(1.2*x, 1.3*y),
+                    horizontalalignment=horizontalalignment, **kw, size=10)
+        else:
+            axes[1].annotate(x_sti_labels_combined[i], xy=(x, y), xytext=(1.2*x, 1.2*y),
+                    horizontalalignment=horizontalalignment, **kw, size=10)
+
+
+    # plt.figlegend(
+    #     wedges_S1, index_i + ["higher-order int."], ncol=5, loc="lower center"
+    # )
+    plt.savefig(
+        savepath + preffix + "_donut.png", bbox_inches="tight", dpi=300
+    )
+
+def print_ranking(emul_num, subfolder, output_labels, input_labels):
+
+    SEED = 2
+    # ----------------------------------------------------------------
+    # Make the code reproducible
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    # output_labels = read_labels(output_labels_dir)
+    ranking_matrix = np.zeros((len(output_labels), len(input_labels)))
+    
+    for i in range(len(output_labels)):
+        if os.path.isfile(os.path.join("/data","fitting",subfolder,"wave" + str(emul_num),"Sij_" + output_labels[i] + ".txt")):
+            generate_Sobol = False
+        else:
+            generate_Sobol = True
+
+        in_out_path = os.path.join("/data","fitting",subfolder,"wave" + str(emul_num))
+        feature = output_labels[i]
+
+        # ================================================================
+        # GPE loading
+        # ================================================================
+
+        X_train = np.loadtxt(os.path.join(in_out_path, "X.dat"), dtype=float)
+        y_train = np.loadtxt(os.path.join(in_out_path, feature + ".dat"), dtype=float)
+
+        emul = GPEmul.load(X_train, y_train,
+                            loadpath=in_out_path + "/",
+                            filename = "wave" + str(emul_num) + "_" + feature + ".gpe")
+
+        # ================================================================
+        # Estimating Sobol' sensitivity indices
+        # ================================================================
+        n = 1000 # Increase this to reduce the integral uncertainty. The output grows as n x (2*input + 2), so careful!
+        n_draws = 1000
+
+        D = X_train.shape[1]
+        I = get_minmax(X_train)
+        
+        if input_labels == []:
+            index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
+        else:
+            index_i = input_labels
+        # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
+        index_ij = [list(c) for c in combinations(index_i, 2)]
+
+        if generate_Sobol:
+            problem = {"num_vars": D, "names": index_i, "bounds": I}
+
+            X_sobol = saltelli.sample(
+                problem, n, calc_second_order=True
+            )  # n x (2D + 2) | if calc_second_order == False --> n x (D + 2)
+            Y = emul.sample(X_sobol, n_draws=n_draws)
+
+            ST = np.zeros((0, D), dtype=float)
+            S1 = np.zeros((0, D), dtype=float)
+            S2 = np.zeros((0, int(binom(D, 2))), dtype=float)
+
+            for i in tqdm.tqdm(range(n_draws)):
+                S = sobol.analyze(
+                    problem,
+                    Y[i],
+                    calc_second_order=True,
+                    parallel=True,
+                    n_processors=multiprocessing.cpu_count(),
+                    seed=SEED,
+                )
+                total_order, first_order, (_, second_order) = sobol.Si_to_pandas_dict(S)
+
+                ST = np.vstack((ST, total_order["ST"].reshape(1, -1)))
+                S1 = np.vstack((S1, first_order["S1"].reshape(1, -1)))
+                S2 = np.vstack((S2, np.array(second_order["S2"]).reshape(1, -1)))
+
+            np.savetxt(os.path.join(in_out_path,"STi_" + feature + ".txt"), ST, fmt="%.6f")
+            np.savetxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), S1, fmt="%.6f")
+            np.savetxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), S2, fmt="%.6f")
+        else:
+
+            ST = np.loadtxt(os.path.join(in_out_path,"STi_" + feature + ".txt"), dtype=float)
+            S1 = np.loadtxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), dtype=float)
+            S2 = np.loadtxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), dtype=float)
+
+        ST = correct_index(ST, 1e-6)
+        S1 = correct_index(S1, 1e-6)
+
+        ST_mean = np.mean(ST, axis=0)
+
+        # The lower the ranking position, the more important it is
+
+        ranking_position = np.argsort(-ST_mean)
+        ranking_matrix[i,:] = ranking_position
+
+        score_matrix = np.argsort(ranking_matrix, axis = 1)
+    
+    final_score = np.median(score_matrix, axis = 0)
+    labels_sorted = [input_labels[int(idx)] for idx in np.argsort(final_score)]
+
+    print("According to the median score the ranking is ")
+    print(labels_sorted)
+    print("...and the corresponding scores")
+    print(np.sort(final_score))
+
+def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
+    if correction is not None:
+        ST = correct_index(ST, correction)
+        S1 = correct_index(S1, correction)
+
+    ST_mean = np.mean(ST, axis=0)
+    S1_mean = np.mean(S1, axis=0)
+
+    sum_s1 = S1_mean.sum()
+    sum_st = ST_mean.sum()
+    ho = sum_st - sum_s1
+    x_si = np.array(list(S1_mean) + [ho])
+
+    height = 9.36111
+    width = 5.91667
+    fig, axes = plt.subplots()
+
+    colors_modes_list = sns.color_palette("colorblind", 9)
+    colors_EP_list = sns.color_palette("colorblind", 5)
+    colors = []
+    colors += [np.array(colors_modes_list[i]) for i in range(len(colors_modes_list))]
+    colors += [np.array(colors_EP_list[i]) for i in range(len(colors_EP_list))]
+    colors += [np.array([0,0,0])]
+
+    all_xlabels = index_i + ["higher-order int."]
+
+    x_si_indices_numbers = np.where(x_si>0.01*sum(x_si))
+    x_si_indices = np.in1d(range(x_si.shape[0]),x_si_indices_numbers)
+
+    x_si_combined = x_si[x_si_indices]
+    x_si_combined = np.append(x_si_combined,sum(x_si[~x_si_indices]))
+
+    colors_si_combined = np.array([], dtype=np.int64).reshape(0,3)
+    for i in x_si_indices_numbers[0]:
+        colors_si_combined = np.vstack([colors_si_combined,colors[i]])
+    colors_si_combined = np.vstack([colors_si_combined,np.array([220/256.,220/256.,220/256.])])
+
+    x_si_labels_combined = [np.array(all_xlabels[i]) for i in x_si_indices_numbers[0]]
+    x_si_labels_combined = np.append(x_si_labels_combined,"Other factors")
+
+    wedges_S1, _ = axes.pie(
+        x_si_combined,
+        radius=1,
+        colors=colors_si_combined,
+        startangle=90,
+        counterclock=False,
+        wedgeprops=dict(width=0.3, edgecolor="w", linewidth=1),
+        normalize=True,
+    )
+    # axes.set_title(feature, fontsize=12, fontweight="bold", pad = 20)
+    axes.text(0., 0., feature, horizontalalignment='center', verticalalignment='center', fontsize=20, fontweight="bold")
+
+    bbox_props = dict(boxstyle="square,pad=0", fc="w", ec="k", lw=0, alpha = 0)
+
+    kw = dict(arrowprops=dict(arrowstyle="-"),
+          bbox=bbox_props, zorder=0, va="center")
+
+    for i, p in enumerate(wedges_S1):
+        ang = (p.theta2 - p.theta1)/2. + p.theta1
+        y = np.sin(np.deg2rad(ang))
+        x = np.cos(np.deg2rad(ang))
+        horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+        connectionstyle = "angle,angleA=0,angleB={}".format(ang)
+        kw["arrowprops"].update({"connectionstyle": connectionstyle})
+        if x_si_labels_combined[i] == "Other factors":
+            axes.annotate(x_si_labels_combined[i], xy=(x, y), xytext=(1.2*x, 1.3*y),
+                    horizontalalignment=horizontalalignment, **kw, size=10)
+        else:
+            axes.annotate(x_si_labels_combined[i], xy=(x, y), xytext=(1.2*x, 1.2*y),
+                    horizontalalignment=horizontalalignment, **kw, size=10)
+
+    plt.savefig(
+        savepath + feature + "_first_order_effects.png", bbox_inches="tight", dpi=300
+    )
