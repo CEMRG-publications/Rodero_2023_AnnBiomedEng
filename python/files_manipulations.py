@@ -295,25 +295,25 @@ class pts:
 
         return pts(new_p1, new_p2, new_p3, self.name)
 
-    def min_dist(self, p):
+    # def min_dist(self, p):
 
 
-        dist_vec = np.array([])
-        for i in range(self.size):
-            dist_vec = np.append(dist_vec,
-                                np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
-                                              )
-                                )
-        return min(dist_vec)
+    #     dist_vec = np.array([])
+    #     for i in range(self.size):
+    #         dist_vec = np.append(dist_vec,
+    #                             np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
+    #                                           )
+    #                             )
+    #     return min(dist_vec)
     
-    def where_min(self, p):
-        dist_vec = np.array([])
-        for i in range(self.size):
-            dist_vec = np.append(dist_vec,
-                                np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
-                                              )
-                                )
-        return dist_vec.index(min(dist_vec))
+    # def where_min(self, p):
+    #     dist_vec = np.array([])
+    #     for i in range(self.size):
+    #         dist_vec = np.append(dist_vec,
+    #                             np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
+    #                                           )
+    #                             )
+    #     return dist_vec.index(min(dist_vec))
 
     def write(self,pathname):
         """Function to write a pts object to a file.
@@ -450,7 +450,7 @@ def orthogonalise(f, s):
         numpy array: Corrected vector.
     """
 
-    c = numpy.cross(f,s)
+    c = np.cross(f,s)
     d = np.dot(f,s)
 
     norm_c = np.linalg.norm(c)
@@ -549,6 +549,21 @@ def reescale(value_aray, lower_boundary = 0, upper_boundary = 1):
 
     return(slope*value_aray + intercept)
 def area_or_vol_surface(pts_file, surf_file, with_vol, with_area):
+    """Function to calculate the area of a surface or the volume of a closed
+    surface.
+
+    Args:
+        pts_file (pts): Pts object corresponding to the coordinates of the 
+        surface.
+        surf_file (surf): surface object to calculate the area or volume from.
+        with_vol (bool): If True, returns the volume of the surface as an 
+        application of the 3D version of the Stokes' theorem.
+        with_area (bool): If True, return the area of the surface as sum of 
+        area of triangles.
+
+    Returns:
+        float or list of floats: area, vol or both.
+    """
 
     d12 = np.array([np.nan,np.nan,np.nan])
     d13 = np.array([np.nan,np.nan,np.nan])
