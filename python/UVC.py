@@ -44,8 +44,16 @@ def create(fourch_name, base):
                                    coord_case+"_elem_scaled.dat"), 'w') as f:
             for item in scaled:
                 f.write("%s\n" % item)
-
 def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
+    """Function to write the vertices belonging to the bottom third of the
+    apico-basal coordinate of a given UVC.
+
+    Args:
+        fourch_name (str, optional): Name of the four chamber mesh. Defaults to 
+        "Full_Heart_Mesh_Template".
+        UVC_base (str, optional): Suffix of the base of the UVC (should be also
+        the name of the base). Defaults to "MVTV".
+    """
 
     path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
