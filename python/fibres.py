@@ -125,6 +125,16 @@ def FibreCorrection(fourch_name = "Full_Heart_Mesh_Template", alpha_epi = -60, a
 
             # Find neighbours points in the sphere centred in the centre of gravity
             def create_sphere(radius = 800):
+                """Function to create the sphere around the last element.
+
+                Args:
+                    radius (int, optional): Radius of the sphere in micrometers.
+                    Defaults to 800.
+
+                Returns:
+                    sphere (array of ints): Array with the indices of the 
+                    tetrahedra belonging to the sphere.
+                """
                 sphere = np.intersect1d(np.where(np.abs(biv_pts.p1-g0) < radius)[0],
                                     np.intersect1d(np.where(np.abs(biv_pts.p2-g1) < radius)[0],
                                                 np.where(np.abs(biv_pts.p3-g2) < radius)[0]
