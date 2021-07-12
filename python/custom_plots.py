@@ -150,97 +150,19 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
     plt.suptitle(plot_title, fontsize = 18)
     plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
 
-def plot_wave_training_points(W, xlabels=None, filename="./wave_impl", waveno = "unespecified",
-             reduction_function = "min", plot_title = "Implausibility space",
-             param_ranges = None, subfolder = "."):
+def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
+                        plot_title = "Evolution of variance quotient"):
+    """Function to plot the uncertainty quantification of an emulator. The 
+    quotient plotted corresponds to the highest quotient of the variance of the
+    emulator over the variance of the output.
 
-    X = W.reconstruct_tests()
-
-    X_train_whole = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave0","X_feasible.dat"), dtype=float)
-    X_train = X_train_whole[:round(0.8*0.8*X_train_whole.shape[0])]
-
-    if xlabels is None:
-        xlabels = [f"p{i+1}" for i in range(X.shape[1])]
-
-    C = W.I
-    cmap = "jet"
-    vmin = 1.0
-    vmax = W.cutoff
-    cbar_label = "Implausibility measure"
-
-    height = 9.36111
-    width = 5.91667
-    fig = plt.figure(figsize=(3 * width, 3 * height / 3))
-    gs = grsp.GridSpec(
-        W.input_dim - 1,
-        W.input_dim,
-        width_ratios=(W.input_dim - 1) * [1] + [0.1],
-    )
-
-    for k in range(W.input_dim * W.input_dim):
-        i = k % W.input_dim
-        j = k // W.input_dim
-
-        if i > j:
-            axis = fig.add_subplot(gs[i - 1, j])
-            axis.set_facecolor("xkcd:light grey")
-
-            if (xlabels[i] == "$\mathregular{k_{fibre}}$") or (xlabels[j] == "$\mathregular{k_{fibre}}$"):
-                hexagon_size = 9
-            else:
-                hexagon_size = 25
-            
-            if reduction_function == "min":
-                im = axis.hexbin(
-                    X[:, j],
-                    X[:, i],
-                    C=C,
-                    reduce_C_function=np.min,
-                    gridsize=hexagon_size,
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                )
-            if reduction_function == "max":
-                im = axis.hexbin(
-                    X[:, j],
-                    X[:, i],
-                    C=C,
-                    reduce_C_function=np.max,
-                    gridsize=hexagon_size,
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                )
-            points_x = [x_row[j] for x_row in X_train]
-            points_y = [x_row[i] for x_row in X_train]
-            axis.scatter(points_x, points_y, c='w', s = 10, marker = 'o')
-
-
-
-            if param_ranges is None:
-                param_ranges = W.Itrain
-
-            axis.set_xlim([param_ranges[j, 0], param_ranges[j, 1]])
-            axis.set_ylim([param_ranges[i, 0], param_ranges[i, 1]])
-
-            if i == W.input_dim - 1:
-                axis.set_xlabel(xlabels[j], fontsize=12)
-            else:
-                axis.set_xticklabels([])
-            if j == 0:
-                axis.set_ylabel(xlabels[i], fontsize=12)
-            else:
-                axis.set_yticklabels([])
-
-    cbar_axis = fig.add_subplot(gs[:, W.input_dim - 1])
-    cbar = fig.colorbar(im, cax=cbar_axis, format = '%.2f')
-    cbar.set_label(cbar_label, size=12)
-    fig.tight_layout()
-    plt.suptitle(plot_title, fontsize = 18)
-    plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
-
-def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".", plot_title = "Evolution of variance quotient"):
+    Args:
+        first_wave (int, optional): First wave to plot. Defaults to 0.
+        last_wave (int, optional): Last wave to plot. Defaults to 9.
+        subfolder (str, optional): Subfolder to work on. Defaults to ".".
+        plot_title (str, optional): Title of the plot. Defaults to "Evolution of
+        variance quotient".
+    """
 
     matplotlib.rcParams.update({'font.size': 22})
 
@@ -278,84 +200,30 @@ def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".", plot_title
     fig.tight_layout()
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","variance_quotient.png"), bbox_inches="tight", dpi=300)
 
-def plot_output_evolution_complete(first_wave = 0, last_wave = 9,
-                                   subfolder = "."):
-    
-    SEED = 2
-    # ----------------------------------------------------------------
-    # Make the code reproducible
-    random.seed(SEED)
-    np.random.seed(SEED)
-    torch.manual_seed(SEED)
-
-    exp_means = np.loadtxt(os.path.join("/data","fitting","match", "exp_mean.txt"), dtype=float)
-    exp_stds = np.loadtxt(os.path.join("/data","fitting","match", "exp_std.txt"), dtype=float)
-    output_labels = read_labels(os.path.join("/data","fitting", "EP_output_labels.txt"))
-
-    for i in range(len(output_labels)):
-
-        
-        fig, ax = plt.subplots()
-        emulation_list = []
-        simulation_list = []
-
-        for w in range(first_wave, last_wave + 1):
-
-            X_test = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_test.dat"),dtype=float)
-            X_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_feasible.dat"),dtype=float)
-            y_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), output_labels[i] + "_feasible.dat"),dtype=float)
-            emul = GPEmul.load(X_train, y_train, loadpath=os.path.join("/data","fitting",subfolder,"wave" + str(w) + "/"),filename = "wave" + str(w) + "_" + output_labels[i] + ".gpe")
-
-            emulated_means, _ = emul.predict(X_test)
-            emulation_list.append(emulated_means)
-            simulation_list.append(y_train)
-
-        emul_vp = ax.violinplot(emulation_list, positions = [w+0.75 for w in range(first_wave,last_wave+1)],widths=0.5, showextrema=False)
-        simul_vp = ax.violinplot(simulation_list, positions = [w+1.25 for w in range(first_wave,last_wave+1)],widths=0.5, showextrema=False)
-
-        for pc in emul_vp['bodies']:
-            pc.set_facecolor('dodgerblue')
-            pc.set_alpha(0.8)
-        for pc in simul_vp['bodies']:
-            pc.set_facecolor('blue')
-            pc.set_alpha(0.8)
-        
-        ax.fill_between(np.array([0.5, len(range(first_wave,last_wave+1)) + 0.5]),
-                        max(0,exp_means[i] - 3*exp_stds[i]),
-                        exp_means[i] + 3*exp_stds[i],
-                        facecolor='gray', alpha=0.2)
-
-
-        ax.fill_between(np.array([0.5, len(range(first_wave,last_wave+1)) + 0.5]),
-                        max(0,exp_means[i] - exp_stds[i]**2),
-                        exp_means[i] + exp_stds[i]**2,
-                        facecolor='palegreen', alpha=0.2)
-        
-
-        legend_3SD, = ax.fill(np.NaN, np.NaN, 'gray', alpha=0.2, linewidth=0)
-        legend_var, = ax.fill(np.NaN, np.NaN, 'palegreen', alpha=0.2, linewidth=0)
-        emul_box, = ax.fill(np.NaN, np.NaN, 'dodgerblue', alpha=0.8, linewidth=0)
-        simul_box, = ax.fill(np.NaN, np.NaN, 'blue', alpha=0.8, linewidth=0)
-
-
-        ax.legend([legend_3SD, legend_var, emul_box, simul_box],
-                    [r'Exp. mean $\pm 3$SD', r'Exp. mean $\pm $ var.',"Emulation mean of the previous NROY", "Added training points"])
-
-        plt.title("Distribution of the outputs for " + output_labels[i])
-        plt.xlabel("Wave")
-        plt.ylabel("ms")
-        plt.xlim([0.5, len(range(first_wave,last_wave+1)) + 0.5])
-        plt.xticks(np.arange(1, len(range(first_wave,last_wave+1)) + 1, 1.0))
-        ax.set_xticklabels(np.arange(first_wave, last_wave + 1, 1.0))
-        fig.tight_layout()
-        plt.savefig(os.path.join("/data","fitting",subfolder,"figures", output_labels[i] + "_complete_evolution.png"), bbox_inches="tight", dpi=300)
-
 def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
                                    subfolder = ".", only_feasible = True,
                                    output_labels_dir = "",
                                    exp_mean_name = "",
                                    exp_std_name = "",
                                    units_dir = ""):
+    """Function to plot the evolution of the output (both simulations and 
+    emulations).
+
+    Args:
+        first_wave (int, optional): First wave to plot. Defaults to 0.
+        last_wave (int, optional): Last wave to plot. Defaults to 9.
+        subfolder (str, optional): Subfolder to work on. Defaults to ".".
+        only_feasible (bool, optional): If True, works only with feasible points
+        (within 5SD of the mean). Defaults to True.
+        output_labels_dir (str, optional): Directory where the file containing
+        the names of the output labels is. Defaults to "".
+        exp_mean_name (str, optional): Name of the file containing the 
+        experimental mean value. Defaults to "".
+        exp_std_name (str, optional): Name of the file containing the
+        experimental standard deviation value. Defaults to "".
+        units_dir (str, optional): Directory where the file containing the 
+        labels for the units of the output is. Defaults to "".
+    """
     matplotlib.rcParams.update({'font.size': 9})
     SEED = 2
     # ----------------------------------------------------------------
@@ -455,54 +323,14 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
         fig.tight_layout()
         plt.savefig(os.path.join("/data","fitting",subfolder,"figures", output_labels[i] + "_complete_evolution.png"), bbox_inches="tight", dpi=300)
 
-def plot_scores_training_size():
-
-        matplotlib.rcParams.update({'font.size': 22})
-
-        R2_TAT = np.loadtxt(os.path.join("/data","fitting","figures","R2_TAT.dat"),
-                            dtype=float)
-        R2_TATLV = np.loadtxt(os.path.join("/data","fitting","figures","R2_TATLV.dat"),
-                            dtype=float)
-        ISE_TAT = np.loadtxt(os.path.join("/data","fitting","figures","ISE_TAT.dat"),
-                            dtype=float)
-        ISE_TATLV = np.loadtxt(os.path.join("/data","fitting","figures","ISE_TAT.dat"),
-                            dtype=float)
-
-        height = 9.36111
-        width = 5.91667
-        fig = plt.figure(figsize=(3 * width, 3 * height / 3))
-
-        axes1 = plt.gca()
-        axes2 = axes1.twiny()
-
-        X1 = np.arange(79,313,1)
-        X2 = 0.8*0.8*X1
-
-        axes1.set_xlabel("Total set size")
-        axes2.set_xlabel("Training set size")
-
-
-        plt.plot(X1,100*R2_TAT, '.k-',
-                label = "R2 score for the TAT emulator", markersize = 16)
-        plt.plot(X1,100*R2_TATLV, '.r-',
-                label = "R2 score for the TATLV emulator", markersize = 16)
-        plt.plot(X1,ISE_TAT, 'k--',
-                label = "ISE score for the TAT emulator", markersize = 16)
-        plt.plot(X1,ISE_TATLV, 'r--',
-                label = "ISE score for the TATLV emulator", markersize = 16)
-
-        plt.title("Scores with different set sizes")
-
-        plt.ylabel("Percentage of score")
-        plt.legend(loc='lower right')
-        fig.tight_layout()
-        plt.savefig("/data/fitting/figures/setsize.png", bbox_inches="tight", dpi=300)
-
 def plot_dataset_modified(Xdata, xlabels, Impl, cutoff):
     """Plot X high-dimensional dataset by pairwise plotting its features against each other.
     Args:
-            - Xdata: n*m matrix
-            - xlabels: list of m strings representing the name of X dataset's features.
+        Xdata (matrix): n*m matrix
+        xlabels (array): list of m strings representing the name of X dataset's 
+        features.
+        Impl (array): Array with the implausibility value for each point.
+        cutoff (float): Threshold to set what's implausible and what's not.
     """
 
     sample_dim = Xdata.shape[0]
@@ -544,6 +372,13 @@ def plot_dataset_modified(Xdata, xlabels, Impl, cutoff):
     return
 
 def plot_accumulated_waves_points(subfolder, last_wave):
+    """Function to plot the evolution of all the waves in a single plot.
+
+    Args:
+        subfolder (str): Subfolder to work on.
+        last_wave (int): Last wave to add to the plot. It will always add the 
+        first ones.
+    """
     
     XL = []
     xlabels = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
@@ -618,6 +453,14 @@ def plot_accumulated_waves_points(subfolder, last_wave):
     print("Printed in " + os.path.join(os.path.join("/data","fitting",subfolder,"figures"),"NROY_reduction_"  + subfolder + ".png"))
 
 def plot_percentages_NROY_break(subfolder = ".", last_wave = 9):
+    """Function to plot the evolution of the NROY region in absolute and 
+    relative terms. It breaks the y-axis to improve the aesthetics.
+
+    Args:
+        subfolder (str, optional): Subfolder to work on. Defaults to ".".
+        last_wave (int, optional): Last wave to add to the plot. It will always add the 
+        first ones. Defaults to 9.
+    """
     matplotlib.rcParams.update({'font.size': 22})
     NROY_rel = []
     NROY_abs = []
@@ -682,6 +525,14 @@ def plot_percentages_NROY_break(subfolder = ".", last_wave = 9):
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","NROY_size.png"), bbox_inches="tight", dpi=300)
 
 def plot_percentages_NROY(subfolder = ".", last_wave = 9):
+    """Function to plot the evolution of the NROY region in absolute and 
+    relative terms. 
+
+    Args:
+        subfolder (str, optional): Subfolder to work on. Defaults to ".".
+        last_wave (int, optional): Last wave to add to the plot. It will always add the 
+        first ones. Defaults to 9.
+    """
     matplotlib.rcParams.update({'font.size': 22})
     NROY_rel = []
     NROY_abs = []
@@ -717,6 +568,21 @@ def plot_percentages_NROY(subfolder = ".", last_wave = 9):
 
 def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
         input_labels = []):
+    """Function to perform the pie charts of the Global Sensitivity Analysis.
+
+    Args:
+        emul_num (int, optional): Number of the wave where the emulator is. 
+        Defaults to 5.
+        feature (str, optional): Output label of the emulator to use. Defaults 
+        to "TAT".
+        generate_Sobol (bool, optional): If True, generates the (computationally
+        expensive) Sobol' semi-random sequence to evaluate the emulator. 
+        Otherwise, it loads the first-order and total effects from file.
+        Defaults to False.
+        subfolder (str, optional): Subfolder to work on. Defaults to ".".
+        input_labels (list, optional): List with the labels for the input
+        parameters. Defaults to [].
+    """
 
     in_out_path = os.path.join("/data","fitting",subfolder,"wave" + str(emul_num))
 
@@ -798,6 +664,15 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
     # gsa_network(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath = in_out_path + "/", correction=None)
 
 def full_GSA(emul_num, subfolder, output_labels_dir, input_labels):
+    """Function to perform the global sensitivity analysis of all the output
+    values.
+
+    Args:
+        emul_num (int, optional): Number of the wave where the emulator is. 
+        subfolder (str, optional): Subfolder to work on.
+        output_labels_dir (str): Directory where the output labels file is.
+        input_labels (list): List with the labels of the input parameters.
+    """
 
     SEED = 2
     # ----------------------------------------------------------------
@@ -818,6 +693,18 @@ def full_GSA(emul_num, subfolder, output_labels_dir, input_labels):
         subfolder = subfolder, input_labels = input_labels)
 
 def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
+    """Function to do a pie chart for the GSA, where the chunks are annotated
+    and color-blind safe.
+
+    Args:
+        ST (numpy array): Total effects.
+        S1 (numpy array): First order effects
+        index_i (list): Labels of the input parameters.
+        preffix (str): Preffix to add to the plotted file.
+        savepath (str): Path where the plot is saved.
+        correction (float, optional): Threshold that sets to 0 every value under
+        it to avoid numerical issues. Defaults to None.
+    """
     if correction is not None:
         ST = correct_index(ST, correction)
         S1 = correct_index(S1, correction)
@@ -948,6 +835,15 @@ def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
     )
 
 def print_ranking(emul_num, subfolder, output_labels, input_labels):
+    """Function to print the ranking of the importance of the input parameters
+    based on median positions across all the outputs.
+
+    Args:
+        emul_num (int): Wave number where the emulator is.
+        subfolder (str): Subfolder to work on.
+        output_labels (array): Labels of the output values.
+        input_labels (array): Labels of the input values.
+    """
 
     SEED = 2
     # ----------------------------------------------------------------
@@ -1052,6 +948,19 @@ def print_ranking(emul_num, subfolder, output_labels, input_labels):
     print(np.sort(final_score))
 
 def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
+    """Function to do a pie chart for the GSA, where the chunks are annotated
+    and color-blind safe. It plots only the first order effects
+
+    Args:
+        ST (numpy array): Total effects.
+        S1 (numpy array): First order effects
+        index_i (list): Labels of the input parameters.
+        feature (str): Preffix to add to the plotted file.
+        savepath (str): Path where the plot is saved.
+        correction (float, optional): Threshold that sets to 0 every value under
+        it to avoid numerical issues. Defaults to None.
+    """
+
     if correction is not None:
         ST = correct_index(ST, correction)
         S1 = correct_index(S1, correction)
