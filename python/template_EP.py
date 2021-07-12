@@ -172,9 +172,18 @@ def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = ".
     k_FEC_vec = [float(line.split(' ')[k_FEC_idx]) for line in param_values]
 
     def find_nearest(array, value):
-            array = np.asarray(array)
-            idx = (np.abs(array - value)).argmin()
-            return array[idx]
+        """Function to find the closest value in an array to a given value.
+
+        Args:
+            array (array): Array to look into to find the closest value.
+            value (same as array): Value to find the closest number in array.
+
+        Returns:
+            Closest value to "value" in "array".
+        """
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return array[idx]
         
     FEC_height_to_lastFECtag = {33:25,
                                 35:26,
