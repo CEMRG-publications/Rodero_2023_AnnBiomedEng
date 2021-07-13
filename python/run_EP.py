@@ -5,9 +5,9 @@ import shutil
 import files_manipulations
 
 
-def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
-              CV_l = None, k_fibre = None, k_FEC = None,
-              simulation_file_name = None, path_EP = ""):
+def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
+              CV_l = None, k_fibre = None, k_fec = None,
+              simulation_file_name = None, path_ep = ""):
               
 
     """Function with CARP arguments that creates an init file to then run
@@ -16,25 +16,25 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
     Args:
         fourch_name (str, optional): Name of the four-chamber mesh. Defaults to 
         "Full_Heart_Mesh_Template".
-        lastFECtag (int, optional): Last tag to include in the FEC layer. Minimum 25,
+        lastfectag (int, optional): Last tag to include in the fec layer. Minimum 25,
         maximum tag is 38. The rest of the tags is myocardium. Defaults to None.
         CV_l (float, optional): Conduction velocity in the fibre direction. 
         Defaults to None.
         k_fibre (float, optional): Fibre anisotropy. Defaults to None.
-        k_FEC (float, optional): FEC layer anisotropy. Defaults to None.
+        k_fec (float, optional): fec layer anisotropy. Defaults to None.
         simulation_file_name (str, optional): Name for the file containing the 
         simulation results. Defaults to None.
-        path_EP (str, optional): Path where to save the EP simulations. Defaults
+        path_ep (str, optional): Path where to save the EP simulations. Defaults
         to "".
     """
 
     CV_t = float(CV_l)*float(k_fibre)
-    CV_FEC = float(CV_l)*float(k_FEC)
+    CV_fec = float(CV_l)*float(k_fec)
 
     path2biv = os.path.join("/data","fitting",fourch_name, "biv")
-    lastFECtag = int(float(lastFECtag))
-    tags_myo = np.append([1, 2],range(lastFECtag + 1, 39))
-    tags_FEC = np.array(range(25,lastFECtag + 1))
+    lastfectag = int(float(lastfectag))
+    tags_myo = np.append([1, 2],range(lastfectag + 1, 39))
+    tags_fec = np.array(range(25,lastfectag + 1))
 
     bottom_third = files_manipulations.vtx.read(os.path.join(path2biv,"EP",
                                                 "bottom_third.vtx"),
@@ -43,14 +43,14 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
     # write .init file
     outname = simulation_file_name.split('/')[-1][:-4] + ".init"
 
-    f = open(os.path.join(path_EP, outname), "w")
+    f = open(os.path.join(path_ep, outname), "w")
 
     # header
     f.write('vf:0 vs:0 vn:0 vPS:0\n') # Default properties
     f.write('retro_delay:0 antero_delay:0\n') # If there's no PS, it's ignored.
 
     # number of stimuli and regions
-    f.write('%d %d\n' % (bottom_third.size, int(len(tags_myo)) + len(tags_FEC)))
+    f.write('%d %d\n' % (bottom_third.size, int(len(tags_myo)) + len(tags_fec)))
 
     # stimulus
     for n in bottom_third.indices:
@@ -59,13 +59,13 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastFECtag = None,
     # ek regions
     for i,t in enumerate(tags_myo):
         f.write('%d %f %f %f\n' % (int(t), CV_l, CV_t, CV_t))
-    for i,t in enumerate(tags_FEC):
-        f.write('%d %f %f %f\n' % (int(t), CV_FEC, CV_FEC, CV_FEC))
+    for i,t in enumerate(tags_fec):
+        f.write('%d %f %f %f\n' % (int(t), CV_fec, CV_fec, CV_fec))
     
     f.close()
 
 def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
-                alpha_epi = None, simulation_file_name = None, path_EP = ""):
+                alpha_epi = None, simulation_file_name = None, path_ep = ""):
     """Function to run an EP simulation using ekbatch from an init file.
 
     Args:
@@ -77,17 +77,17 @@ def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
         degrees. Defaults to None.
         simulation_file_name (str, optional): Name for the file containing the 
         simulation results. Defaults to None. Defaults to None.
-        path_EP (str, optional): Path where to save the EP simulations. Defaults
+        path_ep (str, optional): Path where to save the EP simulations. Defaults
         to "".
     """
     path2biv = os.path.join("/data","fitting",fourch_name,
                             "biv")
-    path2sim = path_EP
+    path2sim = path_ep
 
     outname = simulation_file_name.split('/')[-1][:-4]
 
     
-    shutil.copy(os.path.join(path2biv,"biv_FEC.elem"),
+    shutil.copy(os.path.join(path2biv,"biv_fec.elem"),
         os.path.join(path2sim, outname + ".elem")
         )
 

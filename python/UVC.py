@@ -78,8 +78,8 @@ def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
     pathlib.Path(os.path.join(path2biv,"EP")).mkdir(parents=True, exist_ok=True)
 
     bottom_third_vtx.write(os.path.join(path2biv,"EP","bottom_third.vtx"))
-def create_FEC(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
-    """Function to create the labels for the FEC layer. It consists on different
+def create_fec(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
+    """Function to create the labels for the fec layer. It consists on different
     labels in the ventricular endocardium from 0.35 to 1 of the apico-basal
     coordinate.
 
@@ -98,8 +98,8 @@ def create_FEC(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
                                             "biv")
 
 
-    FEC_levels  = np.append(0.33,np.arange(0.35,1,0.05))
-    FEC_tags = range(25,25 + len(FEC_levels))
+    fec_levels  = np.append(0.33,np.arange(0.35,1,0.05))
+    fec_tags = range(25,25 + len(fec_levels))
 
     new_tags = np.copy(biv_elem.tags)
 
@@ -117,14 +117,14 @@ def create_FEC(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
     endo_elem = [idxs for idxs,counts in dict_count.items() if counts == 3]
 
     for i in endo_elem:
-        if(UVC_Z[i] <= FEC_levels[0]):
-            new_tags[i] = FEC_tags[0]
+        if(UVC_Z[i] <= fec_levels[0]):
+            new_tags[i] = fec_tags[0]
         else:
-            new_tags[i] = FEC_tags[np.where(UVC_Z[i] > FEC_levels)[0][-1]]
+            new_tags[i] = fec_tags[np.where(UVC_Z[i] > fec_levels)[0][-1]]
 
-    biv_FEC_elem = files_manipulations.elem(biv_elem.i1, biv_elem.i2,
+    biv_fec_elem = files_manipulations.elem(biv_elem.i1, biv_elem.i2,
                                             biv_elem.i3, biv_elem.i4,
                                             new_tags)
 
-    biv_FEC_elem.write(os.path.join(path2biv,"biv_FEC.elem"))
+    biv_fec_elem.write(os.path.join(path2biv,"biv_fec.elem"))
 

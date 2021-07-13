@@ -669,7 +669,6 @@ def output(heart_name, return_ISWT = True, return_WT = True,
 
     print(output_list)
     return output_list
-
 def write_output_casewise(waveno = 0, subfolder = "."):
     """Function to write the output of a given wave. The outputs are specified
     in the written output_labels file.
