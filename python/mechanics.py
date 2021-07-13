@@ -265,7 +265,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
     with open(os.path.join(path_lab, "EP_funct_labels.txt")) as f:
         param_names = f.read().splitlines()
 
-    with open(os.path.join(path_gpes, "x_ep.dat")) as f:
+    with open(os.path.join(path_gpes, "X_EP.dat")) as f:
         param_values = f.read().splitlines()
 
     with open(os.path.join(path_gpes, "X_anatomy.csv")) as f:
@@ -274,7 +274,6 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
     alpha_idx = int(np.where([x == "alpha" for x in param_names])[0])
     fec_height_idx = int(np.where([x == "fec_height" for x in param_names])[0])
     cv_l_idx = int(np.where([x == "CV_l" for x in param_names])[0])
-    k_fibre_idx = int(np.where([x == "k_fibre" for x in param_names])[0])
     k_fec_idx = int(np.where([x == "k_fec" for x in param_names])[0])
 
     def find_nearest(array, value):
@@ -313,20 +312,18 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
         alpha = round(float(param_values[line_num].split(' ')[alpha_idx]), 2)
         lastfectag = round(float(fec_height_to_lastfectag[height_key]), 2)
         cv_l = round(float(param_values[line_num].split(' ')[cv_l_idx]), 2)
-        k_fibre = round(float(param_values[line_num].split(' ')[k_fibre_idx]), 2)
         k_fec = round(float(param_values[line_num].split(' ')[k_fec_idx]), 2)
 
-        fourch_name = "heart_" + anatomy_values[line_num+1].replace(", ", "")[:-36]
+        fourch_name = "heart_" + anatomy_values[line_num+1].replace(", ", "")[:-24]
 
         path_ep = os.path.join("/data", "fitting", fourch_name, "biv",
-                               "ep_simulations")
+                               "EP_simulations")
 
         pathlib.Path(path_ep).mkdir(parents=True, exist_ok=True)
         simulation_file_name = os.path.join(path_ep,
                                             '{0:.2f}'.format(alpha) +
                                             '{0:.2f}'.format(fec_height) +
                                             '{0:.2f}'.format(cv_l) +
-                                            '{0:.2f}'.format(k_fibre) +
                                             '{0:.2f}'.format(k_fec) +
                                             ".dat"
                                             )
@@ -348,7 +345,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
             run_EP.carp2init(fourch_name=fourch_name,
                              lastfectag=lastfectag,
                              CV_l=cv_l,
-                             k_fibre=k_fibre,
+                             k_fibre=0.25,
                              k_fec=k_fec,
                              simulation_file_name=simulation_file_name,
                              path_ep=path_ep
