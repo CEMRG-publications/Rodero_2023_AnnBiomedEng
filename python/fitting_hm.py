@@ -1,34 +1,18 @@
 import diversipy as dp
-from pickle import FALSE, TRUE
 import random
 import numpy as np
 import torch
 import torchmetrics
 import os
 import pathlib
-import matplotlib
 import matplotlib.pyplot as plt
-from scipy.stats import iqr
-import seaborn
-from itertools import combinations
-from SALib.sample import saltelli
-from scipy.special import binom
-from SALib.analyze import sobol
-import multiprocessing
-import tqdm
 import template_EP
-from scipy.stats import gaussian_kde
-import pandas as pd
-import seaborn as sns
-import skopt
 import time
 
 from Historia.shared.design_utils import get_minmax, lhd, read_labels
-from Historia.shared.plot_utils import plot_pairwise_waves, interp_col, get_col
 from gpytGPE.gpe import GPEmul
 from gpytGPE.utils.metrics import IndependentStandardError as ISE
 from Historia.history import hm
-from gpytGPE.utils.plotting import gsa_box, gsa_donut
 
 import anatomy
 import custom_plots
@@ -812,18 +796,21 @@ def mechanics_new_wave(num_wave=0, run_simulations=False, train_gpe=False, fill_
     # ================ Load training sets or run simulations =================#
     if run_simulations:
         if num_wave == 0:
-            mechanics.input(n_samples = n_samples/(0.8*0.8), waveno = num_wave, subfolder = subfolder)
+            mechanics.input_generation(n_samples=n_samples/(0.8*0.8), waveno=num_wave, subfolder=subfolder)
         else:
-            mechanics.preprocess_input(waveno = num_wave, subfolder = subfolder)
+            mechanics.preprocess_input(waveno=num_wave, subfolder=subfolder)
 
-        mechanics.build_meshes(waveno = num_wave, subfolder = subfolder)
-        mechanics.EP_setup(waveno = num_wave, subfolder = subfolder)
-        mechanics.EP_simulations(waveno = num_wave, subfolder = subfolder)
+        mechanics.build_meshes(waveno=num_wave, subfolder=subfolder)
+        mechanics.ep_setup(waveno=num_wave, subfolder=subfolder)
+        mechanics.ep_simulations(waveno=num_wave, subfolder=subfolder)
+        mechanics.mechanics_setup(waveno=num_wave, subfolder=subfolder)
+        #TODO Split script in two parts to wait until the mechanics are done. Maybe finish here, in the mechanics
+        # script, set the batch number as variable.
 
-        anatomy.write_output_casewise(waveno = num_wave, subfolder = subfolder)
-        anatomy.collect_output(waveno = num_wave, subfolder = subfolder)
+        anatomy.write_output_casewise(waveno=num_wave, subfolder=subfolder)
+        anatomy.collect_output(waveno=num_wave, subfolder=subfolder)
 
-    x = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave0", "X.dat"), dtype=float)
+    x = np.loadtxt(os.path.join(PROJECT_PATH, subfolder, "wave0", "X.dat"), dtype=float)
     x_train = x[:idx_train]
     i_minmax = get_minmax(x_train)
     # =================== Train or load GPE =========================#

@@ -13,6 +13,11 @@ import prepare_mesh
 import run_EP
 import UVC
 
+PROJECT_PATH = "/data/fitting"
+ANATOMY_CSV = "X_anatomy.csv"
+PERICARDIUM_FILE = "pericardium_penalty.dat"
+BIV_EPI_NAME = "biv.epi"
+SURF_EXTENSION = ".surf"
 SEED = 2
 np.random.seed(SEED)
 
@@ -30,8 +35,8 @@ def input_generation(n_samples=None, waveno=0, subfolder="mechanics"):
         Defaults to "mechanics".
     """
 
-    path_lab = os.path.join("/data", "fitting", subfolder)
-    path_match = os.path.join("/data", "fitting", "match")
+    path_lab = os.path.join(PROJECT_PATH, subfolder)
+    path_match = os.path.join(PROJECT_PATH, "match")
     path_gpes = os.path.join(path_lab, "wave" + str(waveno))
 
     pathlib.Path(path_gpes).mkdir(parents=True, exist_ok=True)
@@ -84,7 +89,7 @@ def input_generation(n_samples=None, waveno=0, subfolder="mechanics"):
     [f.write('%s\n' % ' '.join(map(str, [format(i, '.2f') for i in lhs_array]))) for lhs_array in x_mechanics]
     f.close()
 
-    with open(os.path.join(path_gpes, "X_anatomy.csv"), mode='w') as f:
+    with open(os.path.join(path_gpes, ANATOMY_CSV), mode='w') as f:
         f_writer = csv.writer(f, delimiter=',')
 
         f_writer.writerow(["Mode" + str(i) for i in range(1, 19)])
@@ -108,7 +113,7 @@ def preprocess_input(waveno=0, subfolder="mechanics"):
         subfolder (str, optional): Subfolder name of /data/fitting to work on.
         Defaults to "mechanics".
     """
-    path_gpes = os.path.join("/data", "fitting", subfolder, "wave" + str(waveno))
+    path_gpes = os.path.join(PROJECT_PATH, subfolder, "wave" + str(waveno))
 
     with open(os.path.join(path_gpes, "X.dat")) as f:
         anatomy_ep_mechanics_values = f.read().splitlines()
@@ -131,7 +136,7 @@ def preprocess_input(waveno=0, subfolder="mechanics"):
     f.writelines(' '.join(row) + '\n' for row in x_mechanics)
     f.close()
 
-    with open(os.path.join(path_gpes, "X_anatomy.csv"), mode='w') as f:
+    with open(os.path.join(path_gpes, ANATOMY_CSV), mode='w') as f:
         f_writer = csv.writer(f, delimiter=',')
 
         f_writer.writerow(["Mode" + str(i) for i in range(1, 19)])
@@ -158,12 +163,12 @@ def build_meshes(waveno=0, subfolder="mechanics", force_construction=False):
         had_to_run_new (bool): Boolean variable to know if a new mesh was
         created.
     """
-    path_lab = os.path.join("/data", "fitting", subfolder)
+    path_lab = os.path.join(PROJECT_PATH, subfolder)
     path_gpes = os.path.join(path_lab, "wave" + str(waveno))
     temp_outpath = os.path.join(path_lab, "temp_meshes")
     had_to_run_new = False
 
-    with open(os.path.join(path_gpes, "X_anatomy.csv")) as f:
+    with open(os.path.join(path_gpes, ANATOMY_CSV)) as f:
         anatomy_values = f.read().splitlines()
 
     pathlib.Path(temp_outpath).mkdir(parents=True, exist_ok=True)
@@ -210,10 +215,10 @@ def ep_setup(waveno=0, subfolder="mechanics"):
         Otherwise, is False.
     """
 
-    path_lab = os.path.join("/data", "fitting", subfolder)
+    path_lab = os.path.join(PROJECT_PATH, subfolder)
     path_gpes = os.path.join(path_lab, "wave" + str(waveno))
     had_to_run_new = False
-    with open(os.path.join(path_gpes, "X_anatomy.csv")) as f:
+    with open(os.path.join(path_gpes, ANATOMY_CSV)) as f:
         anatomy_values = f.read().splitlines()
 
     for i in tqdm.tqdm(range(len(anatomy_values)-1)):
@@ -257,7 +262,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
         Otherwise, is False.
     """
 
-    path_lab = os.path.join("/data", "fitting", subfolder)
+    path_lab = os.path.join(PROJECT_PATH, subfolder)
     path_gpes = os.path.join(path_lab, "wave" + str(waveno))
 
     had_to_run_new = False
@@ -268,7 +273,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
     with open(os.path.join(path_gpes, "X_EP.dat")) as f:
         param_values = f.read().splitlines()
 
-    with open(os.path.join(path_gpes, "X_anatomy.csv")) as f:
+    with open(os.path.join(path_gpes, ANATOMY_CSV)) as f:
         anatomy_values = f.read().splitlines()
 
     alpha_idx = int(np.where([x == "alpha" for x in param_names])[0])
@@ -316,7 +321,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
 
         fourch_name = "heart_" + anatomy_values[line_num+1].replace(", ", "")[:-24]
 
-        path_ep = os.path.join("/data", "fitting", fourch_name, "biv",
+        path_ep = os.path.join(PROJECT_PATH, fourch_name, "biv",
                                "EP_simulations")
 
         pathlib.Path(path_ep).mkdir(parents=True, exist_ok=True)
@@ -328,7 +333,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
                                             ".dat"
                                             )
 
-        if not os.path.isfile(os.path.join("/data", "fitting", fourch_name, "biv",
+        if not os.path.isfile(os.path.join(PROJECT_PATH, fourch_name, "biv",
                                            "fibres",
                                            "rb_-" + str('{0:.2f}'.format(alpha)) + "_" +
                                            str('{0:.2f}'.format(alpha)) + ".elem")):
@@ -361,20 +366,61 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
     return had_to_run_new
 
 
+def mechanics_setup(waveno=0, subfolder="mechanics"):
+    path_lab = os.path.join(PROJECT_PATH, subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
+
+    with open(os.path.join(path_gpes, ANATOMY_CSV)) as f:
+        anatomy_values = f.read().splitlines()
+
+    with open(os.path.join(path_lab, "EP_funct_labels.txt")) as f:
+        param_names = f.read().splitlines()
+
+    with open(os.path.join(path_gpes, "X_EP.dat")) as f:
+        param_values = f.read().splitlines()
+
+    for i in tqdm.tqdm(range(len(anatomy_values) - 1)):
+        mesh_name = "heart_" + anatomy_values[i + 1].replace(", ", "")[:-24]
+        mesh_path = os.path.join(path_lab, mesh_name)
+
+        path_ep = os.path.join(PROJECT_PATH, mesh_name, "biv",
+                               "EP_simulations")
+
+        alpha_idx = int(np.where([x == "alpha" for x in param_names])[0])
+        fec_height_idx = int(np.where([x == "fec_height" for x in param_names])[0])
+        cv_l_idx = int(np.where([x == "CV_l" for x in param_names])[0])
+        k_fec_idx = int(np.where([x == "k_fec" for x in param_names])[0])
+
+        alpha = round(float(param_values[i].split(' ')[alpha_idx]), 2)
+        cv_l = round(float(param_values[i].split(' ')[cv_l_idx]), 2)
+        k_fec = round(float(param_values[i].split(' ')[k_fec_idx]), 2)
+
+        fec_height = round(float(param_values[i].split(' ')[fec_height_idx]), 2)
+
+        ep_file_name = os.path.join(path_ep,
+                                    '{0:.2f}'.format(alpha) +
+                                    '{0:.2f}'.format(fec_height) +
+                                    '{0:.2f}'.format(cv_l) +
+                                    '{0:.2f}'.format(k_fec) +
+                                    ".dat"
+                                    )
+
+        if not os.path.isfile(os.path.join(mesh_path, PERICARDIUM_FILE)):
+            penalty_map(fourch_name=mesh_name)
+        if not os.path.isfile(os.path.join(mesh_path, BIV_EPI_NAME+SURF_EXTENSION)):
+            boundary_surfaces(fourch_name=mesh_name)
+
+        meshes_batch = str(int(i/50))
+        folder_simulations = os.path.join(path_gpes, "meshes_batch" + meshes_batch)
+        pathlib.Path(folder_simulations).mkdir(parents=True, exist_ok=True)
+
+        if not os.path.isfile(os.path.join(folder_simulations, "biv.epi.surf")):
+            prepare_folder_supercomputer(path2finalmesh=folder_simulations, mesh_name=mesh_name, at_name=ep_file_name)
+
+
 def penalty_map(fourch_name):
-    """The chambers closed are in independent scripts in prepare_mesh.
-    - Here we make the penalty map. One value for each element in the whole mesh
-    - Move the ATs.
-    - For each vein, we need a surf.
-    - For each endo, we make surf.
-    - Surf of epicardium (where to apply the PM).
-    - Binary mesh.
 
-    Args:
-        fourch_name ([type]): [description]
-    """
-
-    path2fourch = os.path.join("/data", "fitting", fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH, fourch_name)
     path2biv = os.path.join(path2fourch, "biv")
 
     if not os.path.isfile(os.path.join(path2biv, "peri_base.surf.vtx")):
@@ -382,7 +428,7 @@ def penalty_map(fourch_name):
     if not os.path.isfile(os.path.join(path2biv, "UVC_peri", "UVC", "COORDS_V_elem_scaled.dat")):
         UVC.create(fourch_name, "peri")
 
-    if not os.path.isfile(os.path.join(path2biv, "pericardium_penalty.dat")):
+    if not os.path.isfile(os.path.join(path2biv, PERICARDIUM_FILE)):
         # We take the maximum UVC_Z between the original UVC and the peri UVC
 
         uvc_z_mvtv_elem = np.genfromtxt(os.path.join(path2biv, "UVC_MVTV", "UVC", "COORDS_Z_elem.dat"), dtype=float)
@@ -397,20 +443,20 @@ def penalty_map(fourch_name):
 
         # All this is on the biv, we need to map it to the whole heart.
 
-        np.savetxt(os.path.join(path2biv, "pericardium_penalty.dat"),
+        np.savetxt(os.path.join(path2biv, PERICARDIUM_FILE),
                    penalty_biv, fmt="%.2f")
 
     os.system("meshtool insert data -msh=" + os.path.join(path2fourch, fourch_name) +
               " -submsh=" + os.path.join(path2biv, "biv") +
-              " -submsh_data=" + os.path.join(path2biv, "pericardium_penalty.dat") +
-              " -odat=" + os.path.join(path2fourch, "pericardium_penalty.dat") +
+              " -submsh_data=" + os.path.join(path2biv, PERICARDIUM_FILE) +
+              " -odat=" + os.path.join(path2fourch, PERICARDIUM_FILE) +
               " -mode=1"
               )
 
 
 def boundary_surfaces(fourch_name):
 
-    path2fourch = os.path.join("/data", "fitting", fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH, fourch_name)
 
     # Veins
     if not os.path.isfile(os.path.join(path2fourch, "IVC.neubc")):
@@ -456,7 +502,7 @@ def boundary_surfaces(fourch_name):
               " -op=1, 2-3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19, 20, 21, 22, 23, 24" +
               " -ifmt=carp_txt -ofmt=vtk_bin")
     os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch, "biv.epi_endo_noatria.surfmesh") +
-              " -submsh=" + os.path.join(path2fourch, "biv.epi") + " -ifmt=vtk_bin -ofmt=vtk_bin")
+              " -submsh=" + os.path.join(path2fourch, BIV_EPI_NAME) + " -ifmt=vtk_bin -ofmt=vtk_bin")
 
     epi_files = glob.glob(os.path.join(path2fourch, "biv.epi.part*"))
     size_files = [os.path.getsize(f) for f in epi_files]
@@ -465,7 +511,7 @@ def boundary_surfaces(fourch_name):
     name_epi = epi_files[idx_max]
 
     os.system("meshtool convert -ifmt=vtk_bin -ofmt=carp_txt -imsh=" + name_epi +
-              " -omsh=" + os.path.join(path2fourch, "biv.epi"))
+              " -omsh=" + os.path.join(path2fourch, BIV_EPI_NAME))
     for filename in epi_files:
         os.system("rm " + filename)
     epi_elem = files_manipulations.surf.read(os.path.join(path2fourch, "biv.epi.elem"), mesh_from=fourch_name)
@@ -475,7 +521,7 @@ def boundary_surfaces(fourch_name):
 
 def prepare_folder_supercomputer(path2finalmesh, mesh_name, at_name):
 
-    path2fourch = os.path.join("/data", "fitting", mesh_name)
+    path2fourch = os.path.join(PROJECT_PATH, mesh_name)
 
     pathlib.Path(path2finalmesh).mkdir(parents=True, exist_ok=True)
 
@@ -486,11 +532,11 @@ def prepare_folder_supercomputer(path2finalmesh, mesh_name, at_name):
     os.system("cp " + os.path.join(path2fourch, mesh_name, "biv", "ep_simulations", at_name + ".dat") +
               " " + os.path.join(path2finalmesh, at_name + ".dat"))
 
-    os.system("cp " + os.path.join(path2fourch, "pericardium_penalty.dat") +
-              " " + os.path.join(path2finalmesh, "pericardium_penalty.dat"))
+    os.system("cp " + os.path.join(path2fourch, PERICARDIUM_FILE) +
+              " " + os.path.join(path2finalmesh, PERICARDIUM_FILE))
     
     for surf_name in ["LAApp", "RIPV", "LIPV", "LSPV", "RSPV", "SVC", "IVC",
                       "lvendo_closed", "rvendo_closed", "laendo_closed",
-                      "raendo_closed", "biv.epi"]:
-        os.system("cp " + os.path.join(path2fourch, surf_name + ".surf") +
-                  " " + os.path.join(path2finalmesh, surf_name + ".surf"))
+                      "raendo_closed", BIV_EPI_NAME]:
+        os.system("cp " + os.path.join(path2fourch, surf_name + SURF_EXTENSION) +
+                  " " + os.path.join(path2finalmesh, surf_name + SURF_EXTENSION))
