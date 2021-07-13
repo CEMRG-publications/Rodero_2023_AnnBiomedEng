@@ -9,6 +9,7 @@ from sys import path
 import time
 import tqdm
 
+import fibres
 import files_manipulations
 import prepare_mesh
 import UVC
@@ -184,7 +185,47 @@ def build_meshes(waveno = 0, subfolder = "mechanics", force_construction = False
     
     os.system("rm -rf " + temp_outpath)
     return had_to_run_new
+def EP_setup(waveno = 0, subfolder = "mechanics"):
+    """Function to prepare the mesh ready for an EP simulation.
 
+    Args:
+        waveno (int, optional): Wave number, defines the folder. Defaults to 0.
+        subfolder (str, optional): Subfolder name of /data/fitting to work on. 
+        Defaults to ".".
+
+    Returns:
+        had_to_run_new (bool): If a new simulation was run, returns to True.
+        Otherwise is False.
+    """
+
+    path_lab = os.path.join("/data","fitting", subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
+    had_to_run_new = False
+    with open(os.path.join(path_gpes,"X_anatomy.csv")) as f:
+        anatomy_values = f.read().splitlines()
+    
+    for i in tqdm.tqdm(range(len(anatomy_values)-1)):
+        final_base_name = "heart_" + anatomy_values[i+1].replace(",","")[:-36]
+        mesh_path = os.path.join(path_lab, final_base_name)
+
+        if not os.path.isfile(os.path.join(mesh_path,"biv","biv_noRVendo.surf.vtx")):
+            prepare_mesh.extract_LDRB_biv(final_base_name)
+        if not os.path.isfile(os.path.join(mesh_path,"biv","MVTV_base.surf.vtx")):
+            prepare_mesh.extract_MVTV_base(final_base_name)
+        if (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_V_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_PHI_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_Z_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_RHO_elem_scaled.dat"))):
+            UVC.create(final_base_name, "MVTV")
+        if not os.path.isfile(os.path.join(mesh_path,"biv","EP","bottom_third.vtx")):
+            UVC.bottom_third(final_base_name, "MVTV")
+        if not os.path.isfile(os.path.join(mesh_path,"biv","biv_FEC.elem")):
+            UVC.create_FEC(final_base_name, "MVTV")
+        if not os.path.isfile(os.path.join(mesh_path,"biv","fibres","endoRV","phie.igb")):
+            had_to_run_new = True
+            fibres.run_laplacian(final_base_name)
+    
+    return had_to_run_new
 def penalty_map(fourch_name):
     """The chambers closed are in independent scripts in prepare_mesh. 
     - Here we make the penalty map. One value for each element in the whole mesh
