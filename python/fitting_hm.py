@@ -89,8 +89,10 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
     mean_list = []
     std_list = []
     emulator = []
-    R2score_vec = []
-    ISE_vec = []
+
+    if return_scores:
+        R2score_vec = []
+        ISE_vec = []
 
     # (7) Plotting mean predictions + uncertainty vs observations
     if saveplot:
@@ -122,23 +124,24 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
         mean_list.append(y_pred_mean)
         std_list.append(y_pred_std)
 
-        R2Score = torchmetrics.R2Score()(emul.tensorize(y_pred_mean), emul.tensorize(y_test))
+        if return_scores:
+            R2Score = torchmetrics.R2Score()(emul.tensorize(y_pred_mean), emul.tensorize(y_test))
 
-        iseScore = ISE(
-            emul.tensorize(y_test),
-            emul.tensorize(y_pred_mean),
-            emul.tensorize(y_pred_std),
-        )
+            iseScore = ISE(
+                emul.tensorize(y_test),
+                emul.tensorize(y_pred_mean),
+                emul.tensorize(y_pred_std),
+            )
 
-        R2string = f"{R2Score:.2f}"
+            R2string = f"{R2Score:.2f}"
 
-        print(f"\nStatistics on test set for GPE trained for the output " + output_name + ":")
-        print(f"  R2 = {R2Score:.2f}")
-        # print(f"  R2 = " + R2string)
-        print(f"  %ISE = {iseScore:.2f} %\n")
+            print(f"\nStatistics on test set for GPE trained for the output " + output_name + ":")
+            print(f"  R2 = {R2Score:.2f}")
+            # print(f"  R2 = " + R2string)
+            print(f"  %ISE = {iseScore:.2f} %\n")
 
-        R2score_vec.append(f"{R2Score:.2f}")
-        ISE_vec.append(f"{iseScore:.2f}")
+            R2score_vec.append(f"{R2Score:.2f}")
+            ISE_vec.append(f"{iseScore:.2f}")
 
         ci = 2 #~95% confidance interval
 
@@ -774,11 +777,11 @@ def mechanics_new_wave(num_wave=0, run_simulations=False, train_gpe=False, fill_
 
     # ========== Constant variables =============#
     
-    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH, "mechanics_anatomy_labels.txt"))
-    xlabels_ep = read_labels(os.path.join(PROJECT_PATH, "mechanics_EP_funct_labels_latex.txt"))
-    xlabels_mechanics = read_labels(os.path.join(PROJECT_PATH, "mechanics_funct_labels.txt"))
+    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH, subfolder, "mechanics_anatomy_labels.txt"))
+    xlabels_ep = read_labels(os.path.join(PROJECT_PATH, subfolder, "mechanics_EP_funct_labels_latex.txt"))
+    xlabels_mechanics = read_labels(os.path.join(PROJECT_PATH, subfolder, "mechanics_funct_labels.txt"))
 
-    xlabels = [lab for sublist in [xlabels_anatomy,xlabels_ep,xlabels_mechanics] for lab in sublist]
+    xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep, xlabels_mechanics] for lab in sublist]
     
     idx_train = round(0.8*0.8*n_samples)
 
@@ -804,7 +807,8 @@ def mechanics_new_wave(num_wave=0, run_simulations=False, train_gpe=False, fill_
         mechanics.ep_setup(waveno=num_wave, subfolder=subfolder)
         mechanics.ep_simulations(waveno=num_wave, subfolder=subfolder)
         mechanics.mechanics_setup(waveno=num_wave, subfolder=subfolder)
-        #TODO Split script in two parts to wait until the mechanics are done. Maybe finish here, in the mechanics
+        """
+        # TODO Split script in two parts to wait until the mechanics are done. Maybe finish here, in the mechanics
         # script, set the batch number as variable.
 
         anatomy.write_output_casewise(waveno=num_wave, subfolder=subfolder)
@@ -906,3 +910,4 @@ def mechanics_new_wave(num_wave=0, run_simulations=False, train_gpe=False, fill_
     wave.save(os.path.join(PROJECT_PATH, subfolder, "wave" + str(num_wave), "wave_" + str(num_wave)))
     np.savetxt(os.path.join(PROJECT_PATH, subfolder, "wave" + str(num_wave), "variance_quotient.dat"),
                wave.PV, fmt="%.2f")
+    """
