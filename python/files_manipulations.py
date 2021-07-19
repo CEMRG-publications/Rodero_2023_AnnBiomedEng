@@ -428,17 +428,19 @@ class lon:
             np.savetxt(datafile_id, np.transpose(data), fmt = "%s")
 
     @classmethod
-    def normalise(cls, self):
+    def normalise(cls, f1, f2, f3):
         """Class method to normalize the value of the fibres.
 
         Returns:
             The fibre structure with normalized fibres.
         """
-        matrix_lon = np.transpose(np.array([self.f1, self.f2, self.f3]))
-        row_norms = np.linalg.norm(matrix_lon, axis = 1)
+        matrix_lon = np.transpose(np.array([f1, f2, f3]))
+        row_norms = np.linalg.norm(matrix_lon, axis=1)
         new_matrix = matrix_lon / row_norms[:, np.newaxis]
 
-        return cls(new_matrix[:,0], new_matrix[:,1], new_matrix[:,2])
+        return cls(new_matrix[:, 0], new_matrix[:, 1], new_matrix[:, 2])
+
+
 def orthogonalise(f, s):
     """Function to rotate a vector to make it orthogonal to the other.
 

@@ -8,7 +8,9 @@ import pathlib
 
 import files_manipulations
 
-def vtk_mm2carp_um(fourch_name):
+PROJECT_PATH = "/data/fitting"
+
+def vtk_mm2carp_um(fourch_name, subfolder="."):
     """Function to convert to carp format and convert the pts to micrometre
     instead of millimetre.
 
@@ -17,7 +19,7 @@ def vtk_mm2carp_um(fourch_name):
     """
 
     mesh_name = fourch_name
-    mesh_dir = os.path.join("/data","fitting",mesh_name)
+    mesh_dir = os.path.join(PROJECT_PATH, subfolder, mesh_name)
 
     print("meshtool convert -imsh=" + os.path.join(mesh_dir,mesh_name) + \
                               " -omsh=" + os.path.join(mesh_dir,mesh_name) + \
@@ -41,7 +43,9 @@ def vtk_mm2carp_um(fourch_name):
                 os.path.join(mesh_dir,mesh_name + "_default.elem"))
     
     os.system("rm " + os.path.join(mesh_dir,mesh_name) + ".vtk")
-def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
+
+
+def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template", subfolder="."):
     """Function to extract the boundary conditions for the LDRB method from
     Bayer 2012, except for the base and the apex.
 
@@ -49,7 +53,7 @@ def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
         fourch_name (str): Name of the four chamber mesh.
     """
 
-    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH,subfolder,fourch_name)
     path2biv = os.path.join(path2fourch,"biv")
     path2nomapped = os.path.join(path2biv,"no_mapped")
 
@@ -264,51 +268,53 @@ def extract_LDRB_biv(fourch_name = "Full_Heart_Mesh_Template"):
     biv_epi_vtx.write(os.path.join(path2biv,"biv.epi.surf.vtx"))
     biv_noLVendo_vtx.write(os.path.join(path2biv,"biv_noLVendo.surf.vtx"))
     biv_noRVendo_vtx.write(os.path.join(path2biv,"biv_noRVendo.surf.vtx"))
-def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template"):
+
+
+def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template", subfolder="."):
     """Function to extract the base and the apex as boundary conditions for the
     LDRB method from Bayer 2012.
 
     Args:
         fourch_name (str): Name of the four chamber mesh.
     """
-    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH,subfolder,fourch_name)
     path2biv = path2fourch + "/biv"
 
-    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) + \
-                        " -surf=" + os.path.join(path2fourch,"MVTV_base") + \
-                        " -op=1,2:7,8" + \
-                        " -ifmt=carp_txt" + \
-                        " -ofmt=carp_txt")
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+              " -surf=" + os.path.join(path2fourch, "MVTV_base") +
+              " -op=1,2:7,8" +
+              " -ifmt=carp_txt" +
+              " -ofmt=carp_txt")
 
-    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) + \
-                        " -surf=" + os.path.join(path2fourch,"MV") + \
-                        " -op=7-1,3" + \
-                        " -ifmt=carp_txt" + \
-                        " -ofmt=carp_txt")
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+              " -surf=" + os.path.join(path2fourch, "MV") +
+              " -op=7-1,3" +
+              " -ifmt=carp_txt" +
+              " -ofmt=carp_txt")
 
+    mitral_valve = np.loadtxt(os.path.join(path2fourch,"MV.surfmesh.pts"), skiprows = 1)
 
-    MV = np.loadtxt(os.path.join(path2fourch,"MV.surfmesh.pts"), skiprows = 1)
+    num_pts = mitral_valve.shape[0]
 
-    num_pts =  MV.shape[0]
-
-    sum_x = np.sum(MV[:, 0])
-    sum_y = np.sum(MV[:, 1])
-    sum_z = np.sum(MV[:, 2])
+    sum_x = np.sum(mitral_valve[:, 0])
+    sum_y = np.sum(mitral_valve[:, 1])
+    sum_z = np.sum(mitral_valve[:, 2])
 
     centroid = np.array([sum_x/num_pts, sum_y/num_pts, sum_z/num_pts])
 
-    os.system("meshtool interpolate elem2node -omsh=" + os.path.join(path2biv,"biv.epi_endo") + \
-                    " -idat=" + os.path.join(path2biv,"biv.epi_endo_tags.dat") + \
-                    " -odat=" + os.path.join(path2biv,"biv.epi_endo_tags_pts.dat"))
+    os.system("meshtool interpolate elem2node -omsh=" + os.path.join(path2biv, "biv.epi_endo") +
+              " -idat=" + os.path.join(path2biv, "biv.epi_endo_tags.dat") +
+              " -odat=" + os.path.join(path2biv, "biv.epi_endo_tags_pts.dat")
+              )
 
-    biv_epi_endo_pts = files_manipulations.pts.read(os.path.join(path2biv,"biv.epi_endo.pts"))
-    biv_epi_endo_tags_pts = np.loadtxt(os.path.join(path2biv,"biv.epi_endo_tags_pts.dat"), skiprows = 1)
+    biv_epi_endo_pts = files_manipulations.pts.read(os.path.join(path2biv, "biv.epi_endo.pts"))
+    biv_epi_endo_tags_pts = np.loadtxt(os.path.join(path2biv, "biv.epi_endo_tags_pts.dat"), skiprows=1)
 
     dist_vec = np.zeros(len(biv_epi_endo_tags_pts))
 
     for i in range(len(biv_epi_endo_tags_pts)):
-        if(biv_epi_endo_tags_pts[i] == 1):
-            new_point = np.array([biv_epi_endo_pts.p1[i],biv_epi_endo_pts.p2[i],biv_epi_endo_pts.p3[i]])
+        if biv_epi_endo_tags_pts[i] == 1:
+            new_point = np.array([biv_epi_endo_pts.p1[i], biv_epi_endo_pts.p2[i], biv_epi_endo_pts.p3[i]])
             dist_vec[i] = np.linalg.norm(centroid - new_point)
 
     idx_apex_in_epi_vec = np.where(dist_vec == max(dist_vec))
@@ -325,57 +331,63 @@ def extract_MVTV_base(fourch_name = "Full_Heart_Mesh_Template"):
     for vtx_file in ["MVTV_base.surf.vtx"]:
         vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
         vtx.write(os.path.join(path2biv,vtx_file))
-def extract_peri_base(fourch_name):
+
+
+def extract_peri_base(fourch_name, subfolder="."):
     
-    path2fourch = os.path.join("/data","fitting",fourch_name)
-    path2biv = path2fourch + "/biv"
+    path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
+    path2biv = os.path.join(path2fourch, "biv")
 
     # The base is intersection of the ventricles with the aorta, MV, TV, PV and AV
 
-    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) + \
-                        " -surf=" + os.path.join(path2fourch,"peri_base") + \
-                        " -op=1,2:5,7,8,9,10" + \
-                        " -ifmt=carp_txt" + \
-                        " -ofmt=carp_txt")
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+              " -surf=" + os.path.join(path2fourch, "peri_base") +
+              " -op=1,2:5,7,8,9,10" +
+              " -ifmt=carp_txt" +
+              " -ofmt=carp_txt")
 
-    os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") + \
-                           " -files=" + os.path.join(path2fourch,"peri_base.surf") + "," + \
-                                        os.path.join(path2fourch,"peri_base.surf.vtx") + "," + \
-                            " -outdir=" + path2biv)
+    os.system("meshtool map -submsh=" + os.path.join(path2biv, "biv") +
+              " -files=" + os.path.join(path2fourch, "peri_base.surf") + "," +
+              os.path.join(path2fourch, "peri_base.surf.vtx") + "," +
+              " -outdir=" + path2biv)
 
     for vtx_file in ["peri_base.surf.vtx"]:
         vtx = files_manipulations.vtx.read(os.path.join(path2biv, vtx_file), "biv")
-        vtx.write(os.path.join(path2biv,vtx_file))
-def close_LV_endo(fourch_name):
+        vtx.write(os.path.join(path2biv, vtx_file))
+
+
+def close_LV_endo(fourch_name, subfolder="."):
     """Function to generate the closed surface of the LV endocardium.
 
     Args:
         fourch_name (str): Name of the four chamber mesh file.
     """
 
-    path2fourch = os.path.join("/data","fitting",fourch_name)
-    path2biv = os.path.join(path2fourch,"biv")
+    path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
+    path2biv = os.path.join(path2fourch, "biv")
 
-    os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") +\
-              " -files=" + os.path.join(path2biv,"biv.lvendo.surf") +\
+    os.system("meshtool map -submsh=" + os.path.join(path2biv, "biv") +
+              " -files=" + os.path.join(path2biv, "biv.lvendo.surf") +
               " -outdir=" + path2fourch + " -mode=s2m")
 
-    os.rename(os.path.join(path2fourch,"biv.lvendo.surf"),
-              os.path.join(path2fourch,"lvendo_open.elem"))
+    os.rename(os.path.join(path2fourch, "biv.lvendo.surf"),
+              os.path.join(path2fourch, "lvendo_open.elem"))
 
     shutil.copy(os.path.join(path2biv, "biv.pts"),
-                os.path.join(path2fourch,"lvendo_open.pts"))
+                os.path.join(path2fourch, "lvendo_open.pts"))
     
-    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,"lvendo_open") +\
-              " -msh2=" + os.path.join(path2fourch,"MV.surfmesh") +\
-              " -ifmt=carp_txt -ofmt=carp_txt " +\
-              " -outmsh=" + os.path.join(path2fourch,"lvendo_floating_mv"))
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch, "lvendo_open") +
+              " -msh2=" + os.path.join(path2fourch, "MV.surfmesh") +
+              " -ifmt=carp_txt -ofmt=carp_txt " +
+              " -outmsh=" + os.path.join(path2fourch, "lvendo_floating_mv")
+              )
 
-    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"lvendo_floating_mv") + \
-                            " -submsh=" + os.path.join(path2fourch,"lvendo_mv_split") + \
-                            " -ifmt=carp_txt" + \
-                            " -ofmt=carp_txt")
-    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"lvendo_mv_split*part*elem"))
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch, "lvendo_floating_mv") +
+              " -submsh=" + os.path.join(path2fourch, "lvendo_mv_split") +
+              " -ifmt=carp_txt" +
+              " -ofmt=carp_txt")
+
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch, "lvendo_mv_split*part*elem"))
 
     size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
 
@@ -388,21 +400,22 @@ def close_LV_endo(fourch_name):
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "mv_la.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "mv_la.pts"))
 
-    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
-              " -surf=" + os.path.join(path2fourch,"AV") +\
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+              " -surf=" + os.path.join(path2fourch, "AV") +
               " -op=9-1,5 -ifmt=carp_txt -ofmt=carp_txt")
 
-    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch,"lvendo_mv") +\
-              " -msh2=" + os.path.join(path2fourch,"AV.surfmesh") +\
-              " -ifmt=carp_txt -ofmt=carp_txt " +\
-              " -outmsh=" + os.path.join(path2fourch,"lvendo_floating_av"))
+    os.system("meshtool merge meshes -msh1=" + os.path.join(path2fourch, "lvendo_mv") +
+              " -msh2=" + os.path.join(path2fourch, "AV.surfmesh") +
+              " -ifmt=carp_txt -ofmt=carp_txt " +
+              " -outmsh=" + os.path.join(path2fourch, "lvendo_floating_av")
+              )
 
-    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch,"lvendo_floating_av") + \
-                            " -submsh=" + os.path.join(path2fourch,"lvendo_av_split") + \
-                            " -ifmt=carp_txt" + \
-                            " -ofmt=carp_txt")
+    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch, "lvendo_floating_av") +
+              " -submsh=" + os.path.join(path2fourch, "lvendo_av_split") +
+              " -ifmt=carp_txt" +
+              " -ofmt=carp_txt")
 
-    chamber_or_valve_files = glob.glob(os.path.join(path2fourch,"lvendo_av_split*part*elem"))
+    chamber_or_valve_files = glob.glob(os.path.join(path2fourch, "lvendo_av_split*part*elem"))
 
     size_files = [os.path.getsize(f) for f in chamber_or_valve_files]
 
@@ -414,14 +427,16 @@ def close_LV_endo(fourch_name):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "av_ao.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "av_ao.pts"))
-def close_RV_endo(fourch_name):
+
+
+def close_RV_endo(fourch_name, subfolder="."):
     """Function to generate the closed surface of the RV endocardium.
 
     Args:
         fourch_name (str): Name of the four chamber mesh file.
     """
 
-    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
     path2biv = os.path.join(path2fourch,"biv")
 
     os.system("meshtool map -submsh=" + os.path.join(path2biv,"biv") +\
@@ -486,7 +501,9 @@ def close_RV_endo(fourch_name):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "pv_pa.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "pv_pa.pts"))
-def close_LA_endo(fourch_name):
+
+
+def close_LA_endo(fourch_name, subfolder="."):
     """Function to generate the closed surface of the LA endocardium.
 
     Args:
@@ -495,7 +512,7 @@ def close_LA_endo(fourch_name):
     ## ATRIA: Extract the surfaces with the veins and the valve. The biggest
     # file will be the epi with the veins. The second will be the endo closed and
     # the third will be the valve in the ventricle.
-    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH,subfolder,fourch_name)
 
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
               " -surf=" + os.path.join(path2fourch,"la_epi_endo_floating_mv") +\
@@ -522,14 +539,16 @@ def close_LA_endo(fourch_name):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "mv_lv.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "mv_lv.pts"))
-def close_RA_endo(fourch_name):
+
+
+def close_RA_endo(fourch_name, subfolder="."):
     """Function to generate the closed surface of the RA endocardium.
 
     Args:
         fourch_name (str): Name of the four chamber mesh file.
     """
 
-    path2fourch = os.path.join("/data","fitting",fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
 
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch,fourch_name) +\
               " -surf=" + os.path.join(path2fourch,"ra_epi_endo_floating_tv") +\

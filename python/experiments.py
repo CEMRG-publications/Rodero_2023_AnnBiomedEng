@@ -4,8 +4,10 @@ import sys
 
 import custom_plots
 import fitting_hm
-from Historia.shared.design_utils import read_labels
+from Historia.shared.design_utils import read_labels, get_minmax
+from Historia.history import hm
 
+PROJECT_PATH = "/data/fitting"
 
 def summary_plots(wave_to_plot, experiment_name,
                     output_labels_dir = os.path.join("/data","fitting", "EP_output_labels.txt"),
@@ -74,6 +76,75 @@ def summary_statistics(last_wave,experiment_name):
     print("Min. variance: " + str(round(mean_var_quotient_vec[min_var_wave],2)))
     print("Wave with min. var.: " + str(min_var_wave))
     print("NROY size: " + str(round(NROY_abs[min_var_wave],2)))
+
+def print_NROY_boundaries_anatomy_EP(num_wave=2, n_simul_wave0=280, cutoff=2.5):
+    wave = hm.Wave()
+    wave.load(os.path.join(PROJECT_PATH, "anatomy", "wave" + str(num_wave - 1),
+                           "wave_" + str(num_wave - 1)))
+
+    active_features = ["LVV", "RVV", "LAV", "RAV", "LVOTdiam", "RVOTdiam", "LVmass",
+                       "LVWT", "LVEDD", "SeptumWT", "RVlongdiam", "RVbasaldiam",
+                       "TAT", "TATLVendo"]
+    emulator = []
+
+    for output_name in active_features:
+        _, _, emul = fitting_hm.run_GPE(waveno=num_wave, train=False,
+                                        active_feature=[output_name],
+                                        n_samples=-1,
+                                        training_set_memory=2,
+                                        subfolder="anatomy",
+                                        only_feasible=False)
+        emulator.append(emul)
+    # emulator now might be a list of list, we need to flatten it
+    em_shape = (np.array(emulator)).shape
+    if len(em_shape) > 1:
+        emulator_flat = [item for sublist in emulator for item in sublist]
+        emulator = emulator_flat
+
+    wave.emulator = emulator
+
+    idx_train = round(0.8 * 0.8 * n_simul_wave0)
+    x = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy", "wave0", "X.dat"),
+                   dtype=float)
+    x_train = x[:idx_train]
+    emul_i_train = get_minmax(x_train)
+
+    wave.Itrain = emul_i_train
+    wave.cutoff = cutoff
+    wave.maxno = 1
+
+    path_match = os.path.join(PROJECT_PATH, "match")
+
+    exp_mean = np.loadtxt(os.path.join(path_match, "exp_mean_anatomy_EP.txt"),
+                          dtype=float)
+    exp_std = np.loadtxt(os.path.join(path_match, "exp_std_anatomy_EP.txt"),
+                         dtype=float)
+    exp_var = np.power(exp_std, 2)
+
+    wave.mean = exp_mean
+    wave.var = exp_var
+
+    xlabels_ep = read_labels(os.path.join(PROJECT_PATH, "anatomy",
+                                          "EP_funct_labels.txt"))
+    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH, "anatomy",
+                                               "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
+
+    test_points = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy",
+                                          "wave" + str(num_wave), "X_test.dat"),
+                             dtype=float)
+    wave.find_regions(test_points)
+
+    nimp_rangion = wave.NIMP
+    ranges = get_minmax(nimp_rangion)
+
+    for input_number in range(len(xlabels)):
+        msg = "Range for " + xlabels[input_number] + ": [" +\
+              str(round(ranges[input_number][0], 2)) + ", " +\
+              str(round(ranges[input_number][1], 2)) + "]"
+        print(msg)
+
+
 
 def experiment_coveney(only_plot = True):
     """History matching pipeline similar to the one presented in the paper
@@ -590,4 +661,5 @@ def run_experiment(experiment_name):
             run_experiment(i)
     
 if __name__ == "__main__":
-    run_experiment(sys.argv[1])
+    # run_experiment(sys.argv[1])
+    print_NROY_boundaries_anatomy_EP()

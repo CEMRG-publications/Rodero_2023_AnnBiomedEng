@@ -6,7 +6,9 @@ import collections
 
 import files_manipulations
 
-def create(fourch_name, base):
+PROJECT_PATH="/data/fitting"
+
+def create(fourch_name, base, subfolder="."):
     """Function to create Universal Ventricular Coordinates
 
     Args:
@@ -14,7 +16,7 @@ def create(fourch_name, base):
         base (str): preffix of the surf of the base.
     """
 
-    path2biv = os.path.join("/data","fitting",fourch_name,"biv")
+    path2biv = os.path.join(PROJECT_PATH, subfolder, fourch_name,"biv")
     path2scripts = os.path.join("/home","crg17","Desktop",
                                 "KCL_projects","fitting")
     exe = os.path.join(path2scripts, "python", "model_arch_ek.py")
@@ -44,7 +46,7 @@ def create(fourch_name, base):
                                    coord_case+"_elem_scaled.dat"), 'w') as f:
             for item in scaled:
                 f.write("%s\n" % item)
-def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
+def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", subfolder="."):
     """Function to write the vertices belonging to the bottom third of the
     apico-basal coordinate of a given UVC.
 
@@ -55,7 +57,7 @@ def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
         the name of the base). Defaults to "MVTV".
     """
 
-    path2biv = os.path.join("/data","fitting",fourch_name,
+    path2biv = os.path.join(PROJECT_PATH,subfolder,fourch_name,
                             "biv")
     path2UVC = os.path.join(path2biv,"UVC_" + UVC_base, "UVC")
 
@@ -78,7 +80,7 @@ def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
     pathlib.Path(os.path.join(path2biv,"EP")).mkdir(parents=True, exist_ok=True)
 
     bottom_third_vtx.write(os.path.join(path2biv,"EP","bottom_third.vtx"))
-def create_fec(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
+def create_fec(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", subfolder="."):
     """Function to create the labels for the fec layer. It consists on different
     labels in the ventricular endocardium from 0.35 to 1 of the apico-basal
     coordinate.
@@ -89,7 +91,7 @@ def create_fec(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV"):
         UVC_base (str, optional): Suffix of the base of the UVC (should be also
         the name of the base). Defaults to "MVTV".
     """
-    path2biv = os.path.join("/data","fitting",fourch_name,"biv")
+    path2biv = os.path.join(PROJECT_PATH,subfolder,fourch_name,"biv")
     path2UVC = os.path.join(path2biv,"UVC_" + UVC_base, "UVC")
 
     UVC_Z = np.genfromtxt(os.path.join(path2UVC,"COORDS_Z_elem.dat"), dtype = float)

@@ -151,12 +151,11 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
         l = np.argsort(y_pred_mean)  # for the sake of a better visualisation
         # l = np.argsort(-y_test)
         # l = np.array(range(len(y_pred_mean)))
-        inf_bound.append((y_pred_mean - ci * y_pred_std).min())
-        sup_bound.append((y_pred_mean + ci * y_pred_std).max())
-
-
-
         if saveplot:
+
+            inf_bound.append((y_pred_mean - ci * y_pred_std).min())
+            sup_bound.append((y_pred_mean + ci * y_pred_std).max())
+
             axes[i].scatter(
                 np.arange(1, len(l) + 1),
                 y_test[l],
@@ -190,15 +189,14 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
             )
             axes[i].legend(loc="upper left")
 
-    if saveplot:
-        axes[0].set_ylim([np.min(inf_bound), np.max(sup_bound)])
-        axes[1].set_ylim([np.min(inf_bound), np.max(sup_bound)])
+            axes[0].set_ylim([np.min(inf_bound), np.max(sup_bound)])
+            axes[1].set_ylim([np.min(inf_bound), np.max(sup_bound)])
 
 
-        fig.tight_layout()
-        plt.savefig(
-            os.path.join(path_figures, figure_name + ".png"), bbox_inches="tight", dpi=300
-        )
+            fig.tight_layout()
+            plt.savefig(
+                os.path.join(path_figures, figure_name + ".png"), bbox_inches="tight", dpi=300
+            )
 
     if return_scores:
         return R2score_vec, ISE_vec
@@ -785,16 +783,7 @@ def mechanics_new_wave(num_wave=0, run_simulations=False, train_gpe=False, fill_
     
     idx_train = round(0.8*0.8*n_samples)
 
-    active_features = ["LVV", "RVV", "LAV", "RAV", "LVOTdiam", "RVOTdiam", "LVmass",
-                       "LVWT", "LVEDD", "SeptumWT", "RVlongdiam", "RVbasaldiam",
-                       "TAT", "TATLVendo", "xxxx", "xxxxx", "xxxx"]
-    emulator = []
-
-    n_tests = int(1e5)
     path_match = os.path.join(PROJECT_PATH, "match")
-    exp_mean = np.loadtxt(os.path.join(path_match, "exp_mean_anatomy_EP_mechanics.txt"), dtype=float)
-    exp_std = np.loadtxt(os.path.join(path_match, "exp_std_anatomy_EP_mechanics.txt"), dtype=float)
-    exp_var = np.power(exp_std, 2)
 
     # ================ Load training sets or run simulations =================#
     if run_simulations:
