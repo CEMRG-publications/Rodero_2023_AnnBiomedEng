@@ -81,7 +81,7 @@ def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", su
 
     bottom_third_vtx.write(os.path.join(path2biv,"EP","bottom_third.vtx"))
 
-
+    
 def create_fec(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", subfolder="."):
     """Function to create the labels for the fec layer. It consists on different
     labels in the ventricular endocardium from 0.35 to 1 of the apico-basal
