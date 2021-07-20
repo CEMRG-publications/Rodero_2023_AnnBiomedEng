@@ -13,7 +13,7 @@ from carputils import model
 
 import itertools
 
-# --- command line options ----------------------------------------------------
+
 def parser_commands():
 
     parser = tools.standard_parser()
@@ -23,11 +23,19 @@ def parser_commands():
     parser.add_argument('--sim_name',
                         type=str,
                         default='test',
-                        help='Name of the simulation. Recommendation is wave_batch_typeofsimulation.')
+                        help='Name of the simulation. Recommendation is wave_batch_type_of_simulation.')
+    parser.add_argument('--mesh_path',
+                        type=str,
+                        default='',
+                        help='Path to the mesh.')
     parser.add_argument('--mesh_name',
                         type=str,
                         default='',
                         help='Name of the mesh as concatenation of all the modes.')
+    parser.add_argument('--AT_path',
+                        type=str,
+                        default='',
+                        help='Path to the activation time file.')
     parser.add_argument('--AT_name',
                         type=str,
                         default='',
@@ -91,47 +99,30 @@ def job_id(args):
 
 def run(args, job):
 
-    mesh_dir = ''  #TODO
-
     cmd = tools.carp_cmd()
 
     cmd += ['-simID', job.ID,
             '-meshname', args.mesh_name]
 
-    # --- configuration variables ---------------------------------------------
     cmd += setup_time_variables(args)
 
-    # --- boundary settings ---------------------------------------------------
-    cmd += setup_bc(args, mesh_dir)
+    cmd += setup_output(args)
 
-    # --- cardiovascular system settings --------------------------------------
-    cmd += set_cv_sys(args, mesh_dir)
-
-    # --- mechanical settings -------------------------------------------------
-    # define materials for different regions
     cmd += setup_material(args)
 
-    # set solver properties
-    #TODO: Continue here
-    cmd += set_mechanic_options(args)
-
-    # --- electrical settings ------------------------------------------------
-    #if args.experiment == 'wk3':
-        #cmd += setup_electrical_parameters()     # setup resolution dependent electrical parameters
-    cmd += setup_stimuli(args)     # define stimuli
-    cmd += setup_active(args)     # active stress setting
-
-    # visualization
-    cmd += setup_visualization(args.visualize, args.postprocess)
+    cmd += setup_bc(args)
 
     if args.experiment == 'unloading':
         cmd += setup_unloading(args)
 
-    # Alpha method
-    if args.alpha_method:
-        cmd += setup_alpha_method()
+    cmd += setup_stimuli(args)  # define stimuli
 
-    # Run simulation
+    cmd += setup_active_stress(args)  # active stress setting
+
+    cmd += set_solver_options(args)
+
+    cmd += set_cv_sys(args)
+
     job.carp(cmd)
 
 # =============================================================================
@@ -140,23 +131,43 @@ def run(args, job):
 
 
 def full_list_of_parameters(args):
-    auxiliary_parameters = {'num_mechanic_bs': 3,  # Number of mechanical boundary springs. Veins
+    auxiliary_parameters = {'atria_tags': [3, 4],
+                            'num_mechanic_bs': 3,  # Number of mechanical boundary springs. Veins
                             'num_mechanic_ed': 1,  # Number of mechanical data sets. Pericardium, if contraction.
                             'num_mechanic_nbc': 5,  # Number of mechanical Neumann boundary conditions.
                                                     # Veins + cavities
-                            'numSurfVols': 2,  # Number of surface enclosed volumes to keep track of. Ventricles. #TODO not generate the atrial surfaces
-    }
-    unloading_parameters = {}
-    guccione_parameters = {'bf_guccione': 8., #TODO: review these numbers
+                            'numSurfVols': 2,  # Number of surface enclosed volumes to keep track of. Ventricles.
+                            'passive_tags': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+                            'ventricular_tags': [1, 2, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                            }
+    unloading_parameters = {'loadStepping': 1.,  # Apply load in steps to avoid instabilities: (0) off, (1) auto,
+                            # (<0) manual choice
+                            'timedt': 10.,  # Time between temporal output (ms)
+                            'unload_conv': 0,  # 0 - volume-based, 1 - point-based.
+                            'unload_err': 1,  # Relative error. 0 for absolute error.
+                            'unload_maxit': 10,
+                            'unload_stagtol': 10.,
+                            'unload_tol': 1e-3
+                            }
+    guccione_parameters = {'bf_guccione': 8.,
                            'b_fs_guccione': 4.,
                            'b_t_guccione': 3.,
                            }
-    neohookean_parameters = {'scaling_aorta': 26.66, #TODO: review these numbers
+    neohookean_parameters = {'scaling_aorta': 26.66,
                              'scaling_extra_tissue': 1000.,
                              'scaling_PA': 3.7,
                              }
-    tanh_parameters = {}
-    windkessel_parameters = {'aortic_valve_Rfwd': 0., # Forward aortic resistance. 0 to avoid stenosis.
+    tanh_parameters = {'lambda_0': 0.7,  # Sarcomere length ratio (a_7)
+                       'ld': 6.,  # Degree of length dependence (a_6)
+                       'ldOn': 1,  # Turn on/off length-dependence
+                       'ld_up': 0.,  # Length dependence of upstroke time (a_4)
+                       'tau_c0': 50.,  # Time constant contraction rate (t_r)
+                       'tau_r': 50.,  # Time constant relaxation rate (t_d)
+                       't_emd': 20.,  # Electromechanical delay, ms. Rodero 2021
+                       'veldep': 0,  # Velocity dependence
+                       'VmThresh': -60.,  # Threshold Vm for deriving LAT
+                       }
+    windkessel_parameters = {'aortic_valve_Rfwd': 0.,  # Forward aortic resistance. 0 to avoid stenosis.
                              'lv_wk3_C': 5.16,  # Windkessel capacitor. 10.1007/s10237-013-0523-y
                              'lv_wk3_R2': 0.63,  # Parallel Windkessel resistor. 10.1007/s10237-013-0523-y
                              'mitral_valve_Rbwd': 1000.,  # Pick backward flow resistance. High to avoid regurgitation.
@@ -167,17 +178,40 @@ def full_list_of_parameters(args):
                              'tricuspid_valve_Rbwd': 1000.,
                              'tricuspid_valve_Rfwd': 0.05,
                              }
-    numerics_parameters = {'loadStepping': 1.,  # Apply load in steps to avoid instabilities: (0) off, (1) auto,
-                                                # (<0) manual choice'timedt': 10.,  # Time between temporal output (ms)
-                           'mechDT': 1.,  # Time-step for mechanics (ms)
+    numerics_parameters = {'mechDT': 1.,  # Time-step for mechanics (ms)
+                           'krylov_maxit_mech': 1e3,
+                           'krylov_norm_mech': 0,
+                           'krylov_tol_mech': 1e-4,
+                           'mass_lumping': 1,
+                           'mech_activate_inertia': 1,  # Activate inertia term in mechanics simulations
+                           'mech_lambda_upd': 1,
+                           'mech_rho_inf': 0.,
+                           'mech_stiffness_damping': 0.1,
+                           'newton_adaptive_tol_mech': 2,
+                           'newton_line_search': 0,
+                           'newton_maxit_mech': 1,
+                           'newton_tol_mech': 1e-3,
+                           'newton_tol_cvsys': 1e-3,
+                           'newton_atol_mech': 1e-3,
+                           'pstrat': 2,  # KDtree-based partitioning strategy
+                           'pstrat_i': 2,  # KDtree-based partitioning strategy for intracellular
                            'spacedt': 10.,  # Time between spatial output (ms)
                            'tend': 1000.,  # Length of simulation (ms)
                            }
 
+    output_parameters = {'gridout_i': 0,  # Set bits: 0=none. Prevents the output of large files.
+                         'gzip_data': 1,  # Turn on/off gzipping of grid data output
+                         'mech_output': 1,  # Mech output: 1 = igb vector output (set gzip_data for zipped output)
+                         'strain_value': 0,  # No strain value
+                         'stress_value': 0,  # Compute no stress
+                         'vtk_output_mode': 0,  # No output vtk
+
+                         }
+
     all_parameters = dict(itertools.chain(auxiliary_parameters.items(), unloading_parameters.items(),
                                           guccione_parameters.items(), neohookean_parameters.items(),
                                           tanh_parameters.items(), windkessel_parameters.items(),
-                                          numerics_parameters.items()))
+                                          numerics_parameters.items(), output_parameters.items()))
 
     # Keep these parameters unless introduced by user
     for parameter in all_parameters:
@@ -188,19 +222,67 @@ def full_list_of_parameters(args):
 
 
 def setup_time_variables(args):
+    """
+    Assignment of time-dependent parameters.
+    """
 
-    time_opts = []
-
-    time_opts += ['-timedt', args.timedt,
-                  '-mechDT', args.mechDT,
-                  '-spacedt', args.spacedt,
-                  '-tend', args.tend,
-                  '-loadStepping', args.loadStepping]
+    time_opts = ['-timedt', args.timedt,
+                 '-mechDT', args.mechDT,
+                 '-spacedt', args.spacedt,
+                 '-tend', args.tend,
+                 '-loadStepping', args.loadStepping]
 
     return time_opts
 
 
-def setup_bc(args, mesh_dir):
+def setup_output(args):
+    """
+    Assignment of output-related parameters.
+    """
+
+    vis_opts = ['-gridout_i', args.gridout_i,
+                '-mech_output', args.mech_output,
+                '-vtk_output_mode', args.vtk_output_mode,
+                '-strain_value', args.strain_value,
+                '-stress_value', args.stress_value,
+                '-gzip_data', args.gzip_data
+                ]
+
+    return vis_opts
+
+
+def setup_material(args):
+    """
+    Assignment of parameters related to the material laws.
+    """
+
+    mech_opts = []
+
+    # set bulk modulus kappa depending on finite element
+    kappa = 1000 if args.mech_element == 'P1-P0' else 1e100
+
+    ventricles = model.mechanics.GuccioneMaterial(args.ventricular_tags, 'Ventricles', kappa=kappa,
+                                                  a=args.scaling_Guccione, b_f=args.bf_guccione,
+                                                  b_fs=args.b_fs_guccione, b_t=args.b_t_guccione)
+    atria = model.mechanics.NeoHookeanMaterial([3, 4], 'Atria', kappa=kappa, c=args.scaling_neohookean)
+    valves = model.mechanics.NeoHookeanMaterial([7, 8, 9, 10], 'Valve planes', kappa=kappa, c=args.scaling_extra_tissue)
+    inlets = model.mechanics.NeoHookeanMaterial([11, 12, 13, 14, 15, 16, 17], 'Inlet planes', kappa=kappa, c=1000.0)
+    aorta = model.mechanics.NeoHookeanMaterial([5], 'Aorta', kappa=kappa, c=args.scaling_aorta)
+    pa = model.mechanics.NeoHookeanMaterial([6], 'Pulmonary_Artery', kappa=kappa, c=args.scaling_PA)
+    veins = model.mechanics.NeoHookeanMaterial([18, 19, 20, 21, 22, 23, 24], 'BC Veins', kappa=kappa,
+                                               c=args.scaling_extra_tissue)
+
+    mech_opts += model.optionlist([ventricles, atria, valves, inlets, aorta, pa, veins])
+
+    mech_opts += ['-mech_vol_split_aniso', 1]
+
+    return mech_opts
+
+
+def setup_bc(args):
+    """
+    Assignment of the parameters related to the boundary and initial conditions.
+    """
 
     if args.type_of_experiment == 'contraction':
         args.num_mechanic_nbc += 1
@@ -212,31 +294,31 @@ def setup_bc(args, mesh_dir):
            '-mechanic_bs[1].value', args.spring_BC,  # RSPV
            '-mechanic_bs[2].value', args.spring_BC,  # SVC
            '-mechanic_nbc[0].name', 'LSPV',
-           '-mechanic_nbc[0].surf_file', os.path.join(mesh_dir, 'LSPV'),  #TODO: Remove the creation of the other BCs.
+           '-mechanic_nbc[0].surf_file', os.path.join(args.mesh_path, 'LSPV'),
            '-mechanic_nbc[0].spring_idx', 0,
            '-mechanic_nbc[1].name', 'RSPV',
-           '-mechanic_nbc[1].surf_file', os.path.join(mesh_dir, 'RSPV'),
+           '-mechanic_nbc[1].surf_file', os.path.join(args.mesh_path, 'RSPV'),
            '-mechanic_nbc[1].spring_idx', 1,
            '-mechanic_nbc[2].name', 'SVC',
-           '-mechanic_nbc[2].surf_file', os.path.join(mesh_dir, 'SVC'),
+           '-mechanic_nbc[2].surf_file', os.path.join(args.mesh_path, 'SVC'),
            '-mechanic_nbc[2].spring_idx', 2,
            '-mechanic_nbc[3].name', 'lvendo_closed',
-           '-mechanic_nbc[3].surf_file', os.path.join(mesh_dir, 'lvendo_closed'),
+           '-mechanic_nbc[3].surf_file', os.path.join(args.mesh_path, 'lvendo_closed'),
            '-mechanic_nbc[3].pressure', str(float(args.LV_EDP)*0.133322),  # kPa
            '-mechanic_nbc[4].name', 'rvendo_closed',
-           '-mechanic_nbc[4].surf_file', os.path.join(mesh_dir, 'rvendo_closed'),
+           '-mechanic_nbc[4].surf_file', os.path.join(args.mesh_path, 'rvendo_closed'),
            '-mechanic_nbc[4].pressure', str(float(args.RV_EDP)*0.133322)  # kPa
            ]
 
     if args.type_of_simulation == 'contraction':
-        pericardium_file = os.path.join(mesh_dir, 'pericardium_penalty')
+        pericardium_file = os.path.join(args.mesh_path, 'pericardium_penalty')
         nbc += ['-num_mechanic_ed', args.num_mechanic_ed,
                 '-mechanic_ed[0].ncomp', 1,
                 '-mechanic_ed[0].file', pericardium_file,
                 '-mechanic_bs[3].edidx', 0,
                 '-mechanic_bs[3].value', args.spring_BC,
                 '-mechanic_nbc[5].name', 'Pericardium',
-                '-mechanic_nbc[5].surf_file', os.path.join(mesh_dir, 'biv.epi'),
+                '-mechanic_nbc[5].surf_file', os.path.join(args.mesh_path, 'biv.epi'),
                 '-mechanic_nbc[5].spring_idx', 3,
                 '-mechanic_nbc[5].nspring_idx', 0,
                 '-mechanic_nbc[5].nspring_config', 1]
@@ -244,15 +326,145 @@ def setup_bc(args, mesh_dir):
     return nbc
 
 
-def set_cv_sys(args,mesh_dir):
+def setup_unloading(args):
+    """
+    Assignment of parameters relevant only for the unloading step.
+    """
+    unload_opts = ['-experiment',   5,
+                   '-loadStepping', args.loadStepping,
+                   '-unload_conv',  args.unload_conv,
+                   '-unload_tol',   args.unload_tol,
+                   '-unload_err',   args.unload_err,
+                   '-unload_maxit', args.unload_maxit,
+                   '-unload_stagtol', args.unload_stagtol]
+    return unload_opts
+
+
+def setup_stimuli(args):
+    """
+    Assignment of parameters related to the activation time file.
+    """
+
+    act_seq_file = os.path.join(args.AT_path, args.AT_name + '.dat')
+    # general stimulus options
+    stm_opts = ['-num_stim', 1,
+                '-stimulus[0].stimtype', 8,  # Prescribed takeoff
+                '-stimulus[0].data_file', act_seq_file,
+                '-diffusionOn', 0,  # No depolarization
+                '-mech_deform_elec', 0  # Mechanics doesn't affect electric grid
+                ]
+
+    return stm_opts
+
+
+def setup_active_stress(args):
+    """
+    Assignment of parameters related to the active stress model.
+    """
+
+    if args.type_of_simulation == 'unloading':  # All passive
+        opts = ['-num_imp_regions', 1,
+                '-num_stim', 0,
+                '-imp_region[0].name', 'passive',
+                '-imp_region[0].im', 'PASSIVE',
+                '-imp_region[0].num_IDs', 39]
+
+        for ventricular_tag in range(40):
+            opts += ['-imp_region[0].ID['+str(ventricular_tag)+']', ventricular_tag+1]
+    else:
+        opts = ['-mech_use_actStress', 1,
+                '-num_imp_regions', 3,
+                '-imp_region[0].name', 'ventricles',
+                '-imp_region[0].im', 'TT2',
+                '-imp_region[0].num_IDs', len(args.ventricular_tags)]
+
+        for i in enumerate(args.ventricular_tags):
+            opts += ['-imp_region[0].ID[' + str(i) + ']',  args.ventricular_tags[i]]
+
+        opts += ['-imp_region[1].name', 'atria',
+                 '-imp_region[1].im', 'COURTEMANCHE',
+                 '-imp_region[1].num_IDs', len(args.atria_tags)]
+
+        for i in enumerate(args.atria_tags):
+            opts += ['-imp_region[1].ID[' + str(i) + ']',  args.atria_tags[i]]
+
+        opts += ['-imp_region[2].name', 'others',
+                 '-imp_region[2].im', 'PASSIVE',
+                 '-imp_region[2].num_IDs', len(args.passive_tags)]
+
+        for i in enumerate(args.passive_tags):
+            opts += ['-imp_region[2].ID[' + str(i) + ']',  args.passive_tags[i]]
+
+        tanh_pars = 't_emd={},' \
+                    'Tpeak={},' \
+                    'tau_c0={},' \
+                    'tau_r={},' \
+                    't_dur={},' \
+                    'lambda_0={},' \
+                    'ld={},' \
+                    'ld_up={},' \
+                    'ldOn={},' \
+                    'VmThresh={}'.format(args.t_emd,
+                                         args.peak_isometric_tension,
+                                         args.tau_c0,
+                                         args.tau_r,
+                                         args.transient_dur,
+                                         args.lambda_0,
+                                         args.ld,
+                                         args.ld_up,
+                                         args.ldOn,
+                                         args.VmThresh)
+
+        opts += ['-imp_region[0].plugins', 'TanhStress',
+                 '-imp_region[0].plug_param', tanh_pars,
+                 '-veldep', args.veldep]
+    return opts
+
+
+def set_solver_options(args):
+    """
+    Assignment of the parameters related to the mechanics solver.
+    """
+
+    # Track tissue volume
+    mech_opts = ['-volumeTracking', 1,  # Keep track of myocardial volume changes due to mechanical deformation
+                 '-numElemVols', 1,  # Number of mesh volumes to keep track of.
+                 '-elemVols[0].name', 'tissue',
+                 '-elemVols[0].grid', model.mechanics.grid_id(),
+                 '-pstrat', args.pstrat,
+                 '-pstrat_i', args.pstrat_i,
+                 '-krylov_tol_mech', args.krylov_tol_mech,
+                 '-krylov_norm_mech', args.krylov_norm_mech,
+                 '-krylov_maxit_mech', args.krylov_maxit_mech,
+                 '-newton_atol_mech', args.newton_atol_mech,
+                 '-newton_tol_mech', args.newton_tol_mech,
+                 '-newton_adaptive_tol_mech', args.newton_adaptive_tol_mech,
+                 '-newton_tol_cvsys', args.newton_tol_cvsys,
+                 '-newton_line_search', args.newton_line_search,
+                 '-newton_maxit_mech', args.newton_maxit_mech,
+                 '-mech_activate_inertia', args.mech_activate_inertia,
+                 '-mass_lumping', args.mass_lumping,
+                 '-mech_rho_inf', args.mech_rho_inf,
+                 '-mech_stiffness_damping', args.mech_stiffness_damping,
+                 '-mech_mass_damping', args.mech_stiffness_damping,
+                 '-mech_lambda_upd', args.mech_lambda_upd
+                 ]
+
+    return mech_opts
+
+
+def set_cv_sys(args):
+    """
+    Assignment of the parameters related to the circulation system model.
+    """
 
     mech_grid = model.mechanics.grid_id()
     vols = ['-numSurfVols', args.numSurfVols,
             '-surfVols[0].name', 'lvendo_closed',
-            '-surfVols[0].surf_file', os.path.join(mesh_dir, 'lvendo_closed'),
+            '-surfVols[0].surf_file', os.path.join(args.mesh_path, 'lvendo_closed'),
             '-surfVols[0].grid', mech_grid,
             '-surfVols[1].name', 'rvendo_closed',
-            '-surfVols[1].surf_file', os.path.join(mesh_dir, 'rvendo_closed'),
+            '-surfVols[1].surf_file', os.path.join(args.mesh_path, 'rvendo_closed'),
             '-surfVols[1].grid', mech_grid,
             ]
 
@@ -297,276 +509,6 @@ def set_cv_sys(args,mesh_dir):
     return vols
 
 
-def setup_material(args):
-
-    mech_opts = []
-
-    # set bulk modulus kappa depending on finite element
-    kappa = 1000 if args.mech_element == 'P1-P0' else 1e100
-
-    ventricular_tags = [] #TODO: add the dictionary of the FEC % to tags here
-
-    ventricles = model.mechanics.GuccioneMaterial(ventricular_tags, 'Ventricles', kappa=kappa, a=args.scaling_Guccione,
-                                                  b_f=args.bf_guccione, b_fs=args.b_fs_guccione, b_t=args.b_t_guccione)
-    atria = model.mechanics.NeoHookeanMaterial([3, 4], 'Atria', kappa=kappa, c=args.scaling_neohookean)
-    valves = model.mechanics.NeoHookeanMaterial([7, 8, 9, 10], 'Valve planes', kappa=kappa, c=args.scaling_extra_tissue)
-    inlets = model.mechanics.NeoHookeanMaterial([11, 12, 13, 14, 15, 16, 17], 'Inlet planes', kappa=kappa, c=1000.0)
-    aorta = model.mechanics.NeoHookeanMaterial([5], 'Aorta', kappa=kappa, c=args.scaling_aorta)
-    pa = model.mechanics.NeoHookeanMaterial([6], 'Pulmonary_Artery', kappa=kappa, c=args.scaling_PA)
-    veins = model.mechanics.NeoHookeanMaterial([18, 19, 20, 21, 22, 23, 24], 'BC Veins', kappa=kappa,
-                                               c=args.scaling_extra_tissue)
-
-    mech_opts += model.optionlist([ventricles, atria, valves, inlets, aorta, pa, veins])
-
-    mech_opts += ['-mech_vol_split_aniso', 1]
-
-    return mech_opts
-
-
-def setup_stimuli(args):
-    """ Set stimulus
-    """
-    act_seq_path = join(settings.config.MESH_DIR, 'h4ckcl/actSeq')
-    act_seq_file = join(act_seq_path, '{}_{}.dat'.format(args.case,args.act_seq_name))
-    # general stimulus options
-    stm_opts = ['-num_stim', 1,
-                '-stimulus[0].stimtype', 8,
-                '-stimulus[0].data_file', act_seq_file,
-		'-diffusionOn', 0]
-
-    return stm_opts
-
-# ----------------------------------------------------------------------------
-def setup_electrical_parameters():
-    """ setup electrical parameters"""
-
-    ep_opts = ['-bidomain', 0,
-               '-diffusionOn', 0]
-
-    return ep_opts
-
-# ----------------------------------------------------------------------------
-
-
-# -----------------------------------------------------------------------------
-def setup_solver_mech(args):
-    """ adapt solver parameters """
-
-    # for pt the switch is set automatically
-    sopts = ['-pstrat', 1,
-             '-pstrat_i', 1,
-             '-krylov_tol_mech', 1e-10,
-             '-krylov_norm_mech', 0,
-             '-krylov_maxit_mech', 5000]
-
-    sopts += ['-newton_atol_mech', 1e-6,
-              '-newton_tol_mech', 1e-8,
-              '-newton_adaptive_tol_mech', 2,
-              '-newton_tol_cvsys', 1e-6,
-              '-newton_line_search', 0,
-              '-newton_maxit_mech', 20]
-
-    solve_opts = ''
-
-    if solve_opts != '':
-        sopts += ['+F', solve_opts]
-
-    return sopts
-
-# -----------------------------------------------------------------------------
-def set_mechanic_options(args):
-    """ set mechanical options """
-
-    # Track tissue volume
-    mech_opts = ['-volumeTracking', 1,
-                 '-numElemVols', 1,
-                 '-elemVols[0].name', 'tissue',
-                 '-elemVols[0].grid', model.mechanics.grid_id()]
-
-    mech_opts += setup_solver_mech(args)
-
-    return mech_opts
-
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-def setup_active(args):
-    """ setup active stress setting """
-
-    if args.postprocess:
-        return []
-    if args.experiment == 'unloading': # All passive
-        opts = ['-num_imp_regions', 1,
-                '-num_stim', 0,
-                '-imp_region[0].name','passive',
-                '-imp_region[0].im','PASSIVE',
-                '-imp_region[0].num_IDs',26,
-                '-imp_region[0].ID[0]',1,
-                '-imp_region[0].ID[1]',2,
-                '-imp_region[0].ID[2]',3,
-                '-imp_region[0].ID[3]',4,
-                '-imp_region[0].ID[4]',5,
-                '-imp_region[0].ID[5]',6,
-                '-imp_region[0].ID[6]',7,
-                '-imp_region[0].ID[7]',8,
-                '-imp_region[0].ID[8]',9,
-                '-imp_region[0].ID[9]',10,
-                '-imp_region[0].ID[10]',11,
-                '-imp_region[0].ID[11]',12,
-                '-imp_region[0].ID[12]',13,
-                '-imp_region[0].ID[13]',14,
-                '-imp_region[0].ID[14]',15,
-                '-imp_region[0].ID[15]',16,
-                '-imp_region[0].ID[16]',17,
-                '-imp_region[0].ID[17]',18,
-                '-imp_region[0].ID[18]',19,
-                '-imp_region[0].ID[19]',20,
-                '-imp_region[0].ID[20]',21,
-                '-imp_region[0].ID[21]',22,
-                '-imp_region[0].ID[22]',23,
-                '-imp_region[0].ID[23]',24,
-                '-imp_region[0].ID[24]',25,
-                '-imp_region[0].ID[25]',26]
-    else:
-        opts = ['-num_imp_regions', 3,
-                '-imp_region[0].name', 'ventricles',
-                '-imp_region[0].im', 'TT2',
-                '-imp_region[0].num_IDs', 4,
-                '-imp_region[0].ID[0]', 1,
-                '-imp_region[0].ID[1]', 2,
-                '-imp_region[0].ID[2]', 25,
-                '-imp_region[0].ID[3]', 26,
-                '-imp_region[1].name', 'atria',
-                '-imp_region[1].im', 'COURTEMANCHE',
-                '-imp_region[1].num_IDs', 2,
-                '-imp_region[1].ID[0]', 3,
-                '-imp_region[1].ID[1]', 4,
-                '-imp_region[2].name', 'others',
-                '-imp_region[2].im', 'PASSIVE',
-                '-imp_region[2].num_IDs', 20,
-                '-imp_region[2].ID[0]', 5,
-                '-imp_region[2].ID[1]', 6,
-                '-imp_region[2].ID[2]', 7,
-                '-imp_region[2].ID[3]', 8,
-                '-imp_region[2].ID[4]', 9,
-                '-imp_region[2].ID[5]', 10,
-                '-imp_region[2].ID[6]', 11,
-                '-imp_region[2].ID[7]', 12,
-                '-imp_region[2].ID[8]', 13,
-                '-imp_region[2].ID[9]', 14,
-                '-imp_region[2].ID[10]', 15,
-                '-imp_region[2].ID[11]', 16,
-                '-imp_region[2].ID[12]', 17,
-                '-imp_region[2].ID[13]', 18,
-                '-imp_region[2].ID[14]', 19,
-                '-imp_region[2].ID[15]', 20,
-                '-imp_region[2].ID[16]', 21,
-                '-imp_region[2].ID[17]', 22,
-                '-imp_region[2].ID[18]', 23,
-                '-imp_region[2].ID[19]', 24]
-
-        tanh_pars = set_tanh_stress_pars(args.t_peak, args.Tanh_time_relax, args.Tanh_time_contract, args.t_dur)
-        opts += ['-imp_region[0].plugins', 'TanhStress',
-                 '-imp_region[0].plug_param', tanh_pars]
-    return opts
-
-# -----------------------------------------------------------------------------
-def setup_em_coupling():
-    """
-    Setup electromechanical coupling
-    """
-    # setup weak coupling
-    coupling = ['-mech_use_actStress', 1,
-                '-mech_lambda_upd', 1,
-                '-mech_deform_elec', 0]
-
-    # add velocity dependence fudge factor
-    veldep = 0  # fundge factor to attenuate force-velocity dependence in [0,1]
-    coupling += ['-veldep', veldep]
-
-    return coupling
-
-# =============================================================================
-#    Active stress models
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-def set_tanh_stress_pars(arg_t_peak, arg_tau_r, arg_tau_c0, arg_t_dur):
-    """
-    Tanh stress parameters
-    Active stress model as used in Andrew's thesis and
-    Niederer et al 2011 Cardiovascular Research 89
-    """
-    # current settings   #   default values (see TanhStress.c in LIMPET)
-    # ------------------ # ----------------------------------------------------
-    t_emd = 20           #Marina, but check Electro-mechanical delay, https://doi.org/10.1093/oxfordjournals.eurheartj.a060210
-    t_peak = arg_t_peak  # 100.0 kPa peak isometric tension
-    tau_c0 = arg_tau_c0      #  40.0 ms  time constant contraction (t_r)
-    tau_r = arg_tau_r        # 110.0 ms  time constant relaxation (t_d)
-    t_dur = arg_t_dur       # 550.0 ms  duration of transient (t_max)
-    lambda_0 = 0.7       #   0.7 -   sacomere length ratio (a_7)
-    ld_deg = 6.0         #   5.0 -   degree of length dependence (a_6)
-    ld_up = 500.0        # 500.0 ms  length dependence of upstroke time (a_4)
-    ld_on = 0            #   0   -   turn on/off length dependence
-    vm_thresh = -60.0    # -60.0 mV  threshold Vm for deriving LAT
-
-    tpl = 't_emd={},Tpeak={},tau_c0={},tau_r={},t_dur={},lambda_0={},' + \
-          'ld={},ld_up={},ldOn={},VmThresh={}'
-    return tpl.format(t_emd, t_peak, tau_c0, tau_r, t_dur, lambda_0, ld_deg,
-                      ld_up, ld_on, vm_thresh)
-
-# -----------------------------------------------------------------------------
-def setup_visualization(visualize, postprocess):
-    """
-    Visualization settings
-    """
-    # prevent output of large files
-    vis_opts = ['-gridout_i', 0]
-
-    if visualize:
-        if postprocess:
-            stress_val = 8  # principal stresses, elementwise
-            strain_val = 4+8  # principal strains, elementwise
-            vis_opts += ['-mech_output', 1+2,         # igb and vtk
-                         '-vtk_output_mode', 3,       # vtu with zlib compr.
-                         '-strain_value', strain_val,
-                         '-stress_value', stress_val]
-        else:
-            vis_opts += ['-mech_output', 1+2,
-                         '-vtk_output_mode', 3,       # vtu with zlib compr.
-                         '-gzip_data', 0,
-                         '-strain_value', 0,
-                         '-stress_value', 0]
-    else:
-        vis_opts += ['-mech_output', 1,
-                     '-strain_value', 0,
-                     '-stress_value', 0]
-    return vis_opts
-
-# -----------------------------------------------------------------------------
-
-
-# -----------------------------------------------------------------------------
-def setup_unloading(args):
-    unload_opts = ['-experiment',   5,
-                   '-loadStepping', args.loadStepping, 
-                   '-unload_conv',  0, # 0  Volume based, 1 point based
-                   '-unload_tol',   1e-3,
-                   '-unload_err',   1,
-                   '-unload_maxit', 10,
-                   '-unload_stagtol',10.0]
-    return unload_opts
-
-# -----------------------------------------------------------------------------
-def setup_alpha_method():
-    alpha_opts = ['-mech_activate_inertia', 1,
-                  '-mass_lumping', 1,
-                  '-mech_rho_inf', 0.0,
-                  '-mech_stiffness_damping', 0.1,
-                  '-mech_mass_damping', 0.1]
-    return alpha_opts
-
-# --- MAIN -------------------------------------------------------------------
 if __name__ == '__main__':
     # teardown decorator function and assign it to constant function RUN
     RUN = tools.carpexample(parser_commands, job_id)(run)
