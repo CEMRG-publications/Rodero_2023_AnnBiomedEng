@@ -402,7 +402,6 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
         mesh_name = "heart_" + ''.join(specific_modes)
 
         mesh_path = os.path.join(path_lab, mesh_name)
-        path_ep = os.path.join(mesh_path, "biv", "EP_simulations")
 
         alpha_idx = int(np.where([x == "alpha" for x in param_names])[0])
         fec_height_idx = int(np.where([x == "FEC_height" for x in param_names])[0])
@@ -415,13 +414,6 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
 
         fec_height = round(float(param_values[i].split(' ')[fec_height_idx]), 2)
 
-        ep_file_name = os.path.join(path_ep,
-                                    '{0:.2f}'.format(alpha) +
-                                    '{0:.2f}'.format(fec_height) +
-                                    '{0:.2f}'.format(cv_l) +
-                                    '{0:.2f}'.format(k_fec) +
-                                    ".dat"
-                                    )
         if not os.path.isfile(os.path.join(mesh_path, PERICARDIUM_FILE)):
             penalty_map(fourch_name=mesh_name, subfolder=subfolder)
         if not os.path.isfile(os.path.join(mesh_path, BIV_EPI_NAME+SURF_EXTENSION)):
@@ -431,16 +423,14 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
         at_name = '{0:.2f}'.format(alpha)+'{0:.2f}'.format(fec_height)+'{0:.2f}'.format(cv_l)+'{0:.2f}'.format(k_fec)
         full_simulation_name = mesh_name + at_name
 
-
-        folder_simulations = os.path.join(path_gpes, "meshes_batch" + meshes_batch, full_simulation_name)
+        folder_simulations = os.path.join(path_gpes, "batch" + meshes_batch, full_simulation_name)
         pathlib.Path(folder_simulations).mkdir(parents=True, exist_ok=True)
 
         _, _, files_in_final_mesh = next(os.walk(folder_simulations))
         file_count = len(files_in_final_mesh)
-        if file_count < 17:
+        if file_count < 11:
             prepare_folder_supercomputer(path2finalmesh=folder_simulations, subfolder=subfolder, mesh_name=mesh_name,
                                          at_name=at_name)
-
 
 def penalty_map(fourch_name, subfolder):
 
@@ -477,21 +467,28 @@ def penalty_map(fourch_name, subfolder):
               )
 
 
-def boundary_surfaces(fourch_name, subfolder):
+def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all_BCs=False):
 
     path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
 
     # Veins
-    if not os.path.isfile(os.path.join(path2fourch, "IVC.neubc")):
-        os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
-                  " -surf=" + os.path.join(path2fourch, "LAApp") + "," +
-                  os.path.join(path2fourch, "RIPV") + "," +
-                  os.path.join(path2fourch, "LIPV") + "," +
-                  os.path.join(path2fourch, "LSPV") + "," +
-                  os.path.join(path2fourch, "RSPV") + "," +
-                  os.path.join(path2fourch, "SVC") + "," +
-                  os.path.join(path2fourch, "IVC") +
-                  " -op=18\;19\;20\;21\;22\;23\;24 -ifmt=carp_txt -ofmt=carp_txt")
+    if not os.path.isfile(os.path.join(path2fourch, "SVC.neubc")):
+        if generate_all_BCs:
+            os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+                      " -surf=" + os.path.join(path2fourch, "LAApp") + "," +
+                      os.path.join(path2fourch, "RIPV") + "," +
+                      os.path.join(path2fourch, "LIPV") + "," +
+                      os.path.join(path2fourch, "LSPV") + "," +
+                      os.path.join(path2fourch, "RSPV") + "," +
+                      os.path.join(path2fourch, "SVC") + "," +
+                      os.path.join(path2fourch, "IVC") +
+                      " -op=18\;19\;20\;21\;22\;23\;24 -ifmt=carp_txt -ofmt=carp_txt")
+        else:
+            os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+                      " -surf=" + os.path.join(path2fourch, "LSPV") + "," +
+                      os.path.join(path2fourch, "RSPV") + "," +
+                      os.path.join(path2fourch, "SVC") + "," +
+                      " -op=21\;22\;23 -ifmt=carp_txt -ofmt=carp_txt")
 
     # Endocardia
 
@@ -509,20 +506,22 @@ def boundary_surfaces(fourch_name, subfolder):
                                                      mesh_from=fourch_name)
         chamber_surf = files_manipulations.surf.tosurf(chamber_elem)
         chamber_surf.write(os.path.join(path2fourch, "rvendo_closed.surf"))
-    if not os.path.isfile(os.path.join(path2fourch, "laendo_closed.surf")):
-        if not os.path.isfile(os.path.join(path2fourch, "laendo_closed.elem")):
-            prepare_mesh.close_LA_endo(fourch_name=fourch_name, subfolder=subfolder)
-        chamber_elem = files_manipulations.surf.read(os.path.join(path2fourch, "laendo_closed.elem"),
-                                                     mesh_from=fourch_name)
-        chamber_surf = files_manipulations.surf.tosurf(chamber_elem)
-        chamber_surf.write(os.path.join(path2fourch, "laendo_closed.surf"))
-    if not os.path.isfile(os.path.join(path2fourch, "raendo_closed.surf")):
-        if not os.path.isfile(os.path.join(path2fourch, "raendo_closed.elem")):
-            prepare_mesh.close_RA_endo(fourch_name=fourch_name, subfolder=subfolder)
-        chamber_elem = files_manipulations.surf.read(os.path.join(path2fourch, "raendo_closed.elem"),
-                                                     mesh_from=fourch_name)
-        chamber_surf = files_manipulations.surf.tosurf(chamber_elem)
-        chamber_surf.write(os.path.join(path2fourch, "raendo_closed.surf"))
+
+    if generate_atria:
+        if not os.path.isfile(os.path.join(path2fourch, "laendo_closed.surf")):
+            if not os.path.isfile(os.path.join(path2fourch, "laendo_closed.elem")):
+                prepare_mesh.close_LA_endo(fourch_name=fourch_name, subfolder=subfolder)
+            chamber_elem = files_manipulations.surf.read(os.path.join(path2fourch, "laendo_closed.elem"),
+                                                         mesh_from=fourch_name)
+            chamber_surf = files_manipulations.surf.tosurf(chamber_elem)
+            chamber_surf.write(os.path.join(path2fourch, "laendo_closed.surf"))
+        if not os.path.isfile(os.path.join(path2fourch, "raendo_closed.surf")):
+            if not os.path.isfile(os.path.join(path2fourch, "raendo_closed.elem")):
+                prepare_mesh.close_RA_endo(fourch_name=fourch_name, subfolder=subfolder)
+            chamber_elem = files_manipulations.surf.read(os.path.join(path2fourch, "raendo_closed.elem"),
+                                                         mesh_from=fourch_name)
+            chamber_surf = files_manipulations.surf.tosurf(chamber_elem)
+            chamber_surf.write(os.path.join(path2fourch, "raendo_closed.surf"))
     # Epicardium
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
               " -surf=" + os.path.join(path2fourch, "biv.epi_endo_noatria") +
@@ -546,7 +545,7 @@ def boundary_surfaces(fourch_name, subfolder):
     epi_surf.write(os.path.join(path2fourch, BIV_EPI_NAME+SURF_EXTENSION))
 
 
-def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name):
+def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, use_atria=False, use_all_BCs=False):
 
     path2fourch = os.path.join(PROJECT_PATH, subfolder, mesh_name)
 
@@ -561,9 +560,14 @@ def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name):
 
     os.system("cp " + os.path.join(path2fourch, PERICARDIUM_FILE) +
               " " + os.path.join(path2finalmesh, PERICARDIUM_FILE))
+
+    surfaces_vec = ["LSPV", "RSPV", "SVC", "lvendo_closed", "rvendo_closed",
+                    BIV_EPI_NAME]
+    if use_atria:
+        surfaces_vec += ["laendo_closed", "raendo_closed"]
+    if use_all_BCs:
+        surfaces_vec += ["LAApp", "RIPV", "LIPV", "IVC"]
     
-    for surf_name in ["LAApp", "RIPV", "LIPV", "LSPV", "RSPV", "SVC", "IVC",
-                      "lvendo_closed", "rvendo_closed", "laendo_closed",
-                      "raendo_closed", BIV_EPI_NAME]:
+    for surf_name in surfaces_vec:
         os.system("cp " + os.path.join(path2fourch, surf_name + SURF_EXTENSION) +
                   " " + os.path.join(path2finalmesh, surf_name + SURF_EXTENSION))
