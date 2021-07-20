@@ -18,7 +18,7 @@ def parser_commands():
 
     parser = tools.standard_parser()
     parser.add_argument('--type_of_simulation',
-                        options=['unloading', 'contraction'],
+                        choices=['unloading', 'contraction'],
                         help='Type of simulation to run.')
     parser.add_argument('--sim_name',
                         type=str,
@@ -112,7 +112,7 @@ def run(args, job):
 
     cmd += setup_bc(args)
 
-    if args.experiment == 'unloading':
+    if args.type_of_simulation == 'unloading':
         cmd += setup_unloading(args)
 
     cmd += setup_stimuli(args)  # define stimuli
@@ -284,7 +284,7 @@ def setup_bc(args):
     Assignment of the parameters related to the boundary and initial conditions.
     """
 
-    if args.type_of_experiment == 'contraction':
+    if args.type_of_simulation == 'contraction':
         args.num_mechanic_nbc += 1
         args.num_mechanic_bs += 1
 
@@ -369,7 +369,7 @@ def setup_active_stress(args):
                 '-imp_region[0].im', 'PASSIVE',
                 '-imp_region[0].num_IDs', 39]
 
-        for ventricular_tag in range(40):
+        for ventricular_tag in range(39):
             opts += ['-imp_region[0].ID['+str(ventricular_tag)+']', ventricular_tag+1]
     else:
         opts = ['-mech_use_actStress', 1,

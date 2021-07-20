@@ -6,7 +6,7 @@ if __name__ == "__main__":
 
     type_of_simulation = 'unloading'
     input_path = '/work/e348/e348/crg17/wave0'
-    script_path = '/work/e348/e348/crg17/scripts/run_mechanics_ARCHER.py'
+    script_path = '/work/e348/e348/crg17/scripts/run_mechanics_ARCHER2.py'
     meshes_path = '/work/e348/e348/crg17/wave0/batch0'
     runtime = '00:01:00'
     nodes = 1
