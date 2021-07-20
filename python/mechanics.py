@@ -80,8 +80,13 @@ def input_generation(n_samples=None, waveno=0, subfolder="mechanics"):
 
         mechanics_index = ep_index + len(param_ranges_lower_mechanics)
         x_mechanics.append(row[ep_index:mechanics_index])
-    f = open(os.path.join(path_gpes, "X.dat"), "w")
-    [f.write('%s\n' % ' '.join(map(str, [format(i, '.2f') for i in lhs_array]))) for lhs_array in x]
+
+    with open(os.path.join(path_gpes, "X.dat"), mode='w') as f:
+        for current_line in range(len(x_anatomy)):
+            f.write('%s ' % ' '.join(map(str, [format(i, '.2f') for i in x_anatomy[current_line]])))
+            f.write('%s ' % ' '.join(map(str, [format(i, '.2f') for i in x_ep[current_line]])))
+            f.write('%s\n' % ' '.join(map(str, [format(i, '.3f') for i in x_mechanics[current_line]])))
+
     f.close()
 
     f = open(os.path.join(path_gpes, X_EP_FILE), "w")
@@ -89,7 +94,7 @@ def input_generation(n_samples=None, waveno=0, subfolder="mechanics"):
     f.close()
 
     f = open(os.path.join(path_gpes, "X_mechanics.dat"), "w")
-    [f.write('%s\n' % ' '.join(map(str, [format(i, '.2f') for i in lhs_array]))) for lhs_array in x_mechanics]
+    [f.write('%s\n' % ' '.join(map(str, [format(i, '.3f') for i in lhs_array]))) for lhs_array in x_mechanics]
     f.close()
 
     with open(os.path.join(path_gpes, ANATOMY_CSV), mode='w') as f:
