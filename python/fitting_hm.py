@@ -900,3 +900,16 @@ def mechanics_new_wave(num_wave=0, run_simulations=False, train_gpe=False, fill_
     np.savetxt(os.path.join(PROJECT_PATH, subfolder, "wave" + str(num_wave), "variance_quotient.dat"),
                wave.PV, fmt="%.2f")
     """
+
+
+def mechanics_prepare_simulations(num_wave=0, n_samples=-1, subfolder="mechanics"):
+
+    if num_wave == 0:
+        mechanics.input_generation(n_samples=n_samples/(0.8*0.8), waveno=num_wave, subfolder=subfolder)
+    else:
+        mechanics.preprocess_input(waveno=num_wave, subfolder=subfolder)
+
+    mechanics.build_meshes(waveno=num_wave, subfolder=subfolder)
+    mechanics.ep_setup(waveno=num_wave, subfolder=subfolder)
+    mechanics.ep_simulations(waveno=num_wave, subfolder=subfolder)
+    mechanics.mechanics_setup(waveno=num_wave, subfolder=subfolder)
