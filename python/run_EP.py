@@ -64,8 +64,9 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
     
     f.close()
 
-def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
-                alpha_epi = None, simulation_file_name = None, path_ep = ""):
+
+def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_epi=None, simulation_file_name=None,
+                path_ep=""):
     """Function to run an EP simulation using ekbatch from an init file.
 
     Args:
@@ -76,7 +77,7 @@ def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
         alpha_epi (float, optional): Angle value in the epicardium, in 
         degrees. Defaults to None.
         simulation_file_name (str, optional): Name for the file containing the 
-        simulation results. Defaults to None. Defaults to None.
+        simulation results. Defaults to None.
         path_ep (str, optional): Path where to save the EP simulations. Defaults
         to "".
     """
@@ -86,21 +87,17 @@ def launch_init(fourch_name = "Full_Heart_Mesh_Template", alpha_endo = None,
 
     outname = simulation_file_name.split('/')[-1][:-4]
 
-    
-    shutil.copy(os.path.join(path2biv,"biv_fec.elem"),
-        os.path.join(path2sim, outname + ".elem")
-        )
-
-    shutil.copy(os.path.join(path2biv,"fibres",
-        "rb_"+str(alpha_epi)+"_"+str(alpha_endo)+".lon"
-        ),
-        os.path.join(path2sim,outname + ".lon")
-        )
-
-    shutil.copy(os.path.join(path2biv,"biv.pts"),
-                os.path.join(path2sim,outname + ".pts")
+    shutil.copy(os.path.join(path2biv, "biv_fec.elem"),
+                os.path.join(path2sim, outname + ".elem")
                 )
 
-    os.system("ekbatch " + os.path.join(path2sim,outname) + " " + \
-            os.path.join(path2sim,outname)
-    )
+    shutil.copy(os.path.join(path2biv, "fibres", "rb_" + "{0:.2f}".format(alpha_epi) + "_" +
+                             "{0:.2f}".format(alpha_endo)+".lon"),
+                os.path.join(path2sim, outname + ".lon")
+                )
+
+    shutil.copy(os.path.join(path2biv, "biv.pts"),
+                os.path.join(path2sim, outname + ".pts")
+                )
+
+    os.system("ekbatch " + os.path.join(path2sim, outname) + " " + os.path.join(path2sim, outname))
