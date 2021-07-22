@@ -15,7 +15,7 @@ from gpytGPE.utils.metrics import IndependentStandardError as ISE
 from Historia.history import hm
 
 import anatomy
-import custom_plots
+import postprocessing
 import mechanics
 
 # Global variables
