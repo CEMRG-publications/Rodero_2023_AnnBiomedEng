@@ -13,6 +13,7 @@ from carputils import model
 
 import itertools
 
+MESHTOOL_EXE_PATH = "/work/e348/e348/shared/carpentry/bin/meshtool"
 
 def parser_commands():
 
@@ -106,8 +107,14 @@ def run(args, job):
     else:
         final_mesh_name = args.mesh_name + "_unloaded"
 
+
+        if not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".blon")) and \
+            not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".belem")) and \
+                not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".bpts")):
+            use_unloaded_mesh(args)
+
     cmd += ['-simID', job.ID,
-            '-meshname', final_mesh_name]
+            '-meshname', os.path.join(args.mesh_path,final_mesh_name)]
 
     cmd += setup_time_variables(args)
 
@@ -224,6 +231,29 @@ def full_list_of_parameters(args):
             setattr(args, parameter, all_parameters[parameter])
 
     return args
+
+
+def use_unloaded_mesh(args):
+    """
+    Function to move the reference.pts from the unloading simulation to the simulation folder and clear the non-binary
+    files.
+    """
+    os.system(MESHTOOL_EXE_PATH + " convert -ifmt=carp_bin -ofmt=carp_txt -imsh=" +
+              os.path.join(args.mesh_path, args.mesh_name + "_ED") + " -omsh=" +
+              os.path.join(args.mesh_path, args.mesh_name + "_unloaded")
+              )
+
+    os.system("cp " + os.path.join(args.sim_name, "reference.pts ") +
+              os.path.join(args.mesh_path, args.mesh_name + "_unloaded.pts"))
+
+    os.system(MESHTOOL_EXE_PATH + " convert -ifmt=carp_txt -ofmt=carp_bin -imsh=" +
+              os.path.join(args.mesh_path, args.mesh_name + "_unloaded") + " -omsh=" +
+              os.path.join(args.mesh_path, args.mesh_name + "_unloaded")
+              )
+
+    os.system("rm " + os.path.join(args.mesh_path, "*.pts"))
+    os.system("rm " + os.path.join(args.mesh_path, "*.elem"))
+    os.system("rm " + os.path.join(args.mesh_path, "*.lon"))
 
 
 def setup_time_variables(args):
@@ -383,22 +413,22 @@ def setup_active_stress(args):
                 '-imp_region[0].im', 'TT2',
                 '-imp_region[0].num_IDs', len(args.ventricular_tags)]
 
-        for i in enumerate(args.ventricular_tags):
-            opts += ['-imp_region[0].ID[' + str(i) + ']',  args.ventricular_tags[i]]
+        for i, tag in enumerate(args.ventricular_tags):
+            opts += ['-imp_region[0].ID[' + str(i) + ']',  tag]
 
         opts += ['-imp_region[1].name', 'atria',
                  '-imp_region[1].im', 'COURTEMANCHE',
                  '-imp_region[1].num_IDs', len(args.atria_tags)]
 
-        for i in enumerate(args.atria_tags):
-            opts += ['-imp_region[1].ID[' + str(i) + ']',  args.atria_tags[i]]
+        for i, tag in enumerate(args.atria_tags):
+            opts += ['-imp_region[1].ID[' + str(i) + ']',  tag]
 
         opts += ['-imp_region[2].name', 'others',
                  '-imp_region[2].im', 'PASSIVE',
                  '-imp_region[2].num_IDs', len(args.passive_tags)]
 
-        for i in enumerate(args.passive_tags):
-            opts += ['-imp_region[2].ID[' + str(i) + ']',  args.passive_tags[i]]
+        for i, tag in enumerate(args.passive_tags):
+            opts += ['-imp_region[2].ID[' + str(i) + ']',  tag]
 
         tanh_pars = 't_emd={},' \
                     'Tpeak={},' \
