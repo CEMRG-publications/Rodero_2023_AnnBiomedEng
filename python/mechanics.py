@@ -421,8 +421,8 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
 
         if not os.path.isfile(os.path.join(mesh_path, PERICARDIUM_FILE)):
             penalty_map(fourch_name=mesh_name, subfolder=subfolder)
-        if not os.path.isfile(os.path.join(mesh_path, BIV_EPI_NAME+SURF_EXTENSION)):
-            boundary_surfaces(fourch_name=mesh_name, subfolder=subfolder)
+
+        boundary_surfaces(fourch_name=mesh_name, subfolder=subfolder)
 
         meshes_batch = str(int(i/50))
         at_name = '{0:.2f}'.format(alpha)+'{0:.2f}'.format(fec_height)+'{0:.2f}'.format(cv_l)+'{0:.2f}'.format(k_fec)
@@ -436,6 +436,7 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
         if file_count < 11:
             prepare_folder_supercomputer(path2finalmesh=folder_simulations, subfolder=subfolder, mesh_name=mesh_name,
                                          at_name=at_name)
+
 
 def penalty_map(fourch_name, subfolder):
 
@@ -492,7 +493,7 @@ def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all
             os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
                       " -surf=" + os.path.join(path2fourch, "LSPV") + "," +
                       os.path.join(path2fourch, "RSPV") + "," +
-                      os.path.join(path2fourch, "SVC") + "," +
+                      os.path.join(path2fourch, "SVC") +
                       " -op=21\;22\;23 -ifmt=carp_txt -ofmt=carp_txt")
 
     # Endocardia
@@ -527,27 +528,29 @@ def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all
                                                          mesh_from=fourch_name)
             chamber_surf = files_manipulations.surf.tosurf(chamber_elem)
             chamber_surf.write(os.path.join(path2fourch, "raendo_closed.surf"))
-    # Epicardium
-    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
-              " -surf=" + os.path.join(path2fourch, "biv.epi_endo_noatria") +
-              " -op=1,2-3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24" +
-              " -ifmt=carp_txt -ofmt=vtk_bin")
-    os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch, "biv.epi_endo_noatria.surfmesh") +
-              " -submsh=" + os.path.join(path2fourch, BIV_EPI_NAME) + " -ifmt=vtk_bin -ofmt=vtk_bin")
 
-    epi_files = glob.glob(os.path.join(path2fourch, "biv.epi.part*"))
-    size_files = [os.path.getsize(f) for f in epi_files]
+    if not os.path.isfile(os.path.join(path2fourch, BIV_EPI_NAME + SURF_EXTENSION)):
+        # Epicardium
+        os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
+                  " -surf=" + os.path.join(path2fourch, "biv.epi_endo_noatria") +
+                  " -op=1,2-3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24" +
+                  " -ifmt=carp_txt -ofmt=vtk_bin")
+        os.system("meshtool extract unreachable -msh=" + os.path.join(path2fourch, "biv.epi_endo_noatria.surfmesh") +
+                  " -submsh=" + os.path.join(path2fourch, BIV_EPI_NAME) + " -ifmt=vtk_bin -ofmt=vtk_bin")
 
-    idx_max = size_files.index(max(size_files))
-    name_epi = epi_files[idx_max]
+        epi_files = glob.glob(os.path.join(path2fourch, "biv.epi.part*"))
+        size_files = [os.path.getsize(f) for f in epi_files]
 
-    os.system("meshtool convert -ifmt=vtk_bin -ofmt=carp_txt -imsh=" + name_epi +
-              " -omsh=" + os.path.join(path2fourch, BIV_EPI_NAME))
-    for filename in epi_files:
-        os.system("rm " + filename)
-    epi_elem = files_manipulations.surf.read(os.path.join(path2fourch, "biv.epi.elem"), mesh_from=fourch_name)
-    epi_surf = files_manipulations.surf.tosurf(epi_elem)
-    epi_surf.write(os.path.join(path2fourch, BIV_EPI_NAME+SURF_EXTENSION))
+        idx_max = size_files.index(max(size_files))
+        name_epi = epi_files[idx_max]
+
+        os.system("meshtool convert -ifmt=vtk_bin -ofmt=carp_txt -imsh=" + name_epi +
+                  " -omsh=" + os.path.join(path2fourch, BIV_EPI_NAME))
+        for filename in epi_files:
+            os.system("rm " + filename)
+        epi_elem = files_manipulations.surf.read(os.path.join(path2fourch, "biv.epi.elem"), mesh_from=fourch_name)
+        epi_surf = files_manipulations.surf.tosurf(epi_elem)
+        epi_surf.write(os.path.join(path2fourch, BIV_EPI_NAME+SURF_EXTENSION))
 
 
 def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, use_atria=False, use_all_BCs=False):
@@ -576,3 +579,39 @@ def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, 
     for surf_name in surfaces_vec:
         os.system("cp " + os.path.join(path2fourch, surf_name + SURF_EXTENSION) +
                   " " + os.path.join(path2finalmesh, surf_name + SURF_EXTENSION))
+
+
+def create_tom2_files(waveno=0, subfolder="mechanics"):
+
+    with open(os.path.join(PROJECT_PATH, subfolder, "wave" + str(waveno), "X.dat")) as f:
+        anatomy_ep_mechanics_values = f.read().splitlines()
+
+    for simulation in anatomy_ep_mechanics_values:
+        values = simulation.split(' ')
+
+        sim_name = "heart_" + ''.join(values)
+        mesh_name = "heart_" + ''.join(values[0:6])
+        ep_results_name = ''.join(values[6:10])
+
+        os.system(script_path +
+                  ' --type_of_simulation ' + type_of_simulation +
+                  ' --sim_name ' + os.path.join(meshes_path, "simulations", sim_name) +
+                  ' --mesh_path ' + os.path.join(meshes_path, "meshes", mesh_name + AT_name) +
+                  ' --mesh_name ' + mesh_name +
+                  ' --AT_path ' + os.path.join(meshes_path, "meshes", mesh_name + AT_name) +
+                  ' --AT_name ' + AT_name +
+                  ' --LV_EDP ' + values[10] +
+                  ' --RV_EDP ' + values[11] +
+                  ' --Ao_EDP ' + values[12] +
+                  ' --PA_EDP ' + values[13] +
+                  ' --spring_BC ' + values[14] +
+                  ' --scaling_Guccione ' + values[15] +
+                  ' --scaling_neohookean ' + values[16] +
+                  ' --AV_resistance ' + values[17] +
+                  ' --PV_resistance ' + values[18] +
+                  ' --peak_isometric_tension ' + values[19] +
+                  ' --transient_dur ' + values[20] +
+                  ' --runtime ' + runtime +
+                  ' --np ' + str(int(nodes*128)) +
+                  ' --dry'
+                  )
