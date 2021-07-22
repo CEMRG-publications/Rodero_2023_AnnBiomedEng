@@ -388,6 +388,14 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
 
 def mechanics_setup(waveno=0, subfolder="mechanics"):
 
+    """
+    Function to prepare the folder ready for mechanics simulations.
+
+    Args:
+        waveno: Number of wave, useful for folder name. Default to 0.
+        subfolder: Name of the subfolder where wer are working in PROJECT_PATH. Default to "mechanics".
+    """
+
     path_lab = os.path.join(PROJECT_PATH, subfolder)
     path_gpes = os.path.join(path_lab, "wave" + str(waveno))
 
@@ -428,7 +436,7 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
         at_name = '{0:.2f}'.format(alpha)+'{0:.2f}'.format(fec_height)+'{0:.2f}'.format(cv_l)+'{0:.2f}'.format(k_fec)
         full_simulation_name = mesh_name + at_name
 
-        folder_simulations = os.path.join(path_gpes, "batch" + meshes_batch, full_simulation_name)
+        folder_simulations = os.path.join(path_gpes, "batch" + meshes_batch, full_simulation_name, "meshes")
         pathlib.Path(folder_simulations).mkdir(parents=True, exist_ok=True)
 
         _, _, files_in_final_mesh = next(os.walk(folder_simulations))
@@ -439,6 +447,13 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
 
 
 def penalty_map(fourch_name, subfolder):
+    """
+    Function to create the files needed to use a pericardium in the simulations.
+
+    Args:
+        fourch_name: Name of the mesh.
+        subfolder: Subfolder name where we work in PROJECT_PATH.
+    """
 
     path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
     path2biv = os.path.join(path2fourch, "biv")
@@ -474,6 +489,15 @@ def penalty_map(fourch_name, subfolder):
 
 
 def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all_BCs=False):
+    """
+    Function to create the surfaces needed to apply boundary conditions.
+
+    Args:
+        fourch_name: Name of the four chamber mesh.
+        subfolder: Name of the subfolder where we work in PROJECT_PATH.
+        generate_atria: If True, it adds also the surfaces of the closed atria. Defaults to False.
+        generate_all_BCs: If True, it includes also the inferior veins as boundary conditions. Defaults to False.
+    """
 
     path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
 
@@ -554,6 +578,17 @@ def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all
 
 
 def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, use_atria=False, use_all_BCs=False):
+    """
+    Function to wrap up the folder to use in an HPC.
+
+    Args:
+        path2finalmesh: Path where the mesh files are going to be in.
+        subfolder: Subfolder to work in PROJECT_PATH.
+        mesh_name: Name of the four chamber mesh.
+        at_name: Name of the .dat file that outputs the EP simulation.
+        use_atria: If True, it adds also the surfaces of the closed atria. Defaults to False.
+        use_all_BCs: If True, it includes also the inferior veins as boundary conditions. Defaults to False.
+    """
 
     path2fourch = os.path.join(PROJECT_PATH, subfolder, mesh_name)
 
