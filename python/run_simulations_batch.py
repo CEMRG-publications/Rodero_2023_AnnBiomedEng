@@ -17,7 +17,7 @@ if __name__ == "__main__":
     for simulation in anatomy_ep_mechanics_values:
         values = simulation.split(' ')
 
-        sim_name = "heart_" + ''.join(values)
+        sim_name = "heart_" + ''.join(values) + "_" + type_of_simulation
         mesh_name = "heart_" + ''.join(values[0:6])
         AT_name = ''.join(values[6:10])
 
