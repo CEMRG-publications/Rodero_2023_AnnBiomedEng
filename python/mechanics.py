@@ -106,7 +106,7 @@ def input_generation(n_samples=None, waveno=0, subfolder="mechanics"):
             output = np.zeros(18)
             output[0:5] = x_anatomy[current_line][0:5]
             output[8] = x_anatomy[current_line][5]
-            f_writer.writerow(["{0:.2f}".format(round(i, 2)) for i in output])
+            f_writer.writerow(["{0:.2f}".format(i) for i in output])
 
     f.close()
 
