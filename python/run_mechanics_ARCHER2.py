@@ -101,8 +101,13 @@ def run(args, job):
 
     cmd = tools.carp_cmd()
 
+    if args.type_of_simulation == "unloading":
+        final_mesh_name = args.mesh_name + "_ED"
+    else:
+        final_mesh_name = args.mesh_name + "_unloaded"
+
     cmd += ['-simID', job.ID,
-            '-meshname', args.mesh_name]
+            '-meshname', final_mesh_name]
 
     cmd += setup_time_variables(args)
 
