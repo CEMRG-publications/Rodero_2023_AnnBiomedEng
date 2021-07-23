@@ -253,7 +253,7 @@ def ep_setup(waveno=0, subfolder="mechanics"):
         if not os.path.isfile(os.path.join(mesh_path, "biv", "EP", "bottom_third.vtx")):
             UVC.bottom_third(fourch_name=final_base_name, UVC_base="MVTV", subfolder=subfolder)
         if not os.path.isfile(os.path.join(mesh_path, "biv", "biv_fec.elem")):
-            UVC.create_fec(fourch_name=final_base_name, UVC_base="MVTV", subfolder=subfolder)
+            UVC.create_fec(fourch_name=final_base_name, uvc_base="MVTV", subfolder=subfolder)
         if not os.path.isfile(os.path.join(mesh_path, "biv", "fibres", "endoRV", "phie.igb")):
             had_to_run_new = True
             fibres.run_laplacian(fourch_name=subfolder + "/" + final_base_name)
@@ -261,7 +261,7 @@ def ep_setup(waveno=0, subfolder="mechanics"):
     return had_to_run_new
 
 
-def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
+def ep_simulations(waveno=0, subfolder="mechanics", map_to_fourch=True):
     """Function to prepare the mesh and run the EP simulation. It works in a
     sequential way to improve debugging.
 
@@ -270,7 +270,7 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
         to 0.
         subfolder (str, optional): [description]. Folder name in /data/fitting to work  on.
         Defaults to "mechanics".
-        map_fibres_to_fourch (bool, optional): If True, maps the fibres from the
+        map_to_fourch (bool, optional): If True, maps the fibres from the
         biventricular mesh to the four chamber mesh. Defaults to True.
 
     Returns:
@@ -344,13 +344,12 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
                                "EP_simulations")
 
         pathlib.Path(path_ep).mkdir(parents=True, exist_ok=True)
-        simulation_file_name = os.path.join(path_ep,
-                                            '{0:.2f}'.format(alpha) +
-                                            '{0:.2f}'.format(fec_height) +
-                                            '{0:.2f}'.format(cv_l) +
-                                            '{0:.2f}'.format(k_fec) +
-                                            ".dat"
-                                            )
+
+        simulation_name_only = '{0:.2f}'.format(alpha) + '{0:.2f}'.format(fec_height) +\
+                               '{0:.2f}'.format(cv_l) + '{0:.2f}'.format(k_fec)
+
+        simulation_file_name = os.path.join(path_ep, simulation_name_only + ".dat")
+
         if not os.path.isfile(os.path.join(PROJECT_PATH, subfolder, fourch_name, "biv",
                                            "fibres",
                                            "rb_-" + str('{0:.2f}'.format(alpha)) + "_" +
@@ -361,10 +360,10 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
                                  subfolder=subfolder,
                                  alpha_epi='{0:.2f}'.format(-alpha),
                                  alpha_endo='{0:.2f}'.format(alpha),
-                                 map_fibres_to_fourch=map_fibres_to_fourch
+                                 map_to_fourch=map_to_fourch
                                  )
-
-        if not os.path.isfile(os.path.join(path_ep, simulation_file_name)):
+        if not os.path.isfile(os.path.join(PROJECT_PATH, subfolder, fourch_name,
+                                           "EP_simulations", simulation_name_only + ".dat")):
             had_to_run_new = True
 
             run_EP.carp2init(fourch_name=subfolder + "/" + fourch_name,
@@ -380,7 +379,8 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_fibres_to_fourch=True):
                                alpha_endo=alpha,
                                alpha_epi=-alpha,
                                simulation_file_name=simulation_file_name,
-                               path_ep=path_ep
+                               path_ep=path_ep,
+                               map_to_fourch=map_to_fourch
                                )
 
     return had_to_run_new
@@ -436,11 +436,12 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
         at_name = '{0:.2f}'.format(alpha)+'{0:.2f}'.format(fec_height)+'{0:.2f}'.format(cv_l)+'{0:.2f}'.format(k_fec)
         full_simulation_name = mesh_name + at_name
 
-        folder_simulations = os.path.join(path_gpes, "batch" + meshes_batch, full_simulation_name, "meshes")
+        folder_simulations = os.path.join(path_gpes, "batch" + meshes_batch, "meshes", full_simulation_name)
         pathlib.Path(folder_simulations).mkdir(parents=True, exist_ok=True)
 
         _, _, files_in_final_mesh = next(os.walk(folder_simulations))
         file_count = len(files_in_final_mesh)
+
         if file_count < 11:
             prepare_folder_supercomputer(path2finalmesh=folder_simulations, subfolder=subfolder, mesh_name=mesh_name,
                                          at_name=at_name)
@@ -598,7 +599,7 @@ def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, 
               " -imsh=" + os.path.join(path2fourch, mesh_name) +
               " -omsh=" + os.path.join(path2finalmesh, mesh_name + "_ED"))
 
-    os.system("cp " + os.path.join(path2fourch, "biv", "EP_simulations", at_name + ".dat") +
+    os.system("cp " + os.path.join(path2fourch, "EP_simulations", at_name + ".dat") +
               " " + os.path.join(path2finalmesh, at_name + ".dat"))
 
     os.system("cp " + os.path.join(path2fourch, PERICARDIUM_FILE) +

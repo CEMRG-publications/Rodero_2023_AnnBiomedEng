@@ -1,5 +1,6 @@
-import os
 import numpy as np
+import os
+import pathlib
 import tqdm
 import shutil
 
@@ -168,17 +169,18 @@ def fibre_correction(fourch_name="Full_Heart_Mesh_Template", alpha_epi=-60, alph
 
 
 def full_pipeline(fourch_name="Full_Heart_Mesh_Template", subfolder=".", alpha_epi=-60, alpha_endo=80,
-                  map_fibres_to_fourch=False):
+                  map_to_fourch=False):
     """Function that automatizes the creation of fibres.
 
     Args:
         fourch_name (str, optional): Name of the mesh. Defaults to 
         "Full_Heart_Mesh_Template".
+        subfolder: Subfolder where we work in.
         alpha_epi (int, optional): Angle value in the epicardium, in degrees.
         Defaults to -60.
         alpha_endo (int, optional): Angle value in the endocardium, in degrees. 
         Defaults to 80.
-        map_fibres_to_fourch (bool, optional): If True, maps the fibres from the
+        map_to_fourch (bool, optional): If True, maps the fibres from the
         biventricular mesh to the four chamber mesh. Defaults to False.
     """
     
@@ -196,11 +198,14 @@ def full_pipeline(fourch_name="Full_Heart_Mesh_Template", subfolder=".", alpha_e
     shutil.copy(os.path.join(biv_dir, "biv.pts"), os.path.join(fibre_dir, outname + ".pts"))
     shutil.copy(os.path.join(biv_dir, "biv.elem"), os.path.join(fibre_dir, outname + ".elem"))
 
-    # pathlib.Path(os.path.join(fourch_dir,"fibres")).mkdir(parents=True, exist_ok=True)
+    if map_to_fourch and not os.path.isfile(os.path.join(fourch_dir, "fibres", outname + ".lon")):
+        pathlib.Path(os.path.join(fourch_dir, "fibres")).mkdir(parents=True, exist_ok=True)
 
-    if map_fibres_to_fourch:
         os.system("meshtool insert meshdata -imsh=" +
                   os.path.join(fibre_dir, outname) +
                   " -msh=" + os.path.join(fourch_dir, fourch_name) +
-                  " -op=1 -ifmt=carp_txt -ofmt=carp_txt" +
+                  " -op=2 -ifmt=carp_txt -ofmt=carp_txt" +
                   " -outmsh=" + os.path.join(fourch_dir, fourch_name))
+
+        shutil.copy(os.path.join(fourch_dir, fourch_name + ".lon"),
+                    os.path.join(fourch_dir, "fibres", outname + ".lon"))

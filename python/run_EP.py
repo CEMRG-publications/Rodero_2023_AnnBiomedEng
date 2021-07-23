@@ -1,5 +1,6 @@
-import os
 import numpy as np
+import os
+import pathlib
 import shutil
 
 import files_manipulations
@@ -66,7 +67,7 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
 
 
 def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_epi=None, simulation_file_name=None,
-                path_ep=""):
+                path_ep="", map_to_fourch=False):
     """Function to run an EP simulation using ekbatch from an init file.
 
     Args:
@@ -80,9 +81,11 @@ def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_e
         simulation results. Defaults to None.
         path_ep (str, optional): Path where to save the EP simulations. Defaults
         to "".
+        map_to_fourch: If True, maps the resulting activation times file to the four chamber
+        mesh, as long as it doesn't exist already.
     """
-    path2biv = os.path.join("/data","fitting",fourch_name,
-                            "biv")
+    path2fourch = os.path.join("/data", "fitting", fourch_name)
+    path2biv = os.path.join(path2fourch, "biv")
     path2sim = path_ep
 
     outname = simulation_file_name.split('/')[-1][:-4]
@@ -101,3 +104,11 @@ def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_e
                 )
 
     os.system("ekbatch " + os.path.join(path2sim, outname) + " " + os.path.join(path2sim, outname))
+
+    if map_to_fourch and not os.path.isfile(os.path.join(path2fourch, "EP_simulations", outname + ".dat")):
+        pathlib.Path(os.path.join(path2fourch, "EP_simulations")).mkdir(parents=True, exist_ok=True)
+
+        os.system("meshtool interpolate nodedata -omsh=" + os.path.join(path2fourch, fourch_name.split('/')[-1]) +
+                  " -imsh=" + os.path.join(path2biv, "biv") +
+                  " -idat=" + os.path.join(path2sim, outname + ".dat") +
+                  " -odat=" + os.path.join(path2fourch, "EP_simulations", outname + ".dat"))
