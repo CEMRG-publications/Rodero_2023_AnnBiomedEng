@@ -513,13 +513,14 @@ def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all
                       os.path.join(path2fourch, "RSPV") + "," +
                       os.path.join(path2fourch, "SVC") + "," +
                       os.path.join(path2fourch, "IVC") +
-                      " -op=18\;19\;20\;21\;22\;23\;24 -ifmt=carp_txt -ofmt=carp_txt")
+                      " -op=18-3,11\;19-3,12\;20-3,13\;21-3,14\;22-3,15\;23-3,16\;24-3,17 " +
+                      "-ifmt=carp_txt -ofmt=carp_txt")
         else:
             os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
                       " -surf=" + os.path.join(path2fourch, "LSPV") + "," +
                       os.path.join(path2fourch, "RSPV") + "," +
                       os.path.join(path2fourch, "SVC") +
-                      " -op=21\;22\;23 -ifmt=carp_txt -ofmt=carp_txt")
+                      " -op=21-3,14\;22-3,15\;23-3,16 -ifmt=carp_txt -ofmt=carp_txt")
 
     # Endocardia
 
