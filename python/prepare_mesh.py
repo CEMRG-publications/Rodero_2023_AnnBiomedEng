@@ -342,7 +342,7 @@ def extract_peri_base(fourch_name, subfolder="."):
 
     os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, fourch_name) +
               " -surf=" + os.path.join(path2fourch, "peri_base") +
-              " -op=1,2:5,7,8,9,10" +
+              " -op=1,2,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39:5,7,8,9,10" +
               " -ifmt=carp_txt" +
               " -ofmt=carp_txt")
 
