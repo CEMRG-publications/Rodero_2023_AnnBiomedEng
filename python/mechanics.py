@@ -362,8 +362,10 @@ def ep_simulations(waveno=0, subfolder="mechanics", map_to_fourch=True):
                                  alpha_endo='{0:.2f}'.format(alpha),
                                  map_to_fourch=map_to_fourch
                                  )
-        if not os.path.isfile(os.path.join(PROJECT_PATH, subfolder, fourch_name,
-                                           "EP_simulations", simulation_name_only + ".dat")):
+        if not os.path.isfile(os.path.join(PROJECT_PATH, subfolder, fourch_name, "EP_simulations",
+                                           simulation_name_only + ".dat")) \
+                or not os.path.isfile(os.path.join(PROJECT_PATH, subfolder, fourch_name, "biv", "EP_simulations",
+                                                   simulation_name_only + ".dat")):
             had_to_run_new = True
 
             run_EP.carp2init(fourch_name=subfolder + "/" + fourch_name,
