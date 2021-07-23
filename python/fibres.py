@@ -205,7 +205,9 @@ def full_pipeline(fourch_name="Full_Heart_Mesh_Template", subfolder=".", alpha_e
                   os.path.join(fibre_dir, outname) +
                   " -msh=" + os.path.join(fourch_dir, fourch_name) +
                   " -op=2 -ifmt=carp_txt -ofmt=carp_txt" +
-                  " -outmsh=" + os.path.join(fourch_dir, fourch_name))
+                  " -outmsh=" + os.path.join(fourch_dir, fourch_name) +
+                  " -con_thr=4"
+                  )
 
         shutil.copy(os.path.join(fourch_dir, fourch_name + ".lon"),
                     os.path.join(fourch_dir, "fibres", outname + ".lon"))
