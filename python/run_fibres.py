@@ -38,27 +38,27 @@ def jobID(args):
 @tools.carpexample(parser, jobID)
 def run(args, job):
 
-    meshdir  = "/data/fitting/" + args.current_case + "/biv"
+    meshdir = "/data/fitting/" + args.current_case + "/biv"
     meshname = '{}/biv'.format(meshdir)
     experiment = args.experiment
 
-    if experiment=='apba':
-      filename_ground = 'LV_apex_epi'
-      filename_pot = 'MVTV_base.surf'
-    elif experiment=='epi':
-      filename_ground = 'biv.endo.surf'
-      filename_pot = 'biv.epi.surf'
-    elif experiment=='endoLV':
-      filename_ground = 'biv_noLVendo.surf'
-      filename_pot = 'biv.lvendo.surf'
-    elif experiment=='endoRV':
-      filename_ground = 'biv_noRVendo.surf'
-      filename_pot = 'biv.rvendo.surf'
+    if experiment == 'apba':
+        filename_ground = 'LV_apex_epi'
+        filename_pot = 'mvtv_base.surf'
+    elif experiment == 'epi':
+        filename_ground = 'biv.endo.surf'
+        filename_pot = 'biv.epi.surf'
+    elif experiment == 'endoLV':
+        filename_ground = 'biv_noLVendo.surf'
+        filename_pot = 'biv.lvendo.surf'
+    elif experiment == 'endoRV':
+        filename_ground = 'biv_noRVendo.surf'
+        filename_pot = 'biv.rvendo.surf'
     else:
-      raise Exception('Unsupported experiment type')
+        raise Exception('Unsupported experiment type')
 
     # Add all the non-general arguments
-    cmd  = carputils.tools.carp_cmd()
+    cmd = carputils.tools.carp_cmd()
 
     cmd += ['-simID', job.ID,
             '-meshname', meshname,
@@ -85,6 +85,7 @@ def run(args, job):
     # Run main CARP simulation
     # ------------------------
     job.carp(cmd)
+
 
 if __name__ == '__main__':
     run()

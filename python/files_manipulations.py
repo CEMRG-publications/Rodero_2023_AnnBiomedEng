@@ -95,24 +95,21 @@ class surf:
         """
 
         surfmesh_str = pathname.split(".")[-1]
-        if(surfmesh_str == "surfmesh" or pathname.split(".")[-2][0:4] == "part"):
-            num_cols = (1,2,3,4)
+        if surfmesh_str == "surfmesh" or pathname.split(".")[-2][0:4] == "part":
+            num_cols = (1, 2, 3, 4)
             is_surfmesh = True
         else:
-            num_cols = (1,2,3)
+            num_cols = (1, 2, 3)
             is_surfmesh = False
     
-        surffile = np.genfromtxt(pathname, delimiter = ' ',
-                                    dtype = int, skip_header = True,
-                                    usecols= num_cols
-                                    )
+        surffile = np.genfromtxt(pathname, delimiter=' ', dtype=int, skip_header=True, usecols=num_cols)
 
-        i1 = surffile[:,0]
-        i2 = surffile[:,1]
-        i3 = surffile[:,2]
+        i1 = surffile[:, 0]
+        i2 = surffile[:, 1]
+        i3 = surffile[:, 2]
 
-        if(is_surfmesh):
-            tags = surffile[:,3]
+        if is_surfmesh:
+            tags = surffile[:, 3]
         else:
             tags = None
         
@@ -135,7 +132,7 @@ class surf:
         """
         if(surf1.mesh_from != surf2.mesh_from):
             raise NameError("Surfaces come from different meshes.")
-        if((surf1.tags is None) != (surf2.tags is None)):
+        if (surf1.tags is None) != (surf2.tags is None):
             raise NameError("Both meshes need to be surf or surfmeshes, but not mixed.")
 
         i1 = np.append(surf1.i1, surf2.i1)
