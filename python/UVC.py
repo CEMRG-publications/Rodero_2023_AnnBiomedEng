@@ -6,46 +6,46 @@ import collections
 
 import files_manipulations
 
-PROJECT_PATH="/data/fitting"
+PROJECT_PATH = "/data/fitting"
+
 
 def create(fourch_name, base, subfolder="."):
     """Function to create Universal Ventricular Coordinates
 
     Args:
         fourch_name (str): Name of the four chamber mesh.
-        base (str): preffix of the surf of the base.
+        base (str): prefix of the surf of the base.
+        subfolder: Name of the folder in PROJECT_PATH where we work in.
     """
 
-    path2biv = os.path.join(PROJECT_PATH, subfolder, fourch_name,"biv")
-    path2scripts = os.path.join("/home","crg17","Desktop",
-                                "KCL_projects","fitting")
+    path2biv = os.path.join(PROJECT_PATH, subfolder, fourch_name, "biv")
+    path2scripts = os.path.join("/home", "crg17", "Desktop", "KCL_projects", "fitting")
     exe = os.path.join(path2scripts, "python", "model_arch_ek.py")
 
-    shutil.copy(os.path.join(path2biv, base + "_base.surf"),
-                os.path.join(path2biv,"biv.base.surf"))
-    shutil.copy(os.path.join(path2biv, base + "_base.surf.vtx"),
-                os.path.join(path2biv,"biv.base.surf.vtx"))
+    shutil.copy(os.path.join(path2biv, base + "_base.surf"), os.path.join(path2biv, "biv.base.surf"))
+    shutil.copy(os.path.join(path2biv, base + "_base.surf.vtx"), os.path.join(path2biv, "biv.base.surf.vtx"))
 
-    os.system(exe + " --uvc --ID=" + os.path.join(path2biv,"UVC_" + base) + \
-             " --basename=" + os.path.join(path2biv,"biv") + \
-             " --mode biv --np 20 --tags=" + \
-             os.path.join(path2scripts,"sh/etags.sh") + \
-             " --overwrite-behaviour overwrite")
+    os.system(exe + " --uvc --ID=" + os.path.join(path2biv, "UVC_" + base) +
+              " --basename=" + os.path.join(path2biv, "biv") +
+              " --mode biv --np 20 --tags=" +
+              os.path.join(path2scripts, "sh/etags.sh") +
+              " --overwrite-behaviour overwrite")
 
     for coord_case in ["COORDS_RHO", "COORDS_PHI", "COORDS_Z", "COORDS_V"]:
-        os.system("meshtool interpolate node2elem -omsh=" + \
-                os.path.join(path2biv,"biv") + " -idat=" + \
-                os.path.join(path2biv,"UVC_"+base, "UVC", coord_case+".dat") + \
-                " -odat=" + os.path.join(path2biv,"UVC_"+base, "UVC", coord_case+"_elem.dat")
-                )
-        not_scaled = np.genfromtxt(os.path.join(path2biv,"UVC_"+base, "UVC",
+        os.system("meshtool interpolate node2elem -omsh=" +
+                  os.path.join(path2biv, "biv") + " -idat=" +
+                  os.path.join(path2biv, "UVC_"+base, "UVC", coord_case+".dat") +
+                  " -odat=" + os.path.join(path2biv, "UVC_"+base, "UVC", coord_case+"_elem.dat")
+                  )
+        not_scaled = np.genfromtxt(os.path.join(path2biv, "UVC_"+base, "UVC",
                                    coord_case+"_elem.dat"), dtype=float)
         scaled = files_manipulations.reescale(not_scaled)
 
-        with open(os.path.join(path2biv,"UVC_"+base, "UVC",
-                                   coord_case+"_elem_scaled.dat"), 'w') as f:
+        with open(os.path.join(path2biv, "UVC_"+base, "UVC", coord_case+"_elem_scaled.dat"), 'w') as f:
             for item in scaled:
                 f.write("%s\n" % item)
+
+
 def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", subfolder="."):
     """Function to write the vertices belonging to the bottom third of the
     apico-basal coordinate of a given UVC.
@@ -81,7 +81,7 @@ def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", su
 
     bottom_third_vtx.write(os.path.join(path2biv,"EP","bottom_third.vtx"))
 
-    
+
 def create_fec(fourch_name = "Full_Heart_Mesh_Template", uvc_base="MVTV", subfolder="."):
     """Function to create the labels for the fec layer. It consists on different
     labels in the ventricular endocardium from 0.35 to 1 of the apico-basal
