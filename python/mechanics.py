@@ -597,7 +597,8 @@ def boundary_surfaces(fourch_name, subfolder, generate_atria=False, generate_all
 
 def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, use_atria=False, use_all_bcs=False):
     """
-    Function to wrap up the folder to use in an HPC.
+    Function to wrap up the folder to use in an HPC. Note that the surfaces are intersected with the surface of the
+    four chamber heart, since in the CARP simulations they will be removed anyway.
 
     Args:
         path2finalmesh: Path where the mesh files are going to be in.
@@ -628,7 +629,49 @@ def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, 
         surfaces_vec += ["laendo_closed", "raendo_closed"]
     if use_all_bcs:
         surfaces_vec += ["LAApp", "RIPV", "LIPV", "IVC"]
-    
-    for surf_name in surfaces_vec:
-        os.system("cp " + os.path.join(path2fourch, surf_name + SURF_EXTENSION) +
-                  " " + os.path.join(path2finalmesh, surf_name + SURF_EXTENSION))
+
+    fourch_elem = files_manipulations.surf.read(os.path.join(path2fourch, mesh_name + ".elem"), mesh_name)
+    fourch_pts = files_manipulations.pts.read(os.path.join(path2fourch, mesh_name + ".pts"))
+
+    os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, mesh_name) +
+              " -surf=" + os.path.join(path2fourch, mesh_name + "_surface") + " -ifmt=carp_txt -ofmt=carp_txt")
+
+    heart_surface = files_manipulations.surf.read(os.path.join(path2fourch, mesh_name + "_surface.surf"),
+                                                  mesh_name)
+
+    combined_surface_i1 = heart_surface.i1
+    combined_surface_i2 = heart_surface.i2
+    combined_surface_i3 = heart_surface.i3
+    combined_surface_tags = [-1]*heart_surface.size
+
+    for i, surf_name in enumerate(surfaces_vec):
+        surf_file = files_manipulations.surf.read(os.path.join(path2fourch, surf_name + SURF_EXTENSION), mesh_name)
+
+        combined_surface_i1 = np.append(combined_surface_i1, surf_file.i1)
+        combined_surface_i2 = np.append(combined_surface_i2, surf_file.i2)
+        combined_surface_i3 = np.append(combined_surface_i3, surf_file.i3)
+        combined_surface_tags = np.append(combined_surface_tags, [i]*surf_file.size)
+
+    combined_surface = files_manipulations.surf(combined_surface_i1, combined_surface_i2, combined_surface_i3,
+                                                mesh_name, combined_surface_tags)
+
+    combined_surface.write(os.path.join(path2fourch, "combined_surfaces.elem"))
+    shutil.copy(os.path.join(path2fourch, mesh_name + ".pts"), os.path.join(path2fourch, "combined_surfaces.pts"))
+
+    for i, surf_name in enumerate(surfaces_vec):
+        os.system("meshtool extract surface -msh=" + os.path.join(path2fourch, "combined_surfaces") +
+                  " -surf=" + os.path.join(path2fourch, surf_name + "_in_surface") +
+                  " -op=-1:" + str(i) + " -ifmt=carp_txt -ofmt=carp_txt")
+        surf_file = files_manipulations.surf.read(os.path.join(path2fourch, surf_name + "_in_surface" + SURF_EXTENSION),
+                                                  mesh_name)
+        header = np.array([str(surf_file.size) + " # mesh elast " + str(fourch_elem.size) + " " +
+                           str(fourch_pts.size) + " :"])
+
+        elemtype = np.repeat("Tr", surf_file.size)
+        data = [elemtype, surf_file.i1, surf_file.i2, surf_file.i3]
+
+        np.savetxt(os.path.join(path2finalmesh, surf_name + SURF_EXTENSION), header, fmt='%s')
+
+        with open(os.path.join(path2finalmesh, surf_name + SURF_EXTENSION), "ab") as f:
+            np.savetxt(f, np.transpose(data), fmt="%s")
+
