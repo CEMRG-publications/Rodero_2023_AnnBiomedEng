@@ -227,7 +227,6 @@ class surf:
         sub_i3 = self.i3[vtx_var]
 
         return cls(sub_i1, sub_i2, sub_i3, self.mesh_from, sub_tags)
-
 class pts:
     
     def __init__(self, p1, p2, p3, name):

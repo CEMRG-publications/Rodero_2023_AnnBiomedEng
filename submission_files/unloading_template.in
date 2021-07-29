@@ -44,7 +44,7 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   +F $solver_folder/options/pt_ell_amg_large \
   +F $solver_folder/options/pt_para_amg_large \
   +F $solver_folder/options/pt_mech_amg_large \
-  -ellip_use_pt 1 \
+  -ellip_use_pt 0 \
   -parab_use_pt 1 \
   -purk_use_pt 0 \
   -mech_use_pt 1 \
@@ -60,7 +60,7 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   -mechDT 1.0 \
   -spacedt 10.0 \
   -tend 1000.0 \
-  -loadStepping 1.0 \
+  -loadStepping 50.0 \
   -gridout_i 0 \
   -mech_output 1 \
   -vtk_output_mode 0 \
@@ -69,24 +69,9 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   -gzip_data 1 \
   -num_mregions 7 \
   -mregion[0].name "Ventricles" \
-  -mregion[0].num_IDs 17 \
+  -mregion[0].num_IDs 2 \
   -mregion[0].ID[0] 1 \
   -mregion[0].ID[1] 2 \
-  -mregion[0].ID[2] 25 \
-  -mregion[0].ID[3] 26 \
-  -mregion[0].ID[4] 27 \
-  -mregion[0].ID[5] 28 \
-  -mregion[0].ID[6] 29 \
-  -mregion[0].ID[7] 30 \
-  -mregion[0].ID[8] 31 \
-  -mregion[0].ID[9] 32 \
-  -mregion[0].ID[10] 33 \
-  -mregion[0].ID[11] 34 \
-  -mregion[0].ID[12] 35 \
-  -mregion[0].ID[13] 36 \
-  -mregion[0].ID[14] 37 \
-  -mregion[0].ID[15] 38 \
-  -mregion[0].ID[16] 39 \
   -mregion[0].params $guccione_params \
   -mregion[0].type 9 \
   -mregion[1].name "Atria" \
@@ -133,11 +118,11 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   -mregion[6].ID[4] 22 \
   -mregion[6].ID[5] 23 \
   -mregion[6].ID[6] 24 \
-  -mregion[6].params "c=1000.0,kappa=1000" \
+  -mregion[6].params $neohookean_params \
   -mregion[6].type 2 \
   -mech_vol_split_aniso 1 \
-  -num_mechanic_nbc 5 \
-  -num_mechanic_bs 3 \
+  -num_mechanic_nbc 6 \
+  -num_mechanic_bs 4 \
   -mechanic_bs[0].value "$spring_BC" \
   -mechanic_bs[1].value "$spring_BC" \
   -mechanic_bs[2].value "$spring_BC" \
@@ -156,23 +141,28 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   -mechanic_nbc[4].name rvendo_closed \
   -mechanic_nbc[4].surf_file $mesh_path"/rvendo_closed" \
   -mechanic_nbc[4].pressure $RV_EDP_kPa \
+  -num_mechanic_ed 1 \
+  -mechanic_ed[0].ncomp 1 \
+  -mechanic_ed[0].file $mesh_path"/pericardium_penalty" \
+  -mechanic_bs[3].edidx 0 \
+  -mechanic_bs[3].value "$spring_BC" \
+  -mechanic_nbc[5].name "Pericardium" \
+  -mechanic_nbc[5].surf_file $mesh_path"/biv.epi" \
+  -mechanic_nbc[5].spring_idx 3 \
+  -mechanic_nbc[5].nspring_idx 0 \
+  -mechanic_nbc[5].nspring_config 1 \
   -experiment 5 \
-  -loadStepping 1.0 \
+  -loadStepping 50.0 \
   -unload_conv 0 \
   -unload_tol 0.001 \
   -unload_err 1 \
   -unload_maxit 10 \
   -unload_stagtol 10.0 \
-  -num_stim 1 \
-  -stimulus[0].stimtype 8 \
-  -stimulus[0].data_file $AT_path"/"$AT_name \
-  -diffusionOn 0 \
-  -mech_deform_elec 0 \
   -num_imp_regions 1 \
   -num_stim 0 \
   -imp_region[0].name passive \
   -imp_region[0].im PASSIVE \
-  -imp_region[0].num_IDs 39 \
+  -imp_region[0].num_IDs 24 \
   -imp_region[0].ID[0] 1 \
   -imp_region[0].ID[1] 2 \
   -imp_region[0].ID[2] 3 \
@@ -197,21 +187,6 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   -imp_region[0].ID[21] 22 \
   -imp_region[0].ID[22] 23 \
   -imp_region[0].ID[23] 24 \
-  -imp_region[0].ID[24] 25 \
-  -imp_region[0].ID[25] 26 \
-  -imp_region[0].ID[26] 27 \
-  -imp_region[0].ID[27] 28 \
-  -imp_region[0].ID[28] 29 \
-  -imp_region[0].ID[29] 30 \
-  -imp_region[0].ID[30] 31 \
-  -imp_region[0].ID[31] 32 \
-  -imp_region[0].ID[32] 33 \
-  -imp_region[0].ID[33] 34 \
-  -imp_region[0].ID[34] 35 \
-  -imp_region[0].ID[35] 36 \
-  -imp_region[0].ID[36] 37 \
-  -imp_region[0].ID[37] 38 \
-  -imp_region[0].ID[38] 39 \
   -volumeTracking 1 \
   -numElemVols 1 \
   -elemVols[0].name tissue \
@@ -226,7 +201,7 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   -newton_adaptive_tol_mech 2 \
   -newton_tol_cvsys 0.001 \
   -newton_line_search 0 \
-  -newton_maxit_mech 1 \
+  -newton_maxit_mech 20 \
   -mech_activate_inertia 1 \
   -mass_lumping 1 \
   -mech_rho_inf 0.0 \

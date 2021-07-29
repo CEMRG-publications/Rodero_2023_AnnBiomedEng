@@ -664,6 +664,7 @@ def prepare_folder_supercomputer(path2finalmesh, subfolder, mesh_name, at_name, 
                   " -op=-1:" + str(i) + " -ifmt=carp_txt -ofmt=carp_txt")
         surf_file = files_manipulations.surf.read(os.path.join(path2fourch, surf_name + "_in_surface" + SURF_EXTENSION),
                                                   mesh_name)
+
         header = np.array([str(surf_file.size) + " # mesh elast " + str(fourch_elem.size) + " " +
                            str(fourch_pts.size) + " :"])
 

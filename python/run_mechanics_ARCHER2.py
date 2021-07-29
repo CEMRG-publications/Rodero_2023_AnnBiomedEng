@@ -15,6 +15,7 @@ import itertools
 
 MESHTOOL_EXE_PATH = "/work/e348/e348/shared/carpentry/bin/meshtool"
 
+
 def parser_commands():
 
     parser = tools.standard_parser()
@@ -107,14 +108,11 @@ def run(args, job):
     else:
         final_mesh_name = args.mesh_name + "_unloaded"
 
-
-        if not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".blon")) and \
-            not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".belem")) and \
-                not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".bpts")):
+        if not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".blon")) and not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".belem")) and not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".bpts")):
             use_unloaded_mesh(args)
 
     cmd += ['-simID', job.ID,
-            '-meshname', os.path.join(args.mesh_path,final_mesh_name)]
+            '-meshname', os.path.join(args.mesh_path, final_mesh_name)]
 
     cmd += setup_time_variables(args)
 
@@ -127,7 +125,8 @@ def run(args, job):
     if args.type_of_simulation == 'unloading':
         cmd += setup_unloading(args)
 
-    cmd += setup_stimuli(args)  # define stimuli
+    if args.type_of_simulation == 'contraction':
+        cmd += setup_stimuli(args)  # define stimuli
 
     cmd += setup_active_stress(args)  # active stress setting
 
@@ -150,9 +149,9 @@ def full_list_of_parameters(args):
                                                     # Veins + cavities
                             'numSurfVols': 2,  # Number of surface enclosed volumes to keep track of. Ventricles.
                             'passive_tags': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
-                            'ventricular_tags': [1, 2, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                            'ventricular_tags': [1, 2],
                             }
-    unloading_parameters = {'loadStepping': 1.,  # Apply load in steps to avoid instabilities: (0) off, (1) auto,
+    unloading_parameters = {'loadStepping': 50.,  # Apply load in steps to avoid instabilities: (0) off, (1) auto,
                             # (<0) manual choice
                             'timedt': 10.,  # Time between temporal output (ms)
                             'unload_conv': 0,  # 0 - volume-based, 1 - point-based.
@@ -201,7 +200,6 @@ def full_list_of_parameters(args):
                            'mech_stiffness_damping': 0.1,
                            'newton_adaptive_tol_mech': 2,
                            'newton_line_search': 0,
-                           'newton_maxit_mech': 1,
                            'newton_tol_mech': 1e-3,
                            'newton_tol_cvsys': 1e-3,
                            'newton_atol_mech': 1e-3,
@@ -243,7 +241,7 @@ def use_unloaded_mesh(args):
               os.path.join(args.mesh_path, args.mesh_name + "_unloaded")
               )
 
-    os.system("cp " + os.path.join(args.sim_name, "reference.pts ") +
+    os.system("cp " + os.path.join(args.sim_name[:-11] + "unloading", "reference.pts ") +
               os.path.join(args.mesh_path, args.mesh_name + "_unloaded.pts"))
 
     os.system(MESHTOOL_EXE_PATH + " convert -ifmt=carp_txt -ofmt=carp_bin -imsh=" +
@@ -305,7 +303,7 @@ def setup_material(args):
     aorta = model.mechanics.NeoHookeanMaterial([5], 'Aorta', kappa=kappa, c=args.scaling_aorta)
     pa = model.mechanics.NeoHookeanMaterial([6], 'Pulmonary_Artery', kappa=kappa, c=args.scaling_PA)
     veins = model.mechanics.NeoHookeanMaterial([18, 19, 20, 21, 22, 23, 24], 'BC Veins', kappa=kappa,
-                                               c=args.scaling_extra_tissue)
+                                               c=args.scaling_neohookean)
 
     mech_opts += model.optionlist([ventricles, atria, valves, inlets, aorta, pa, veins])
 
@@ -319,7 +317,7 @@ def setup_bc(args):
     Assignment of the parameters related to the boundary and initial conditions.
     """
 
-    if args.type_of_simulation == 'contraction':
+    if args.type_of_simulation == 'contraction' or args.type_of_simulation == 'unloading':
         args.num_mechanic_nbc += 1
         args.num_mechanic_bs += 1
 
@@ -345,7 +343,7 @@ def setup_bc(args):
            '-mechanic_nbc[4].pressure', str(float(args.RV_EDP)*0.133322)  # kPa
            ]
 
-    if args.type_of_simulation == 'contraction':
+    if args.type_of_simulation == 'contraction' or args.type_of_simulation == 'unloading':
         pericardium_file = os.path.join(args.mesh_path, 'pericardium_penalty')
         nbc += ['-num_mechanic_ed', args.num_mechanic_ed,
                 '-mechanic_ed[0].ncomp', 1,
@@ -402,9 +400,9 @@ def setup_active_stress(args):
                 '-num_stim', 0,
                 '-imp_region[0].name', 'passive',
                 '-imp_region[0].im', 'PASSIVE',
-                '-imp_region[0].num_IDs', 39]
+                '-imp_region[0].num_IDs', len(args.ventricular_tags) + len(args.atria_tags) + len(args.passive_tags)]
 
-        for ventricular_tag in range(39):
+        for ventricular_tag in range(len(args.ventricular_tags) + len(args.atria_tags) + len(args.passive_tags)):
             opts += ['-imp_region[0].ID['+str(ventricular_tag)+']', ventricular_tag+1]
     else:
         opts = ['-mech_use_actStress', 1,
@@ -461,6 +459,11 @@ def set_solver_options(args):
     Assignment of the parameters related to the mechanics solver.
     """
 
+    if args.type_of_simulation == 'unloading':
+        newton_maxit_mech = 20
+    else:
+        newton_maxit_mech = 5
+
     # Track tissue volume
     mech_opts = ['-volumeTracking', 1,  # Keep track of myocardial volume changes due to mechanical deformation
                  '-numElemVols', 1,  # Number of mesh volumes to keep track of.
@@ -476,7 +479,7 @@ def set_solver_options(args):
                  '-newton_adaptive_tol_mech', args.newton_adaptive_tol_mech,
                  '-newton_tol_cvsys', args.newton_tol_cvsys,
                  '-newton_line_search', args.newton_line_search,
-                 '-newton_maxit_mech', args.newton_maxit_mech,
+                 '-newton_maxit_mech', newton_maxit_mech,
                  '-mech_activate_inertia', args.mech_activate_inertia,
                  '-mass_lumping', args.mass_lumping,
                  '-mech_rho_inf', args.mech_rho_inf,
