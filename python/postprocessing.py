@@ -1,3 +1,4 @@
+import csv
 from datetime import date
 from functools import partial
 from itertools import combinations
@@ -22,6 +23,8 @@ from gpytGPE.gpe import GPEmul
 from gpytGPE.utils.plotting import gsa_box, gsa_donut, gsa_network, gsa_heat, correct_index
 from Historia.history import hm
 from Historia.shared.plot_utils import interp_col, get_col
+
+import fitting_hm
 
 SEED = 2
 # ----------------------------------------------------------------
@@ -1026,3 +1029,159 @@ def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
     plt.savefig(
         savepath + feature + "_first_order_effects.png", bbox_inches="tight", dpi=300
     )
+
+
+def emulate_output_anatomy(feature, ci, normalise = False):
+    # To predict: feature
+    # As much input as possible
+
+    ct_modes_csv = os.path.join("/data","fitting","match","CT_cohort_modes_weights.csv")
+    path_figures = os.path.join("/data","fitting","anatomy","figures")
+
+    all_ct_modes = np.genfromtxt(ct_modes_csv, delimiter=',', skip_header=True)
+    wanted_ct_modes = all_ct_modes[:,1:10]
+
+    ct_simulation_output_csv = os.path.join("/data","fitting","match","CT_simulation_output.csv")
+
+    all_ct_simulation_output = np.genfromtxt(ct_simulation_output_csv, delimiter=',',
+                                             skip_header=True)
+    wanted_ct_simulation_output = np.insert(all_ct_simulation_output[:,1:], 8, np.nan, axis = 0)
+    wanted_ct_simulation_output = np.insert(wanted_ct_simulation_output, 8, np.nan, axis = 0)
+
+    index_output_dict = {"TAT": 12,
+                         "LVV": 0,
+                         "LVmass": 1,
+                         "RVV": 15}
+    units_output_dict = {"TAT": "ms",
+                         "LVV": "mL",
+                         "LVmass": "g",
+                         "RVV": "mL"}
+
+    ep_param_paper = np.array([80, 70, 0.8, 0.29, 7])
+
+
+    _, _, emul = fitting_hm.run_GPE(waveno=2, train=False, active_feature=[feature], n_samples=280, training_set_memory=2,
+                                    subfolder="anatomy", only_feasible=False)
+
+    prediction_input = np.hstack((wanted_ct_modes,np.tile(ep_param_paper,[wanted_ct_modes.shape[0],1])))
+
+    y_pred_mean, y_pred_std = emul.predict(prediction_input)
+    y_simul = wanted_ct_simulation_output[:, index_output_dict[feature]]
+
+    if normalise:
+        y_pred_std = np.copy(y_pred_std/y_pred_mean)
+        y_simul = np.copy(y_simul/y_pred_mean)
+        y_pred_mean = np.copy(y_pred_mean / y_pred_mean)
+
+    inf_bound = []
+    sup_bound = []
+
+    height = 9.36111
+    width = 5.91667
+    fig, axes = plt.subplots(1, 1, figsize=(2 * width, 2 * height / 4))
+
+    inf_bound.append([(y_pred_mean - ci * y_pred_std).min(), np.nanmin(y_simul)])
+    sup_bound.append([(y_pred_mean + ci * y_pred_std).max(), np.nanmax(y_simul)])
+
+    l = np.array(range(len(y_pred_mean)))
+
+    axes.scatter(
+        np.arange(len(l)),
+        y_simul[l],
+        facecolors="none",
+        edgecolors="C0",
+        label="Reported simulations",
+    )
+
+    axes.scatter(
+        np.arange(len(l)),
+        y_pred_mean[l],
+        facecolors="C0",
+        s=16,
+        label="Emulated results",
+    )
+    axes.errorbar(
+        np.arange(len(l)),
+        y_pred_mean[l],
+        yerr=ci * y_pred_std[l],
+        c="C0",
+        ls="none",
+        lw=0.5,
+        label=f"uncertainty ({ci} SD)",
+    )
+
+    axes.set_xticks(np.arange(19))
+    axes.set_xticklabels(np.arange(1,20))
+    axes.set_xlabel("CT subject", fontsize=12)
+    if not normalise:
+        axes.set_ylabel(units_output_dict[feature], fontsize=12)
+        axes.set_title(feature + " emulation vs simulation results in the CT cohort | Mean std: "
+                       +str(round(np.mean(y_pred_std),4)), fontsize=12,)
+        figure_name = "emul_vs_simul_CT_" + feature
+        axes.set_ylim([0.95 * np.nanmin(inf_bound), 1.05 * np.nanmax(sup_bound)])
+    else:
+        axes.set_title("Normalised " + feature + " emulation vs simulation results in the CT "
+                                                 "cohort | Mean std: " +
+                       str(round(np.mean(y_pred_std),4)), fontsize=12, )
+        figure_name = "emul_vs_simul_CT_" + feature + "_normalised"
+        axes.set_ylim([0,2])
+
+    axes.legend(loc="upper left")
+
+
+    fig.tight_layout()
+
+
+    plt.savefig(os.path.join(path_figures, figure_name + ".png"), bbox_inches="tight", dpi=300)
+    plt.close()
+
+
+def infer_parameters_anatomy():
+
+    # active_features = ["LVV", "RVV", "LAV", "RAV", "LVOTdiam", "RVOTdiam", "LVmass",
+    #                    "LVWT", "LVEDD", "SeptumWT", "RVlongdiam", "RVbasaldiam",
+    #                    "TAT", "TATLVendo"]
+
+    active_features = ["LVV", "RVV", "LVmass", "TAT"]
+
+    ct_simulation_output_csv = os.path.join("/data", "fitting", "match", "CT_simulation_output.csv")
+
+    all_ct_simulation_output = np.genfromtxt(ct_simulation_output_csv, delimiter=',',
+                                             skip_header=True)
+    wanted_ct_simulation_output = np.insert(all_ct_simulation_output[:, 1:], 8, np.nan, axis=0)
+    wanted_ct_simulation_output = np.insert(wanted_ct_simulation_output, 8, np.nan, axis=0)
+
+    index_output_dict = {"TAT": 12,
+                         "LVV": 0,
+                         "LVmass": 1,
+                         "RVV": 15}
+
+    idx_to_use = [index_output_dict[feature] for feature in active_features]
+
+    wanted_ct_simulation_output = wanted_ct_simulation_output[:,idx_to_use]
+
+    exp_mean = np.nanmean(wanted_ct_simulation_output,axis=0)
+    # exp_std = np.nanmean(wanted_ct_simulation_output,axis=0)
+
+    wave = hm.Wave()
+    wave.load(os.path.join("/data/fitting", "anatomy", "wave2", "wave_2"))
+
+    difference_matrix = np.empty((0,len(wave.NIMP)))
+
+    for i, output_name in enumerate(active_features):
+        _, _, emul = fitting_hm.run_GPE(waveno=2, train=False, active_feature=[output_name], n_samples=280,
+                             training_set_memory=2, subfolder="anatomy", only_feasible=False)
+        mean_prediction, std_prediction = emul.predict(wave.NIMP)
+        difference_matrix = np.vstack((difference_matrix, (exp_mean[i] - mean_prediction)/exp_mean[i]))
+
+    matrix_to_minimise = np.linalg.norm(difference_matrix, axis=0)
+
+    winner_idx = np.argmin(matrix_to_minimise)
+
+    xlabels_EP = read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy, xlabels_EP] for lab in sublist]
+
+    print("Suggested input:")
+    for i, lab in enumerate(xlabels):
+        print(lab + "=" + str(wave.NIMP[winner_idx][i]))
