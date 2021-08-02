@@ -10,17 +10,11 @@ import tqdm
 
 import fibres
 import files_manipulations
+from global_variables_config import *
 import prepare_mesh
 import run_EP
 import UVC
 
-PROJECT_PATH = "/data/fitting"
-ANATOMY_CSV = "X_anatomy.csv"
-PERICARDIUM_FILE = "pericardium_penalty.dat"
-BIV_EPI_NAME = "biv.epi"
-SURF_EXTENSION = ".surf"
-X_EP_FILE = "x_ep.dat"
-SEED = 2
 np.random.seed(SEED)
 
 

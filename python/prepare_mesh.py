@@ -8,8 +8,7 @@ import pathlib
 
 import files_manipulations
 
-PROJECT_PATH = "/data/fitting"
-
+from global_variables_config import *
 
 def vtk_mm2carp_um(fourch_name, subfolder="."):
     """Function to convert to carp format and convert the pts to micrometre

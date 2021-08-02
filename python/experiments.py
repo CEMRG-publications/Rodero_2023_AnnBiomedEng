@@ -4,10 +4,9 @@ import sys
 
 import custom_plots
 import fitting_hm
+import global_variables_config
 from Historia.shared.design_utils import read_labels, get_minmax
 from Historia.history import hm
-
-PROJECT_PATH = "/data/fitting"
 
 def summary_plots(wave_to_plot, experiment_name,
                     output_labels_dir = os.path.join("/data","fitting", "EP_output_labels.txt"),

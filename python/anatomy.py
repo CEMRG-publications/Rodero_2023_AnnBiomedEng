@@ -10,11 +10,11 @@ import tqdm
 
 import CardiacMeshConstruction.pipeline as PCApip
 import fibres
+from global_variables_config import *
 import UVC
 import run_EP
 import files_manipulations
 
-SEED = 2
 # ----------------------------------------------------------------
 # Make the code reproducible
 # random.seed(SEED)

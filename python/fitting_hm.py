@@ -19,8 +19,7 @@ import postprocessing
 import mechanics
 
 # Global variables
-SEED = 2
-PROJECT_PATH = "/data/fitting"
+from global_variables_config import *
 
 
 # ----------------------------------------------------------------

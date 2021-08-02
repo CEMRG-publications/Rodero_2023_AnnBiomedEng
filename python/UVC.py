@@ -6,8 +6,7 @@ import collections
 
 import files_manipulations
 
-PROJECT_PATH = "/data/fitting"
-
+from global_variables_config import *
 
 def create(fourch_name, base, subfolder="."):
     """Function to create Universal Ventricular Coordinates

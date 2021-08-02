@@ -5,10 +5,7 @@ import tqdm
 import shutil
 
 import files_manipulations
-
-PROJECT_PATH = "/data/fitting"
-ACTIVATION_FILE = "phie.dat"
-
+from global_variables_config import *
 
 def run_laplacian(fourch_name="Full_Heart_Mesh_Template", experiment=None):
     """Function to run all the laplacian simulations of Bayer 2012.

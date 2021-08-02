@@ -26,7 +26,7 @@ from Historia.shared.plot_utils import interp_col, get_col
 
 import fitting_hm
 
-SEED = 2
+from global_variables_config import *
 # ----------------------------------------------------------------
 # Make the code reproducible
 random.seed(SEED)
@@ -1182,6 +1182,5 @@ def infer_parameters_anatomy():
     xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy, xlabels_EP] for lab in sublist]
 
-    print("Suggested input:")
     for i, lab in enumerate(xlabels):
-        print(lab + "=" + str(wave.NIMP[winner_idx][i]))
+        print("Emulated " + lab + "=" + str(round(wave.NIMP[winner_idx][i],6)))

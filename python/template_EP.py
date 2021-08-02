@@ -14,7 +14,7 @@ import run_EP
 import files_manipulations
 from Historia.shared.design_utils import read_labels
 
-SEED = 2
+from global_variables_config import *
 
 def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
     """Function to generate the first points to run EP in the template.
