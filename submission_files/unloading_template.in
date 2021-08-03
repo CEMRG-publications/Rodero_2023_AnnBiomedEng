@@ -31,7 +31,7 @@ guccione_params="a=1.720,b_f=8.0,b_fs=4.0,b_t=3.0,kappa=1000"
 neohookean_params="c=8.375,kappa=1000"
 AV_resistance=
 PV_resistance=
-tanh_params=
+tanh_params="t_emd=20.0,Tpeak=108.000,tau_c0=50.0,tau_r=50.0,t_dur=605.000,lambda_0=0.7,ld=6.0,ld_up=0.0,ldOn=1,VmThresh=-60.0"
 ################################################################################
 # Execute shell commands
 
@@ -44,9 +44,9 @@ mpiexec -np $NPROC $CARPENTRYDIR/carp.pt \
   +F $solver_folder/options/pt_ell_amg_large \
   +F $solver_folder/options/pt_para_amg_large \
   +F $solver_folder/options/pt_mech_amg_large \
-  -ellip_use_pt 0 \
+  -ellip_use_pt 1 \
   -parab_use_pt 1 \
-  -purk_use_pt 0 \
+  -purk_use_pt 1 \
   -mech_use_pt 1 \
   -ellip_options_file $solver_folder/options/pt_ell_amg_large \
   -parab_options_file $solver_folder/options/pt_para_amg_large \

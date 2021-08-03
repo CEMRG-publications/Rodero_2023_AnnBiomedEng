@@ -4,12 +4,9 @@ clear
 
 template_path="/home/crg17/Desktop/KCL_projects/fitting/submission_files"
 template_name=""
-time_days=0
-time_hours="00"
-time_minutes="00"
-time_seconds="00"
 ncores=64
 nnodes=8
+walltime="0-00:05:00"
 type_of_simulation=""
 solver_folder="/scratch/crg17/solver_files/resources"
 sim_name="/scratch/crg17/simulations/test_unloading"
@@ -39,10 +36,6 @@ function Usage(){
     echo "--ncores: Number of cores per node to use. Default and maximum is 64."
     echo "--nnodes: Number of nodes to use. Default and maximum is 8."
     echo "--type_of_simulation: Type of simulation. Options are unloading or contraction."
-    echo "-td/--time_days: Days (with one digit) in wall time when the simulation will be killed. Default is 0."
-    echo "-th/--time_hours: Hours (with two digits) in wall time when the simulation will be killed. Default is 00."
-    echo "-tm/--time_minutes: Hours (with two digits) in wall time when the simulation will be killed. Default is 00."
-    echo "-ts/--time_seconds: Seconds (with two digits) in wall time when the simulation will be killed. Default is 00."
     echo "-h/--help: Parameters usage."
 }
 
@@ -53,45 +46,6 @@ function Warnings(){
         echo "Invalid simulation type. Options are unloading or contraction."
         exit 1
         fi
-    fi
-
-    nchar="${#time_days}"
-    if [ $nchar -ne 1 ]; then
-    echo "Days in wall time (-td/--time_days) needed with one digit."
-    exit 1
-    fi
-
-    nchar="${#time_hours}"
-    if [ $nchar -ne 2 ]; then
-    echo "Hours in wall time (-th/--time_hours) needed with two digits."
-    exit 1
-    fi
-
-    nchar="${#time_minutes}"
-    if [ $nchar -ne 2 ]; then
-    echo "Minutes in wall time (-tm/--time_minutes) needed with two digits."
-    exit 1
-    fi
-
-    nchar="${#time_seconds}"
-    if [ $nchar -ne 2 ]; then
-    echo "Seconds in wall time (-ts/--time_seconds) needed with two digits."
-    exit 1
-    fi
-
-    if [ "$time_hours" -ge 24 ]; then
-    echo "Hours in wall time should be less than 24."
-    exit 1
-    fi
-
-    if [ "$time_minutes" -ge 60 ]; then
-    echo "Minutes in wall time should be less than 60."
-    exit 1
-    fi
-
-    if [ "$time_seconds" -ge 60 ]; then
-    echo "Seconds in wall time should be less than 60."
-    exit 1
     fi
 
     if [ "$ncores" -gt 64 ]; then
@@ -134,18 +88,6 @@ while [ "$1" != "" ]; do
        --type_of_simulation ) shift
                                          type_of_simulation=$1
                                          ;;
-      -td | --time_days )      shift
-                                time_days=$1
-                                ;;
-      -th | --time_hours )    shift
-                                time_hours=$1
-                                ;;
-        -tm | --time_minutes )  shift
-                                time_minutes=$1
-                                ;;
-        -ts | --time_seconds )  shift
-                                time_seconds=$1
-                                ;;
         --solver_folder ) shift
                           solver_folder=$1
                           ;;
@@ -215,6 +157,9 @@ while [ "$1" != "" ]; do
         --tanh_params ) shift
                           tanh_params=$1
                           ;;
+        --walltime ) shift
+                          walltime=$1
+                          ;;
         -h | --help )           Usage
                                 exit
                                 ;;
@@ -250,7 +195,7 @@ Substitute_line $line_num "$line_str"
 # Substitute WALLTIME
 
 line_num=5
-line_str="#SBATCH -t $time_days-$time_hours:$time_minutes:$time_seconds"
+line_str="#SBATCH -t $walltime"
 
 Substitute_line $line_num "$line_str"
 
