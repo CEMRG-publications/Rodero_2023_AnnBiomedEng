@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #SBATCH -p compute
-#SBATCH -J sim_name
+#SBATCH --job-name=JOB_sim_name
+#SBATCH --output=JOB_simname.out
 #SBATCH -t 0-24:00:00
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=64

@@ -41,8 +41,8 @@ if __name__ == "__main__":
         if os.path.exists(os.path.join(meshes_path, "simulations", sim_name)):
             if force_restart:
                 os.system("rm -r " + os.path.join(meshes_path, "simulations", sim_name))
-                os.system("rm " + os.path.join(meshes_path, "simulations", sim_name) + ".in")
-                # os.system("rm " + os.path.join(script_path, "JOB_" + sim_name + ".out"))
+                os.system("rm " + os.path.join(meshes_path, "simulations", "JOB_" + sim_name) + ".in")
+                os.system("rm " + os.path.join(script_path, "JOB_" + sim_name + ".out"))
             else:
                 flag_run = False
 
@@ -77,4 +77,5 @@ if __name__ == "__main__":
                       ' --template_path ' + template_path +
                       ' --template_name ' + template_name
                       )
-            # os.system("sbatch JOB_" + sim_name + ".out")
+
+            os.system("sbatch " + os.path.join(meshes_path, "simulations", "JOB_" + sim_name + ".in"))

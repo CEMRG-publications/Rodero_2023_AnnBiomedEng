@@ -70,8 +70,6 @@ function Warnings(){
     }
 
 function Substitute_line {
-#    cmd="sed -i '$1"s"/.*/$2/' $simulation_path"/"$simulation_name"
-#    cmd="sed -i '$1"s"/.*/$2/' $simulation_path"/"$simulation_name"
     cmd="sed -i '$1 s|.*|$2|' $simulation_path'/'$simulation_name"
     eval "$cmd"
 }
@@ -172,7 +170,7 @@ done
 
 Warnings
 
-simulation_name=$sim_name".in"
+simulation_name="JOB_"$sim_name".in"
 
 # We copy the template to a new file substituting the lines we want
 cmd="mkdir -p "$simulation_path
@@ -188,27 +186,33 @@ eval "$cmd"
 
 # Substitute sim_name
 line_num=4
-line_str="#SBATCH -J "$sim_name
+line_str="#SBATCH --job-name=JOB_"$sim_name
+
+Substitute_line $line_num "$line_str"
+
+# Substitute output
+line_num=5
+line_str="#SBATCH --output=JOB_"$sim_name".out"
 
 Substitute_line $line_num "$line_str"
 
 # Substitute WALLTIME
 
-line_num=5
+line_num=6
 line_str="#SBATCH -t $walltime"
 
 Substitute_line $line_num "$line_str"
 
 # Substitute --nodes
 
-line_num=6
+line_num=7
 line_str="#SBATCH --nodes="$nnodes
 
 Substitute_line $line_num "$line_str"
 
 # Substitute --ntasks-per-node
 
-line_num=7
+line_num=8
 line_str="#SBATCH --ntasks-per-node="$ncores
 
 Substitute_line $line_num "$line_str"
@@ -217,109 +221,109 @@ Substitute_line $line_num "$line_str"
 
 NPROC=$((ncores*nnodes))
 
-line_num=11
+line_num=12
 line_str="NPROC="$NPROC
 
 Substitute_line $line_num "$line_str"
 
 #------- Custom parameters
 
-line_num=15
+line_num=16
 line_str="solver_folder="\"$solver_folder\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=16
+line_num=17
 line_str="sim_name="\"$sim_name\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=17
+line_num=18
 line_str="mesh_path="\"$mesh_path\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=18
+line_num=19
 line_str="mesh_name="\"$mesh_name\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=19
+line_num=20
 line_str="AT_path="\"$AT_path\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=20
+line_num=21
 line_str="AT_name="\"$AT_name\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=21
+line_num=22
 line_str="LV_EDP_mmHg="$LV_EDP_mmHg
 
 Substitute_line $line_num "$line_str"
 
-line_num=22
+line_num=23
 line_str="LV_EDP_kPa="$LV_EDP_kPa
 
 Substitute_line $line_num "$line_str"
 
-line_num=23
+line_num=24
 line_str="RV_EDP_mmHg="$RV_EDP_mmHg
 
 Substitute_line $line_num "$line_str"
 
-line_num=24
+line_num=25
 line_str="RV_EDP_kPa="$RV_EDP_kPa
 
 Substitute_line $line_num "$line_str"
 
-line_num=25
+line_num=26
 line_str="Ao_EDP_mmHg="$Ao_EDP_mmHg
 
 Substitute_line $line_num "$line_str"
 
-line_num=26
+line_num=27
 line_str="Ao_EDP_kPa="$Ao_EDP_kPa
 
 Substitute_line $line_num "$line_str"
 
-line_num=27
+line_num=28
 line_str="PA_EDP_mmHg="$PA_EDP_mmHg
 
 Substitute_line $line_num "$line_str"
 
-line_num=28
+line_num=29
 line_str="PA_EDP_kPa="$PA_EDP_kPa
 
 Substitute_line $line_num "$line_str"
 
-line_num=29
+line_num=30
 line_str="spring_BC="$spring_BC
 
 Substitute_line $line_num "$line_str"
 
-line_num=30
+line_num=31
 line_str="guccione_params="\"$guccione_params\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=31
+line_num=32
 line_str="neohookean_params="\"$neohookean_params\"
 
 Substitute_line $line_num "$line_str"
 
-line_num=32
+line_num=33
 line_str="AV_resistance="$AV_resistance
 
 Substitute_line $line_num "$line_str"
 
-line_num=33
+line_num=34
 line_str="PV_resistance="$PV_resistance
 
 Substitute_line $line_num "$line_str"
 
-line_num=34
+line_num=35
 line_str="tanh_params="\"$tanh_params\"
 
 Substitute_line $line_num "$line_str"
