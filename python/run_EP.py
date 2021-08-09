@@ -8,7 +8,7 @@ import files_manipulations
 
 def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
               CV_l = None, k_fibre = None, k_fec = None,
-              simulation_file_name = None, path_ep = ""):
+              simulation_file_name = None, path_ep = "",subfolder="."):
               
 
     """Function with CARP arguments that creates an init file to then run
@@ -32,7 +32,7 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
     CV_t = float(CV_l)*float(k_fibre)
     CV_fec = float(CV_l)*float(k_fec)
 
-    path2biv = os.path.join("/data","fitting",fourch_name, "biv")
+    path2biv = os.path.join("/data","fitting",subfolder,fourch_name, "biv")
     lastfectag = int(float(lastfectag))
     tags_myo = np.append([1, 2],range(lastfectag + 1, 39))
     tags_fec = np.array(range(25,lastfectag + 1))
@@ -67,7 +67,7 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
 
 
 def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_epi=None, simulation_file_name=None,
-                path_ep="", map_to_fourch=False):
+                path_ep="", map_to_fourch=False, subfolder='.'):
     """Function to run an EP simulation using ekbatch from an init file.
 
     Args:
@@ -84,7 +84,7 @@ def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_e
         map_to_fourch: If True, maps the resulting activation times file to the four chamber
         mesh, as long as it doesn't exist already.
     """
-    path2fourch = os.path.join("/data", "fitting", fourch_name)
+    path2fourch = os.path.join("/data", "fitting", subfolder, fourch_name)
     path2biv = os.path.join(path2fourch, "biv")
     path2sim = path_ep
 
