@@ -434,7 +434,7 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
 
         boundary_surfaces(fourch_name=mesh_name, subfolder=subfolder)
 
-        meshes_batch = str(int(i/50))
+        meshes_batch = str(int(i/10))
         at_name = '{0:.2f}'.format(alpha)+'{0:.2f}'.format(fec_height)+'{0:.2f}'.format(cv_l)+'{0:.2f}'.format(k_fec)
         full_simulation_name = mesh_name + at_name
 
