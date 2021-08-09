@@ -189,8 +189,8 @@ def full_pipeline(fourch_name="Full_Heart_Mesh_Template", subfolder=".", alpha_e
     if not os.path.isfile(os.path.join(fibre_dir, outname + ".lon")):
         rb_bayer(subfolder + "/" + fourch_name, alpha_epi, alpha_endo)
         biv_lon_corrected = fibre_correction(subfolder + "/" + fourch_name, alpha_epi, alpha_endo)
-        biv_lon_corrected.normalise(biv_lon_corrected.f1, biv_lon_corrected.f2, biv_lon_corrected.f3)
-        biv_lon_corrected.write(os.path.join(fibre_dir, outname + ".lon"))
+        biv_lon_corrected_normalised = biv_lon_corrected.normalise(biv_lon_corrected.f1, biv_lon_corrected.f2, biv_lon_corrected.f3)
+        biv_lon_corrected_normalised.write(os.path.join(fibre_dir, outname + ".lon"))
 
     shutil.copy(os.path.join(biv_dir, "biv.pts"), os.path.join(fibre_dir, outname + ".pts"))
     shutil.copy(os.path.join(biv_dir, "biv.elem"), os.path.join(fibre_dir, outname + ".elem"))
