@@ -21,14 +21,27 @@ if __name__ == "__main__":
 
     for simulation in anatomy_ep_mechanics_values:
         values = simulation.split(' ')
-        mesh_path = "heart_" + ''.join(values[0:6])
+        AT_name = ''.join(values[6:10])
+
+        mesh_path = "heart_" + ''.join(values[0:6]) + AT_name
 
         sim_name = "heart_" + ''.join(values) + "_" + type_of_simulation
         if type_of_simulation == "unloading":
             mesh_name = "heart_" + ''.join(values[0:6]) + "_ED"
         if type_of_simulation == "contraction":
             mesh_name = "heart_" + ''.join(values[0:6]) + "_unloaded"
-        AT_name = ''.join(values[6:10])
+            os.system("meshtool convert -ifmt=carp_bin -ofmt=carp_txt -imsh=" +
+                      os.path.join(meshes_path, "meshes", mesh_path, "heart_" + ''.join(values[0:6]) + "_ED") +
+                      " -omsh=" + os.path.join(meshes_path, "meshes", mesh_path, mesh_name))
+            os.system("cp " + os.path.join(meshes_path, "simulations", "heart_" + ''.join(values) + "_unloading", "reference.pts") + " " +
+                      os.path.join(meshes_path, "meshes", mesh_path, mesh_name + ".pts"))
+            os.system("meshtool convert -ifmt=carp_txt -ofmt=carp_bin -imsh=" +
+                      os.path.join(meshes_path, "meshes", mesh_path, mesh_name) +
+                      " -omsh=" + os.path.join(meshes_path, "meshes", mesh_path, mesh_name))
+            os.system("rm " + os.path.join(meshes_path, "meshes", mesh_path, mesh_name + ".elem"))
+            os.system("rm " + os.path.join(meshes_path, "meshes", mesh_path, mesh_name + ".pts"))
+            os.system("rm " + os.path.join(meshes_path, "meshes", mesh_path, mesh_name + ".lon"))
+
         tanh_params = "t_emd=20.0,Tpeak=" + values[19] + ",tau_c0=50.0,tau_r=50.0,t_dur=" + values[20] + ",lambda_0=0.7,ld=6.0,ld_up=0.0,ldOn=1,VmThresh=-60.0"
         LV_EDP_kPa = str(float(values[10])*mmHg_to_kPa)
         RV_EDP_kPa = str(float(values[11])*mmHg_to_kPa)
@@ -53,9 +66,9 @@ if __name__ == "__main__":
                       ' --type_of_simulation ' + type_of_simulation +
                       ' --simulation_path ' + os.path.join(meshes_path, "simulations") +
                       ' --sim_name ' + sim_name +
-                      ' --mesh_path ' + os.path.join(meshes_path, "meshes", mesh_path + AT_name) +
+                      ' --mesh_path ' + os.path.join(meshes_path, "meshes", mesh_path) +
                       ' --mesh_name ' + mesh_name +
-                      ' --AT_path ' + os.path.join(meshes_path, "meshes", mesh_name + AT_name) +
+                      ' --AT_path ' + os.path.join(meshes_path, "meshes", mesh_path) +
                       ' --AT_name ' + AT_name +
                       ' --LV_EDP_mmHg ' + values[10] +
                       ' --LV_EDP_kPa ' + LV_EDP_kPa +
