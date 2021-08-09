@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 flag_run = False
 
         if flag_run:
-            os.chdir(os.path.join(meshes_path, "simulations", sim_name))
+            os.chdir(os.path.join(meshes_path, "simulations"))
 
             os.system(os.path.join(script_path, scripts_name) +
                       ' --type_of_simulation ' + type_of_simulation +
@@ -55,7 +55,5 @@ if __name__ == "__main__":
                       ' --peak_isometric_tension ' + values[19] +
                       ' --transient_dur ' + values[20] +
                       ' --runtime ' + runtime +
-                      ' --np ' + str(int(nodes*128)) +
-                      ' --dry'
+                      ' --np ' + str(int(nodes*128))
                       )
-            os.system("sbatch JOB_" + sim_name + ".out")
