@@ -292,25 +292,25 @@ class pts:
 
         return pts(new_p1, new_p2, new_p3, self.name)
 
-    # def min_dist(self, p):
+    def min_dist(self, p):
 
 
-    #     dist_vec = np.array([])
-    #     for i in range(self.size):
-    #         dist_vec = np.append(dist_vec,
-    #                             np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
-    #                                           )
-    #                             )
-    #     return min(dist_vec)
+        dist_vec = np.array([])
+        for i in range(self.size):
+            dist_vec = np.append(dist_vec,
+                                np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
+                                              )
+                                )
+        return min(dist_vec)
     
-    # def where_min(self, p):
-    #     dist_vec = np.array([])
-    #     for i in range(self.size):
-    #         dist_vec = np.append(dist_vec,
-    #                             np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
-    #                                           )
-    #                             )
-    #     return dist_vec.index(min(dist_vec))
+    def where_min(self, p):
+        dist_vec = np.array([])
+        for i in range(self.size):
+            dist_vec = np.append(dist_vec,
+                                np.linalg.norm(p - np.array([self.p1[i], self.p2[i], self.p3[i]])
+                                              )
+                                )
+        return dist_vec.index(min(dist_vec))
 
     def write(self,pathname):
         """Function to write a pts object to a file.
