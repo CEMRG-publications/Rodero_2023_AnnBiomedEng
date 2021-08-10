@@ -122,29 +122,30 @@ def fibre_correction(fourch_name="Full_Heart_Mesh_Template", alpha_epi=-60, alph
                   biv_pts.p3[biv_elem.i4[index_to_correct]]) / 4.
 
             # Find neighbours points in the sphere centred in the centre of gravity
-            def create_sphere(radius=800):
+            def create_sphere(function_radius=800):
                 """Function to create the sphere around the last element.
 
                 Args:
-                    radius (int, optional): Radius of the sphere in micrometers.
+                    function_radius (int, optional): Radius of the sphere in micrometers.
                     Defaults to 800.
 
                 Returns:
                     sphere (array of ints): Array with the indices of the 
                     tetrahedra belonging to the sphere.
                 """
-                resulting_sphere = np.intersect1d(np.where(np.abs(biv_pts.p1-g0) < radius)[0],
-                                                  np.intersect1d(np.where(np.abs(biv_pts.p2-g1) < radius)[0],
-                                                  np.where(np.abs(biv_pts.p3-g2) < radius)[0]
+                resulting_radius = function_radius
+                resulting_sphere = np.intersect1d(np.where(np.abs(biv_pts.p1-g0) < function_radius)[0],
+                                                  np.intersect1d(np.where(np.abs(biv_pts.p2-g1) < function_radius)[0],
+                                                  np.where(np.abs(biv_pts.p3-g2) < function_radius)[0]
                                                                  )
                                                   )
                 if len(resulting_sphere) <= 4:
-                    print("Increasing sphere radius...")
-                    create_sphere(radius=radius + 100)
-                else:
-                    return resulting_sphere
+                    print("Increasing sphere radius for index " + str(index_to_correct) + "...")
+                    resulting_sphere, resulting_radius = create_sphere(function_radius=resulting_radius + 100)
 
-            sphere = create_sphere()
+                return resulting_sphere, resulting_radius
+
+            sphere, radius = create_sphere()
 
             tets_in_sphere_i1 = np.where(np.isin(biv_elem.i1, sphere))
             tets_in_sphere_i2 = np.where(np.isin(biv_elem.i2, sphere))
@@ -154,6 +155,18 @@ def fibre_correction(fourch_name="Full_Heart_Mesh_Template", alpha_epi=-60, alph
             tets_in_sphere = np.intersect1d(np.intersect1d(np.intersect1d(tets_in_sphere_i1, tets_in_sphere_i2),
                                                            tets_in_sphere_i3), tets_in_sphere_i4
                                             )
+
+            while len(tets_in_sphere) <= 1:
+                sphere, radius = create_sphere(function_radius=radius+100)
+
+                tets_in_sphere_i1 = np.where(np.isin(biv_elem.i1, sphere))
+                tets_in_sphere_i2 = np.where(np.isin(biv_elem.i2, sphere))
+                tets_in_sphere_i3 = np.where(np.isin(biv_elem.i3, sphere))
+                tets_in_sphere_i4 = np.where(np.isin(biv_elem.i4, sphere))
+
+                tets_in_sphere = np.intersect1d(np.intersect1d(np.intersect1d(tets_in_sphere_i1, tets_in_sphere_i2),
+                                                               tets_in_sphere_i3), tets_in_sphere_i4
+                                                )
 
             # We take the average direction
 
