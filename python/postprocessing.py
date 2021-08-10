@@ -4,9 +4,11 @@ from functools import partial
 from itertools import combinations
 import numpy as np
 import matplotlib
+import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as grsp
 import multiprocessing
+import scipy
 from scipy.stats import iqr
 import random
 import torch
@@ -1041,99 +1043,92 @@ def emulate_output_anatomy(feature, ci, normalise = False):
     all_ct_modes = np.genfromtxt(ct_modes_csv, delimiter=',', skip_header=True)
     wanted_ct_modes = all_ct_modes[:,1:10]
 
-    ct_simulation_output_csv = os.path.join("/data","fitting","match","CT_simulation_output.csv")
-
-    all_ct_simulation_output = np.genfromtxt(ct_simulation_output_csv, delimiter=',',
-                                             skip_header=True)
-    wanted_ct_simulation_output = np.insert(all_ct_simulation_output[:,1:], 8, np.nan, axis = 0)
-    wanted_ct_simulation_output = np.insert(wanted_ct_simulation_output, 8, np.nan, axis = 0)
-
-    index_output_dict = {"TAT": 12,
-                         "LVV": 0,
-                         "LVmass": 1,
-                         "RVV": 15}
-    units_output_dict = {"TAT": "ms",
-                         "LVV": "mL",
-                         "LVmass": "g",
-                         "RVV": "mL"}
-
     ep_param_paper = np.array([80, 70, 0.8, 0.29, 7])
 
+    output_labels = read_labels(os.path.join("/data","fitting","CT_anatomy","output_labels.txt"))
+    output_units = read_labels(os.path.join("/data","fitting","CT_anatomy","output_units.txt"))
 
-    _, _, emul = fitting_hm.run_GPE(waveno=2, train=False, active_feature=[feature], n_samples=280, training_set_memory=2,
-                                    subfolder="anatomy", only_feasible=False)
-
-    prediction_input = np.hstack((wanted_ct_modes,np.tile(ep_param_paper,[wanted_ct_modes.shape[0],1])))
-
-    y_pred_mean, y_pred_std = emul.predict(prediction_input)
-    y_simul = wanted_ct_simulation_output[:, index_output_dict[feature]]
-
-    if normalise:
-        y_pred_std = np.copy(y_pred_std/y_pred_mean)
-        y_simul = np.copy(y_simul/y_pred_mean)
-        y_pred_mean = np.copy(y_pred_mean / y_pred_mean)
-
-    inf_bound = []
-    sup_bound = []
-
-    height = 9.36111
-    width = 5.91667
-    fig, axes = plt.subplots(1, 1, figsize=(2 * width, 2 * height / 4))
-
-    inf_bound.append([(y_pred_mean - ci * y_pred_std).min(), np.nanmin(y_simul)])
-    sup_bound.append([(y_pred_mean + ci * y_pred_std).max(), np.nanmax(y_simul)])
-
-    l = np.array(range(len(y_pred_mean)))
-
-    axes.scatter(
-        np.arange(len(l)),
-        y_simul[l],
-        facecolors="none",
-        edgecolors="C0",
-        label="Reported simulations",
-    )
-
-    axes.scatter(
-        np.arange(len(l)),
-        y_pred_mean[l],
-        facecolors="C0",
-        s=16,
-        label="Emulated results",
-    )
-    axes.errorbar(
-        np.arange(len(l)),
-        y_pred_mean[l],
-        yerr=ci * y_pred_std[l],
-        c="C0",
-        ls="none",
-        lw=0.5,
-        label=f"uncertainty ({ci} SD)",
-    )
-
-    axes.set_xticks(np.arange(19))
-    axes.set_xticklabels(np.arange(1,20))
-    axes.set_xlabel("CT subject", fontsize=12)
-    if not normalise:
-        axes.set_ylabel(units_output_dict[feature], fontsize=12)
-        axes.set_title(feature + " emulation vs simulation results in the CT cohort | Mean std: "
-                       +str(round(np.mean(y_pred_std),4)), fontsize=12,)
-        figure_name = "emul_vs_simul_CT_" + feature
-        axes.set_ylim([0.95 * np.nanmin(inf_bound), 1.05 * np.nanmax(sup_bound)])
+    if feature == "all":
+        for feature_i in output_labels:
+            emulate_output_anatomy(feature=feature_i, ci=ci, normalise=normalise)
     else:
-        axes.set_title("Normalised " + feature + " emulation vs simulation results in the CT "
-                                                 "cohort | Mean std: " +
-                       str(round(np.mean(y_pred_std),4)), fontsize=12, )
-        figure_name = "emul_vs_simul_CT_" + feature + "_normalised"
-        axes.set_ylim([0,2])
 
-    axes.legend(loc="upper left")
+        y_simul = np.genfromtxt(os.path.join("/data","fitting","CT_anatomy",feature + ".dat"))
 
 
-    fig.tight_layout()
+        _, _, emul = fitting_hm.run_GPE(waveno=2, train=False, active_feature=[feature], n_samples=280, training_set_memory=2,
+                                        subfolder="anatomy", only_feasible=False)
+
+        prediction_input = np.hstack((wanted_ct_modes,np.tile(ep_param_paper,[wanted_ct_modes.shape[0],1])))
+
+        y_pred_mean, y_pred_std = emul.predict(prediction_input)
+
+        if normalise:
+            y_pred_std = np.copy(y_pred_std/y_pred_mean)
+            y_simul = np.copy(y_simul/y_pred_mean)
+            y_pred_mean = np.copy(y_pred_mean / y_pred_mean)
+
+        inf_bound = []
+        sup_bound = []
+
+        height = 9.36111
+        width = 5.91667
+        fig, axes = plt.subplots(1, 1, figsize=(2 * width, 2 * height / 4))
+
+        inf_bound.append([(y_pred_mean - ci * y_pred_std).min(), np.nanmin(y_simul)])
+        sup_bound.append([(y_pred_mean + ci * y_pred_std).max(), np.nanmax(y_simul)])
+
+        l = np.array(range(len(y_pred_mean)))
+
+        axes.scatter(
+            np.arange(len(l)),
+            y_simul[l],
+            facecolors="none",
+            edgecolors="C0",
+            label="Reported simulations",
+        )
+
+        axes.scatter(
+            np.arange(len(l)),
+            y_pred_mean[l],
+            facecolors="C0",
+            s=16,
+            label="Emulated results",
+        )
+        axes.errorbar(
+            np.arange(len(l)),
+            y_pred_mean[l],
+            yerr=ci * y_pred_std[l],
+            c="C0",
+            ls="none",
+            lw=0.5,
+            label=f"uncertainty ({ci} SD)",
+        )
+
+        axes.set_xticks(np.arange(19))
+        axes.set_xticklabels(np.arange(1,20))
+        axes.set_xlabel("CT subject", fontsize=12)
+        if not normalise:
+            axes.set_ylabel(output_units[output_labels.index(feature)], fontsize=12)
+            axes.set_title(feature + " emulation vs simulation results in the CT cohort | Mean std: "
+                           +str(round(np.mean(y_pred_std),4)), fontsize=12,)
+            figure_name = "emul_vs_simul_CT_" + feature
+            axes.set_ylim([0.95 * np.nanmin(inf_bound), 1.05 * np.nanmax(sup_bound)])
+        else:
+            axes.set_title("Normalised " + feature + " emulation vs simulation results in the CT "
+                                                     "cohort | Mean std: " +
+                           str(round(np.mean(y_pred_std),4)), fontsize=12, )
+            figure_name = "emul_vs_simul_CT_" + feature + "_normalised"
+            axes.set_ylim([0,2])
+
+        axes.legend(loc="upper left")
 
 
-    plt.savefig(os.path.join(path_figures, figure_name + ".png"), bbox_inches="tight", dpi=300)
-    plt.close()
+        fig.tight_layout()
+
+
+        plt.savefig(os.path.join(path_figures, figure_name + ".png"), bbox_inches="tight", dpi=300)
+        plt.close()
 
 
 def infer_parameters_anatomy():
@@ -1184,3 +1179,269 @@ def infer_parameters_anatomy():
 
     for i, lab in enumerate(xlabels):
         print("Emulated " + lab + "=" + str(round(wave.NIMP[winner_idx][i],6)))
+
+
+def plot_inference_emulation_discrepancy(plot_title, filename, reduction_function, max_threshold):
+
+    features_names = ["TAT", "LVV"]
+    features_values = [90., 120]
+
+    wave = hm.Wave()
+    wave.load(os.path.join("/data/fitting", "anatomy", "wave2", "wave_2"))
+    X = wave.reconstruct_tests()
+
+    difference_matrix = np.empty((0, len(X)))
+
+    for i, output_name in enumerate(features_names):
+        _, _, emul = fitting_hm.run_GPE(waveno=2, train=False, active_feature=[output_name], n_samples=280,
+                                        training_set_memory=2, subfolder="anatomy", only_feasible=False)
+        mean_prediction, std_prediction = emul.predict(X)
+        difference_matrix = np.vstack((difference_matrix, (features_values[i] - mean_prediction) / features_values[i]))
+
+    # C = 100*np.linalg.norm(difference_matrix, axis=0)
+    C = 100 * np.linalg.norm(difference_matrix, ord=1, axis=0)
+
+    # C = W.I
+
+
+
+    cmap = "jet"
+    vmin = 0
+    vmax = max_threshold
+
+    height = 9.36111
+    width = 5.91667
+    fig = plt.figure(figsize=(3 * width, 3 * height / 3))
+    gs = grsp.GridSpec(
+        wave.input_dim - 1,
+        wave.input_dim,
+        width_ratios=(wave.input_dim - 1) * [1] + [0.1],
+    )
+
+    xlabels_EP = read_labels(os.path.join(PROJECT_PATH,"anatomy", "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH,"anatomy", "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy, xlabels_EP] for lab in sublist]
+
+    path_match = os.path.join(PROJECT_PATH, "match")
+
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_EP)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_EP)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+
+    for k in range(wave.input_dim * wave.input_dim):
+        i = k % wave.input_dim
+        j = k // wave.input_dim
+
+        if i > j:
+            axis = fig.add_subplot(gs[i - 1, j])
+            axis.set_facecolor("xkcd:light grey")
+
+            if (xlabels[i] == "$\mathregular{k_{fibre}}$") or (xlabels[j] == "$\mathregular{k_{fibre}}$"):
+                hexagon_size = 9
+            else:
+                hexagon_size = 25
+
+            if reduction_function == "min":
+                cbar_label = "Min discrepancy (%)"
+                im = axis.hexbin(
+                    X[:, j],
+                    X[:, i],
+                    C=C,
+                    reduce_C_function=np.min,
+                    gridsize=hexagon_size,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                )
+            if reduction_function == "max":
+                cbar_label = "Max discrepancy (%)"
+                im = axis.hexbin(
+                    X[:, j],
+                    X[:, i],
+                    C=C,
+                    reduce_C_function=np.max,
+                    gridsize=hexagon_size,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                )
+
+            axis.set_xlim([param_ranges[j, 0], param_ranges[j, 1]])
+            axis.set_ylim([param_ranges[i, 0], param_ranges[i, 1]])
+
+            if i == wave.input_dim - 1:
+                axis.set_xlabel(xlabels[j], fontsize=12)
+            else:
+                axis.set_xticklabels([])
+            if j == 0:
+                axis.set_ylabel(xlabels[i], fontsize=12)
+            else:
+                axis.set_yticklabels([])
+
+    cbar_axis = fig.add_subplot(gs[:, wave.input_dim - 1])
+    cbar = fig.colorbar(im, cax=cbar_axis, format='%.2f')
+    cbar.set_label(cbar_label, size=12)
+    # fig.tight_layout()
+    plt.suptitle(plot_title, fontsize=18)
+    plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
+
+def plot_cv_vs_fec_template(feature = "TAT"):
+
+    wave = hm.Wave()
+    wave.load(os.path.join("/data", "fitting", "EP_template", "experiment_7_unfiltered", "wave4", "wave_4"))
+    whole_space = wave.reconstruct_tests()
+    fec_height_idx = 4
+    cv_idx = 2
+
+    _, _, emul = fitting_hm.run_GPE(waveno=4, train=False, active_feature=[feature], n_samples=100,
+                                    training_set_memory=2, subfolder="EP_template/experiment_7_unfiltered",
+                                    only_feasible=False)
+
+    whole_space[:,0] = len(whole_space[:,0])*[np.mean(whole_space[:,0])]
+    whole_space[:,3] = len(whole_space[:,3])*[np.mean(whole_space[:,3])]
+    whole_space[:,1] = len(whole_space[:,4])*[np.mean(whole_space[:,1])]
+
+    mean_prediction, _ = emul.predict(whole_space)
+
+    cmap = "jet"
+    vmin = 30
+    vmax = 130
+
+
+    cbar_label = "Mean " + feature + " (ms)"
+    im = plt.hexbin(
+        whole_space[:, cv_idx],
+        whole_space[:, fec_height_idx],
+        C=mean_prediction,
+        reduce_C_function=np.mean,
+        gridsize=30,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+    )
+
+    plt.xlabel("CV (m/s)", fontsize=12)
+    plt.ylabel("FEC height (%)", fontsize=12)
+
+    cbar = plt.colorbar(im, format='%.2f')
+    cbar.set_label(cbar_label, size=12)
+
+    plt.suptitle("Emulated mean " + feature + " in the template mesh", fontsize=18)
+    plt.show()
+
+def plot_param_pairs_fixing_rest(feature="TAT", scenario="EP_template", fix_others=True):
+
+    subfolder = scenario
+
+    if scenario == "EP_template":
+        subfolder += "/experiment_7_unfiltered"
+        emul_num = 4
+        xlabels = read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
+        n_samples = 100
+    elif scenario == "anatomy":
+        emul_num = 2
+        xlabels_ep = read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels_latex.txt"))
+        xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
+        xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
+        n_samples = 280
+
+    else:
+        print("Scenario not accepted.")
+        sys.exit()
+
+    output_labels = read_labels(os.path.join("/data", "fitting", subfolder, "output_labels.txt"))
+    units = read_labels(os.path.join("/data", "fitting", subfolder, "output_units.txt"))
+    cbar_label = "Mean " + feature + " (" + units[output_labels.index(feature)] + ")"
+    plot_title = "Mean pairwise emulation in the last NROY region"
+    filename = os.path.join("/data", "fitting", subfolder, "figures", "pairwise_emulation_" + feature)
+
+    if not fix_others:
+        filename += "_not_fixing"
+
+    wave = hm.Wave()
+    wave.load(os.path.join("/data", "fitting", subfolder, "wave" + str(emul_num), "wave_" + str(emul_num)))
+
+    height = 9.36111
+    width = 5.91667
+    fig = plt.figure(figsize=(3 * width, 3 * height / 3))
+    gs = grsp.GridSpec(
+        wave.input_dim - 1,
+        wave.input_dim,
+        width_ratios=(wave.input_dim - 1) * [1] + [0.1],
+    )
+
+    _, _, emul = fitting_hm.run_GPE(waveno=emul_num, train=False, active_feature=[feature], n_samples=n_samples,
+                                    training_set_memory=2, subfolder=subfolder,
+                                    only_feasible=False)
+
+    for k in range(wave.input_dim * wave.input_dim):
+        i = k % wave.input_dim
+        j = k // wave.input_dim
+
+        if i > j:
+            axis = fig.add_subplot(gs[i - 1, j])
+            axis.set_facecolor("xkcd:light grey")
+
+            if (xlabels[i] == "$\mathregular{k_{fibre}}$") or (xlabels[j] == "$\mathregular{k_{fibre}}$"):
+                hexagon_size = 9
+            else:
+                hexagon_size = 25
+
+            whole_space = wave.reconstruct_tests()
+
+            if fix_others:
+                for third_index in range(wave.input_dim):
+                    if third_index != i and third_index != j:
+                        whole_space[:, third_index] = len(whole_space[:, third_index]) * [np.mean(whole_space[:, third_index])]
+
+            mean_prediction, _ = emul.predict(whole_space)
+
+            cmap = "turbo"
+            vmin = min(mean_prediction)
+            vmax = max(mean_prediction)
+
+            im = plt.hexbin(
+                whole_space[:, j],
+                whole_space[:, i],
+                C=mean_prediction,
+                reduce_C_function=np.mean,
+                gridsize=hexagon_size,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+            )
+
+            if i == wave.input_dim - 1:
+                axis.set_xlabel(xlabels[j], fontsize=12)
+            else:
+                axis.set_xticklabels([])
+            if j == 0:
+                axis.set_ylabel(xlabels[i], fontsize=12)
+            else:
+                axis.set_yticklabels([])
+
+    cbar_axis = fig.add_subplot(gs[:, wave.input_dim - 1])
+    cbar = fig.colorbar(im, cax=cbar_axis, format='%.2f')
+    cbar.set_label(cbar_label, size=12)
+    fig.tight_layout()
+    plt.suptitle(plot_title, fontsize=18)
+    plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
+
+
+def plot_pairwise_emulation_all(scenario, fix_others):
+    subfolder = scenario
+
+    if scenario == "EP_template":
+        subfolder += "/experiment_7_unfiltered"
+
+    feature_labels = read_labels(os.path.join("/data/fitting",subfolder,"output_labels.txt"))
+
+    for feature in feature_labels:
+        plot_param_pairs_fixing_rest(feature=feature, scenario=scenario, fix_others=fix_others)
