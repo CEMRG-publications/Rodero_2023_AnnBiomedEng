@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 
-import custom_plots
+import postprocessing
 import fitting_hm
 import global_variables_config
 from Historia.shared.design_utils import read_labels, get_minmax
@@ -631,6 +631,104 @@ def experiment_anatomy():
     #                     output_labels_dir = output_labels_dir,
     #                     input_labels = xlabels)
 
+
+def experiment_anatomy_bigwave0():
+    """History matching pipeline for the EP + anatomy scenario. Implausibility
+    thresholds, training sets size and number of waves are detailed in the
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots.
+        Defaults to True.
+    """
+    num_input_param = 14
+    experiment_name = "anatomy/meshes"
+    wave_to_plot = -1
+    output_labels_dir = os.path.join("/data", "fitting", experiment_name, "output_labels.txt")
+    units_dir = os.path.join("/data", "fitting", experiment_name, "output_units.txt")
+    exp_mean_name = "exp_mean_anatomy_EP.txt"
+    exp_std_name = "exp_std_anatomy_EP.txt"
+
+    xlabels_EP = read_labels(os.path.join("/data", "fitting", experiment_name, "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data", "fitting", experiment_name, "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy, xlabels_EP] for lab in sublist]
+
+    fitting_hm.anatomy_new_wave(num_wave = 0, run_simulations = True, train_gpe = True,
+                        fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*30),
+                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+                        training_set_memory = 2)
+
+    wave_to_plot = wave_to_plot + 1
+    #
+    # fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
+    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*30),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2)
+    #
+    # wave_to_plot = wave_to_plot + 1
+    #
+    # fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
+    #                     fill_wave_space = True, cutoff = 3.0, n_samples = int(num_input_param*30),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2)
+    #
+    # wave_to_plot = wave_to_plot + 1
+    #
+    # summary_plots(wave_to_plot=wave_to_plot, experiment_name=experiment_name,
+    #               only_feasible=False, output_labels_dir=output_labels_dir,
+    #               exp_mean_name=exp_mean_name, exp_std_name=exp_std_name,
+    #               units_dir=units_dir)
+    # print("Summary plots finished")
+    # custom_plots.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
+    #                     output_labels_dir = output_labels_dir,
+    #                     input_labels = xlabels)
+
+def experiment_anatomy_max_range():
+    """
+    Same as anatomy but taking the input parameter range as the maximum of the CT cases instead of 2SD.
+    """
+    num_input_param = 14
+    experiment_name = "anatomy_max_range"
+    wave_to_plot = -1
+    output_labels_dir = os.path.join("/data","fitting",experiment_name,"output_labels.txt")
+    units_dir = os.path.join("/data","fitting",experiment_name,"output_units.txt")
+    exp_mean_name = "exp_mean_anatomy_EP.txt"
+    exp_std_name = "exp_std_anatomy_EP.txt"
+
+    xlabels_EP = read_labels(os.path.join("/data","fitting", experiment_name, "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data","fitting", experiment_name, "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP] for lab in sublist]
+
+    # fitting_hm.anatomy_new_wave(num_wave = 0, run_simulations = True, train_gpe = True,
+    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2, max_range = True)
+
+    wave_to_plot = wave_to_plot + 1
+
+    fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
+                        fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
+                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+                        training_set_memory = 2, max_range = True)
+
+    wave_to_plot = wave_to_plot + 1
+
+    fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
+                        fill_wave_space = True, cutoff = 3.0, n_samples = int(num_input_param*20),
+                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+                        training_set_memory = 2, max_range = True)
+
+    wave_to_plot = wave_to_plot + 1
+
+    summary_plots(wave_to_plot=wave_to_plot, experiment_name=experiment_name,
+                  only_feasible=False, output_labels_dir=output_labels_dir,
+                  exp_mean_name=exp_mean_name, exp_std_name=exp_std_name,
+                  units_dir=units_dir)
+    print("Summary plots finished")
+    # custom_plots.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
+    #                     output_labels_dir = output_labels_dir,
+    #                     input_labels = xlabels)
+
 def run_experiment(experiment_name):
     """Function to run one of the previously defined history matching pipelines.
 
@@ -655,10 +753,12 @@ def run_experiment(experiment_name):
         experiment_7(only_plot=True)
     elif experiment_name == "anatomy":
         experiment_anatomy()
+    elif experiment_name == "anatomy_bigwave0":
+        experiment_anatomy_bigwave0()
     elif experiment_name == "all":
         for i in range(1,8):
             run_experiment(i)
     
 if __name__ == "__main__":
-    # run_experiment(sys.argv[1])
-    print_NROY_boundaries_anatomy_EP()
+    run_experiment(sys.argv[1])
+    # print_NROY_boundaries_anatomy_EP()

@@ -22,7 +22,7 @@ np.random.seed(SEED)
 # torch.manual_seed(SEED)
 
 
-def input(n_samples = None, waveno = 0, subfolder = "."):
+def input(n_samples = None, waveno = 0, subfolder = ".", max_range = False):
     """Function to generate the input parameter space using sobol' semi random
     sequences.
 
@@ -40,9 +40,15 @@ def input(n_samples = None, waveno = 0, subfolder = "."):
     path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
 
     pathlib.Path(path_gpes).mkdir(parents = True, exist_ok = True)
-    
-    param_ranges_lower_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_lower.dat"), dtype=float)
-    param_ranges_upper_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_upper.dat"), dtype=float)
+
+    if max_range:
+        param_ranges_lower_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_lower_max_range.dat"), dtype=float)
+        param_ranges_upper_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_upper_max_range.dat"), dtype=float)
+    else:
+        param_ranges_lower_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_lower.dat"),
+                                                dtype=float)
+        param_ranges_upper_anatomy = np.loadtxt(os.path.join(path_match, "anatomy_input_range_upper.dat"),
+                                                dtype=float)
 
     param_ranges_lower_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_lower.dat"), dtype=float)
     param_ranges_upper_EP = np.loadtxt(os.path.join(path_match, "EP_input_range_upper.dat"), dtype=float)
@@ -99,8 +105,8 @@ def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
         created.
     """
     
-    path_lab = os.path.join("/data","fitting")
-    path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
+    path_lab = os.path.join("/data","fitting",subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
     temp_outpath = os.path.join(path_lab,"temp_meshes")
     had_to_run_new = False
 
@@ -116,6 +122,8 @@ def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
 
         if (not os.path.isfile(os.path.join(mesh_path,final_base_name + ".elem")) and not os.path.isfile(os.path.join(mesh_path,final_base_name + "_default.elem"))) or force_construction:
             had_to_run_new = True
+            print("COULDN'T FIND ")
+            print(os.path.join(mesh_path,final_base_name + ".elem"))
             if not os.path.isfile(os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + ".vtk")):
                 csv_file_name = os.path.join(temp_outpath,"wave" + str(waveno) + "_" + str(i) + ".csv")
                 np.savetxt(csv_file_name,np.array([anatomy_values[0],anatomy_values[i+1]]),fmt='%s',delimiter='\n')
@@ -130,7 +138,7 @@ def build_meshes(waveno = 0, subfolder = ".", force_construction = False):
 
             os.system("cp " + os.path.join(temp_outpath,temp_base_name + ".vtk") +\
                     " " + os.path.join(mesh_path, final_base_name + ".vtk"))
-            prepare_mesh.vtk_mm2carp_um(fourch_name = final_base_name)
+            prepare_mesh.vtk_mm2carp_um(fourch_name = final_base_name, subfolder=subfolder)
     
     os.system("rm -rf " + temp_outpath)
     return had_to_run_new
@@ -147,8 +155,8 @@ def EP_setup(waveno = 0, subfolder = "."):
         Otherwise is False.
     """
 
-    path_lab = os.path.join("/data","fitting")
-    path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
+    path_lab = os.path.join("/data","fitting", subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
     had_to_run_new = False
     with open(os.path.join(path_gpes,"X_anatomy.csv")) as f:
         anatomy_values = f.read().splitlines()
@@ -158,21 +166,21 @@ def EP_setup(waveno = 0, subfolder = "."):
         mesh_path = os.path.join(path_lab, final_base_name)
 
         if not os.path.isfile(os.path.join(mesh_path,"biv","biv_noRVendo.surf.vtx")):
-            prepare_mesh.extract_LDRB_biv(final_base_name)
-        if not os.path.isfile(os.path.join(mesh_path,"biv","MVTV_base.surf.vtx")):
-            prepare_mesh.extract_MVTV_base(final_base_name)
-        if (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_V_elem_scaled.dat"))) or\
-           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_PHI_elem_scaled.dat"))) or\
-           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_Z_elem_scaled.dat"))) or\
-           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_MVTV", "UVC","COORDS_RHO_elem_scaled.dat"))):
-            UVC.create(final_base_name, "MVTV")
+            prepare_mesh.extract_ldrb_biv(final_base_name, subfolder=subfolder)
+        if not os.path.isfile(os.path.join(mesh_path,"biv","mvtv_base.surf.vtx")):
+            prepare_mesh.extract_mvtv_base(final_base_name, subfolder=subfolder)
+        if (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_mvtv", "UVC","COORDS_V_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_mvtv", "UVC","COORDS_PHI_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_mvtv", "UVC","COORDS_Z_elem_scaled.dat"))) or\
+           (not os.path.isfile(os.path.join(mesh_path,"biv","UVC_mvtv", "UVC","COORDS_RHO_elem_scaled.dat"))):
+            UVC.create(final_base_name, "mvtv", subfolder=subfolder)
         if not os.path.isfile(os.path.join(mesh_path,"biv","EP","bottom_third.vtx")):
-            UVC.bottom_third(final_base_name, "MVTV")
-        if not os.path.isfile(os.path.join(mesh_path,"biv","biv_FEC.elem")):
-            UVC.create_FEC(final_base_name, "MVTV")
+            UVC.bottom_third(final_base_name, "mvtv", subfolder=subfolder)
+        if not os.path.isfile(os.path.join(mesh_path,"biv","biv_fec.elem")):
+            UVC.create_fec(final_base_name, "mvtv", subfolder=subfolder)
         if not os.path.isfile(os.path.join(mesh_path,"biv","fibres","endoRV","phie.igb")):
             had_to_run_new = True
-            fibres.run_laplacian(final_base_name)
+            fibres.run_laplacian(os.path.join(subfolder,final_base_name))
     
     return had_to_run_new
 def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
@@ -192,8 +200,8 @@ def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
         Otherwise is False.
     """
 
-    path_lab = os.path.join("/data","fitting")
-    path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
+    path_lab = os.path.join("/data","fitting",subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
 
     had_to_run_new = False
 
@@ -253,7 +261,7 @@ def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
 
         fourch_name = "heart_" + anatomy_values[line_num+1].replace(",","")[:-36]
         
-        path_EP = os.path.join("/data","fitting",fourch_name,"biv",
+        path_EP = os.path.join("/data","fitting",subfolder,fourch_name,"biv",
                             "EP_simulations")
         
         pathlib.Path(path_EP).mkdir(parents = True, exist_ok = True)
@@ -273,40 +281,45 @@ def EP_simulations(waveno = 0, subfolder = ".", map_fibres_to_fourch = False):
             had_to_run_new = True
 
             fibres.full_pipeline(fourch_name = fourch_name,
-                                alpha_epi = -alpha,
-                                alpha_endo = alpha,
-                                map_fibres_to_fourch = map_fibres_to_fourch
+                                subfolder= subfolder,
+                                alpha_epi = str('{0:.2f}'.format(-alpha)),
+                                alpha_endo = str('{0:.2f}'.format(alpha)),
+                                map_to_fourch = map_fibres_to_fourch
                                 )
+
         if not os.path.isfile(os.path.join(path_EP,simulation_file_name)):
             had_to_run_new = True
 
             run_EP.carp2init(fourch_name = fourch_name,
-                            lastFECtag = lastFECtag,
+                            lastfectag = lastFECtag,
                             CV_l = CV_l,
                             k_fibre = k_fibre,
-                            k_FEC = k_FEC,
+                            k_fec = k_FEC,
                             simulation_file_name = simulation_file_name,
-                            path_EP = path_EP
+                            path_ep = path_EP,
+                             subfolder=subfolder
                             )
 
             run_EP.launch_init(fourch_name = fourch_name, 
                             alpha_endo = alpha, 
                             alpha_epi = -alpha, 
                             simulation_file_name = simulation_file_name,
-                            path_EP = path_EP
+                            path_ep = path_EP,
+                               subfolder=subfolder
                             )
         
     return had_to_run_new
-def output(heart_name, return_ISWT = True, return_WT = True,
-                      return_EDD = True, return_LVmass = True,
-                      return_LVendovol = True, close_LV = True,
-                      return_LVOTdiam = True, return_RVOTdiam = True,
-                      close_RV = True, close_LA = True, return_LAendovol = True,
-                      close_RA = True, return_RAendovol = True,
-                      return_RVlongdiam = True, return_RVbasaldiam = True,
-                      return_RVendovol = True, return_TAT = True,
-                      return_TATLVendo = True, simulation_name = None):
-    """Function that computes the output of the mesh generation and EP 
+
+def output(heart_name, return_ISWT=True, return_WT=True,
+           return_EDD=True, return_LVmass=True,
+           return_LVendovol=True, close_LV=True,
+           return_LVOTdiam=True, return_RVOTdiam=True,
+           close_RV=True, close_LA=True, return_LAendovol=True,
+           close_RA=True, return_RAendovol=True,
+           return_RVlongdiam=True, return_RVbasaldiam=True,
+           return_RVendovol=True, return_TAT=True,
+           return_TATLVendo=True, simulation_name=None, subfolder="CT_anatomy"):
+    """Function that computes the output of the mesh generation and EP
     simulation.
 
     Args:
@@ -315,9 +328,9 @@ def output(heart_name, return_ISWT = True, return_WT = True,
         thickness. Defaults to True.
         return_WT (bool, optional): If True, returns the lateral wall thickness.
         Defaults to True.
-        return_EDD (bool, optional): If True, returns the end-diastolic 
+        return_EDD (bool, optional): If True, returns the end-diastolic
         diameter. Defaults to True.
-        return_LVmass (bool, optional): If True, returns the mass of the LV. 
+        return_LVmass (bool, optional): If True, returns the mass of the LV.
         Defaults to True.
         return_LVendovol (bool, optional): If True, returns the LV endocardial
         volume. Defaults to True.
@@ -347,300 +360,315 @@ def output(heart_name, return_ISWT = True, return_WT = True,
         of the ventricles. Defaults to True.
         return_TATLVendo (bool, optional): If True, returns the total activation
         time of the LV endocardium. Defaults to True.
-        simulation_name (str, optional): Name of the simulation file. Defaults 
+        simulation_name (str, optional): Name of the simulation file. Defaults
         to None.
 
     Returns:
         dictionary: Dictionary with the specified output.
     """
-    
-    path2fourch = os.path.join("/data","fitting",heart_name)
-    biv_path = os.path.join(path2fourch,"biv")
+
+    path2fourch = os.path.join(PROJECT_PATH, subfolder, heart_name)
+    biv_path = os.path.join(path2fourch, "biv")
     output_list = {}
 
     if close_LV and (return_LVendovol or return_LVOTdiam):
-        prepare_mesh.close_LV_endo(heart_name)
+        prepare_mesh.close_lv_endo(heart_name, subfolder = subfolder)
 
     if return_LVOTdiam:
-        av_la_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","av_ao.pts"))
-        av_la_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","av_ao.elem"),heart_name)
+        av_la_pts = files_manipulations.pts.read(os.path.join(biv_path, "..", "av_mapped.pts"))
+        av_la_surf = files_manipulations.surf.read(os.path.join(biv_path, "..", "av_ao.surf"), heart_name)
 
-        print(os.path.join(biv_path,"..","av_ao.pts"))
+        print(os.path.join(biv_path, "..", "av_ao.pts"))
 
-        area_array = files_manipulations.area_or_vol_surface(pts_file = av_la_pts,
-                        surf_file = av_la_surf, with_vol = False,
-                        with_area = True)
-        LVOT_area = sum(area_array)*1e-6 # In mm2
+        area_array = files_manipulations.area_or_vol_surface(pts_file=av_la_pts,
+                                                             surf_file=av_la_surf, with_vol=False,
+                                                             with_area=True)
+        LVOT_area = sum(area_array) * 1e-6  # In mm2
 
-        LVOTdiam = 2*np.sqrt(LVOT_area/np.pi)
+        LVOTdiam = 2 * np.sqrt(LVOT_area / np.pi)
 
-        output_list["LVOT diameter, mm"] = round(LVOTdiam,2)
+        output_list["LVOT diameter, mm"] = round(LVOTdiam, 2)
 
     if close_RV and (return_RVOTdiam or return_RVlongdiam or return_RVbasaldiam or return_RVendovol):
-        prepare_mesh.close_RV_endo(heart_name)
+        prepare_mesh.close_rv_endo(heart_name, subfolder = subfolder)
 
     if return_RVOTdiam:
-        pv_pa_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","pv_pa.pts"))
-        pv_pa_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","pv_pa.elem"),heart_name)
+        pv_pa_pts = files_manipulations.pts.read(os.path.join(biv_path, "..", "pv_mapped.pts"))
+        pv_pa_surf = files_manipulations.surf.read(os.path.join(biv_path, "..", "pv_pa.surf"), heart_name)
 
-        area_array = files_manipulations.area_or_vol_surface(pts_file = pv_pa_pts,
-                        surf_file = pv_pa_surf, with_vol = False,
-                        with_area = True)
-        RVOT_area = sum(area_array)*1e-6 # In mm2
+        area_array = files_manipulations.area_or_vol_surface(pts_file=pv_pa_pts,
+                                                             surf_file=pv_pa_surf, with_vol=False,
+                                                             with_area=True)
+        RVOT_area = sum(area_array) * 1e-6  # In mm2
 
-        RVOTdiam = 2*np.sqrt(RVOT_area/np.pi)
+        RVOTdiam = 2 * np.sqrt(RVOT_area / np.pi)
 
-        output_list["RVOT diameter, mm"] = round(RVOTdiam,2)        
+        output_list["RVOT diameter, mm"] = round(RVOTdiam, 2)
 
     if return_RVendovol or return_RVlongdiam:
-        rvendo_closed = files_manipulations.pts.read(os.path.join(path2fourch,"rvendo_closed.pts"))
+        rvendo_closed = files_manipulations.pts.read(os.path.join(path2fourch, heart_name + ".pts"))
 
         if return_RVendovol:
-            rvendo_closed_surf = files_manipulations.surf.read(os.path.join(path2fourch,"rvendo_closed.elem"), heart_name)
-            vol_array = files_manipulations.area_or_vol_surface(pts_file = rvendo_closed,
-                        surf_file = rvendo_closed_surf, with_vol = True,
-                        with_area = False)
-            RVendovol = sum(vol_array)*1e-12 # In mL
+            rvendo_closed_surf = files_manipulations.surf.read(os.path.join(path2fourch, "rvendo_closed.surf"),
+                                                               heart_name)
+            vol_array = files_manipulations.area_or_vol_surface(pts_file=rvendo_closed,
+                                                                surf_file=rvendo_closed_surf, with_vol=True,
+                                                                with_area=False)
+            RVendovol = sum(vol_array) * 1e-12  # In mL
 
-            output_list["RV volume, mL"] = np.abs(round(RVendovol,2))
+            output_list["RV volume, mL"] = np.abs(round(RVendovol, 2))
 
     if close_RA and (return_RAendovol or return_RVlongdiam or return_RVbasaldiam):
-        prepare_mesh.close_RA_endo(heart_name)
-    
+        prepare_mesh.close_RA_endo(heart_name, subfolder=subfolder)
+
     if return_RVlongdiam or return_RVbasaldiam:
-        tvrv_pts = files_manipulations.pts.read(os.path.join(path2fourch,"tv_rv.pts"))
+        tvrv_pts = files_manipulations.pts.read(os.path.join(path2fourch, "tv_mapped.pts"))
 
-        tvrv_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","tv_rv.elem"),heart_name)
+        tvrv_surf = files_manipulations.surf.read(os.path.join(biv_path, "..", "tv_ra.surf"), heart_name)
 
-        area_array = files_manipulations.area_or_vol_surface(pts_file = tvrv_pts,
-                        surf_file = tvrv_surf, with_vol = False,
-                        with_area = True)
-        tvrv_area = sum(area_array)*1e-6 # In mm2
+        area_array = files_manipulations.area_or_vol_surface(pts_file=tvrv_pts,
+                                                             surf_file=tvrv_surf, with_vol=False,
+                                                             with_area=True)
+        tvrv_area = sum(area_array) * 1e-6  # In mm2
 
-        RVbasaldiam = 2*np.sqrt(tvrv_area/np.pi)
+        RVbasaldiam = 2 * np.sqrt(tvrv_area / np.pi)
 
-        if return_RVbasaldiam:
-            output_list["RV basal diameter, mm"] = round(RVbasaldiam,2)
-        
+        # if return_RVbasaldiam:
+        #     output_list["RV basal diameter, mm"] = round(RVbasaldiam, 2)
+
         if return_RVlongdiam:
 
-            num_pts =  tvrv_pts.size
+            num_pts = tvrv_pts.size
 
             sum_x = np.sum(tvrv_pts.p1)
             sum_y = np.sum(tvrv_pts.p2)
             sum_z = np.sum(tvrv_pts.p3)
 
-            centroid = np.array([sum_x/num_pts, sum_y/num_pts, sum_z/num_pts])
+            centroid = np.array([sum_x / num_pts, sum_y / num_pts, sum_z / num_pts])
 
             dist_vec = np.zeros(rvendo_closed.size)
 
             for i in range(len(dist_vec)):
-                new_point = np.array([rvendo_closed.p1[i],rvendo_closed.p2[i],rvendo_closed.p3[i]])
+                new_point = np.array([rvendo_closed.p1[i], rvendo_closed.p2[i], rvendo_closed.p3[i]])
                 dist_vec[i] = np.linalg.norm(centroid - new_point)
 
-            RVlongdiam_centroid = max(dist_vec)*1e-3
+            RVlongdiam_centroid = max(dist_vec) * 1e-3
 
-            RVlongdiam = np.sqrt((RVbasaldiam/2.)**2 + RVlongdiam_centroid**2)
+            RVlongdiam = np.sqrt((RVbasaldiam / 2.) ** 2 + RVlongdiam_centroid ** 2)
 
-            output_list["RV long. diameter, mm"] = round(RVlongdiam,2)
+            output_list["RV long. diameter, mm"] = round(RVlongdiam, 2)
 
     if close_LA and return_LAendovol:
-        prepare_mesh.close_LA_endo(heart_name)
-    
+        prepare_mesh.close_LA_endo(heart_name, subfolder=subfolder)
+
     if return_LAendovol:
-        laendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","laendo_closed.pts"))
-        laendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","laendo_closed.elem"),heart_name)
+        laendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path, "..", "laendo_closed.pts"))
+        laendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path, "..", "laendo_closed.elem"),
+                                                           heart_name)
 
-        vol_array = files_manipulations.area_or_vol_surface(pts_file = laendo_closed_pts,
-                        surf_file = laendo_closed_surf, with_vol = True,
-                        with_area = False)
-        LAendovol = sum(vol_array)*1e-12 # In mL
+        vol_array = files_manipulations.area_or_vol_surface(pts_file=laendo_closed_pts,
+                                                            surf_file=laendo_closed_surf, with_vol=True,
+                                                            with_area=False)
+        LAendovol = sum(vol_array) * 1e-12  # In mL
 
-        output_list["LA volume, mL"] = round(LAendovol,2)
-    
+        output_list["LA volume, mL"] = round(LAendovol, 2)
+
     if return_RAendovol:
-        raendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","raendo_closed.pts"))
-        raendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","raendo_closed.elem"),heart_name)
+        raendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path, "..", "raendo_closed.pts"))
+        raendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path, "..", "raendo_closed.elem"),
+                                                           heart_name)
 
-        vol_array = files_manipulations.area_or_vol_surface(pts_file = raendo_closed_pts,
-                        surf_file = raendo_closed_surf, with_vol = True,
-                        with_area = False)
-        RAendovol = sum(vol_array)*1e-12 # In mL
+        vol_array = files_manipulations.area_or_vol_surface(pts_file=raendo_closed_pts,
+                                                            surf_file=raendo_closed_surf, with_vol=True,
+                                                            with_area=False)
+        RAendovol = sum(vol_array) * 1e-12  # In mL
 
-        output_list["RA volume, mL"] = round(RAendovol,2)
+        output_list["RA volume, mL"] = round(RAendovol, 2)
 
     if return_LVendovol:
-        lvendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","lvendo_closed.pts"))
-        lvendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","lvendo_closed.elem"),heart_name)
+        lvendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path, "..", heart_name + ".pts"))
+        lvendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path, "..", "lvendo_closed.surf"),
+                                                           heart_name)
 
-        temp_vol = files_manipulations.area_or_vol_surface(pts_file = lvendo_closed_pts,
-                        surf_file = lvendo_closed_surf, with_vol = True,
-                        with_area = False)
+        temp_vol = files_manipulations.area_or_vol_surface(pts_file=lvendo_closed_pts,
+                                                           surf_file=lvendo_closed_surf, with_vol=True,
+                                                           with_area=False)
 
-        LV_chamber_vol = np.abs(sum(temp_vol)*1e-12) # In mL
-        
-        output_list["LV end-diastolic volume, mL"] = round(LV_chamber_vol,2)
-    
+        LV_chamber_vol = np.abs(sum(temp_vol) * 1e-12)  # In mL
+
+        output_list["LV end-diastolic volume, mL"] = round(LV_chamber_vol, 2)
+
     if return_ISWT or return_WT or return_EDD or return_LVmass:
-        path2UVC = os.path.join(biv_path, "UVC_MVTV", "UVC")
-        biv_pts = files_manipulations.pts.read(os.path.join(biv_path,"biv.pts"))
-        UVC_Z_elem = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z_elem_scaled.dat"),dtype = float)
-        UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"),dtype = float)
+        path2UVC = os.path.join(biv_path, "UVC_mvtv", "UVC")
+        biv_pts = files_manipulations.pts.read(os.path.join(biv_path, "biv.pts"))
+        UVC_Z_elem = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z_elem_scaled.dat"), dtype=float)
+        UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"), dtype=float)
 
         if return_LVmass:
-            biv_elem = files_manipulations.elem.read(os.path.join(biv_path,"biv.elem"))
-            UVC_V_elem = np.genfromtxt(os.path.join(path2UVC, "COORDS_V_elem.dat"),dtype = float)
+            biv_elem = files_manipulations.elem.read(os.path.join(biv_path, "biv.elem"))
+            UVC_V_elem = np.genfromtxt(os.path.join(path2UVC, "COORDS_V_elem.dat"), dtype=float)
 
             def six_vol_element_cm3(i):
-                result =  np.linalg.det(np.array([np.array([1e-4*biv_pts.p1[biv_elem.i1[i]], 1e-4*biv_pts.p2[biv_elem.i1[i]], 1e-4*biv_pts.p3[biv_elem.i1[i]], 1.], dtype = float),
-                                    np.array([1e-4*biv_pts.p1[biv_elem.i2[i]], 1e-4*biv_pts.p2[biv_elem.i2[i]], 1e-4*biv_pts.p3[biv_elem.i2[i]], 1.], dtype = float),
-                                    np.array([1e-4*biv_pts.p1[biv_elem.i3[i]], 1e-4*biv_pts.p2[biv_elem.i3[i]], 1e-4*biv_pts.p3[biv_elem.i3[i]], 1.], dtype = float),
-                                    np.array([1e-4*biv_pts.p1[biv_elem.i4[i]], 1e-4*biv_pts.p2[biv_elem.i4[i]], 1e-4*biv_pts.p3[biv_elem.i4[i]], 1.], dtype = float)
-                                    ], dtype = float)
-                                    )
+                result = np.linalg.det(np.array([np.array(
+                    [1e-4 * biv_pts.p1[biv_elem.i1[i]], 1e-4 * biv_pts.p2[biv_elem.i1[i]],
+                     1e-4 * biv_pts.p3[biv_elem.i1[i]], 1.], dtype=float),
+                                                 np.array([1e-4 * biv_pts.p1[biv_elem.i2[i]],
+                                                           1e-4 * biv_pts.p2[biv_elem.i2[i]],
+                                                           1e-4 * biv_pts.p3[biv_elem.i2[i]], 1.], dtype=float),
+                                                 np.array([1e-4 * biv_pts.p1[biv_elem.i3[i]],
+                                                           1e-4 * biv_pts.p2[biv_elem.i3[i]],
+                                                           1e-4 * biv_pts.p3[biv_elem.i3[i]], 1.], dtype=float),
+                                                 np.array([1e-4 * biv_pts.p1[biv_elem.i4[i]],
+                                                           1e-4 * biv_pts.p2[biv_elem.i4[i]],
+                                                           1e-4 * biv_pts.p3[biv_elem.i4[i]], 1.], dtype=float)
+                                                 ], dtype=float)
+                                       )
                 return np.abs(result)
-            
+
             LV_mass_idx = np.intersect1d(np.where(UVC_Z_elem < 0.9), np.where(UVC_V_elem < 0))
 
             six_vol_LV = []
             six_vol_LV.append(Parallel(n_jobs=20)(delayed(six_vol_element_cm3)(i) for i in range(len(LV_mass_idx))))
 
-            LV_mass = 1.05*sum(six_vol_LV[0])/6.
+            LV_mass = 1.05 * sum(six_vol_LV[0]) / 6.
 
-            output_list["LV mass, g"] = round(LV_mass,2)
+            output_list["LV mass, g"] = round(LV_mass, 2)
         if return_ISWT or return_WT or return_EDD:
-            septum_idx = files_manipulations.vtx.read(os.path.join(biv_path,"biv.rvsept.surf.vtx"),"biv")
-            lvendo_idx = files_manipulations.vtx.read(os.path.join(biv_path,"biv.lvendo.surf.vtx"),"biv")
-            UVC_PHI = np.genfromtxt(os.path.join(path2UVC, "COORDS_PHI.dat"),dtype = float)
+            septum_idx = files_manipulations.vtx.read(os.path.join(biv_path, "biv.rvsept.surf.vtx"), "biv")
+            lvendo_idx = files_manipulations.vtx.read(os.path.join(biv_path, "biv.lvendo.surf.vtx"), "biv")
+            UVC_PHI = np.genfromtxt(os.path.join(path2UVC, "COORDS_PHI.dat"), dtype=float)
             septum_Z = UVC_Z[septum_idx.indices]
             lvendo_Z = UVC_Z[lvendo_idx.indices]
             septum_band_idx = septum_idx.indices[np.intersect1d(np.where(septum_Z > 0.6),
-                                                        np.where(septum_Z < 0.9)
-                                                        )
-                                                ]
+                                                                np.where(septum_Z < 0.9)
+                                                                )
+            ]
             lvendo_band_idx = lvendo_idx.indices[np.intersect1d(np.where(lvendo_Z > 0.6),
-                                                        np.where(lvendo_Z < 0.9)
-                                                        )
-                                        ]
+                                                                np.where(lvendo_Z < 0.9)
+                                                                )
+            ]
             septum_band_PHI = UVC_PHI[septum_band_idx]
             lvendo_band_PHI = UVC_PHI[lvendo_band_idx]
 
-            midpoint_PHI = (max(septum_band_PHI) + min(septum_band_PHI))/2.
+            midpoint_PHI = (max(septum_band_PHI) + min(septum_band_PHI)) / 2.
             bandwith_PHI = max(septum_band_PHI) - min(septum_band_PHI)
-            min_PHI = midpoint_PHI-bandwith_PHI/6.
-            max_PHI = midpoint_PHI+bandwith_PHI/6.
+            min_PHI = midpoint_PHI - bandwith_PHI / 6.
+            max_PHI = midpoint_PHI + bandwith_PHI / 6.
 
         if return_ISWT or return_EDD:
             lvendo_septum_ROI_idx = lvendo_band_idx[np.intersect1d(np.where(lvendo_band_PHI > min_PHI),
-                                                    np.where(lvendo_band_PHI < max_PHI)
-                                                    )
-                                    ]
-            lvendo_septum_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvendo_septum_ROI_idx,"biv"))
+                                                                   np.where(lvendo_band_PHI < max_PHI)
+                                                                   )
+            ]
+            lvendo_septum_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvendo_septum_ROI_idx, "biv"))
 
             if return_ISWT:
                 septum_ROI_idx = septum_band_idx[np.intersect1d(np.where(septum_band_PHI > min_PHI),
-                                                        np.where(septum_band_PHI < max_PHI)
-                                                        )
-                                        ]
-                septum_ROI_pts = biv_pts.extract(files_manipulations.vtx(septum_ROI_idx,"biv"))
+                                                                np.where(septum_band_PHI < max_PHI)
+                                                                )
+                ]
+                septum_ROI_pts = biv_pts.extract(files_manipulations.vtx(septum_ROI_idx, "biv"))
 
                 def dist_from_septum_to_lvendo_septum(i):
-                    return lvendo_septum_ROI_pts.min_dist(np.array([septum_ROI_pts.p1[i], septum_ROI_pts.p2[i], septum_ROI_pts.p3[i]]))
-                
+                    return lvendo_septum_ROI_pts.min_dist(
+                        np.array([septum_ROI_pts.p1[i], septum_ROI_pts.p2[i], septum_ROI_pts.p3[i]]))
+
                 septum_ROI_thickness = []
-                septum_ROI_thickness.append(Parallel(n_jobs=20)(delayed(dist_from_septum_to_lvendo_septum)(i) for i in range(septum_ROI_pts.size)))
+                septum_ROI_thickness.append(Parallel(n_jobs=20)(
+                    delayed(dist_from_septum_to_lvendo_septum)(i) for i in range(septum_ROI_pts.size)))
 
                 # Itraventricular septal wall thickness, in mm
-                ISWT = 1e-3*np.median(septum_ROI_thickness)
+                ISWT = 1e-3 * np.median(septum_ROI_thickness)
 
-                output_list["Interventricular septal wall thickness, mm"] = round(ISWT,2)
-        
+                output_list["Interventricular septal wall thickness, mm"] = round(ISWT, 2)
+
         if return_EDD or return_WT:
             # Wall thickness as the opposite side of the septum
             if min_PHI <= 0:
                 wall_min_PHI = min_PHI + np.pi
             else:
                 wall_min_PHI = min_PHI - np.pi
-            
-            
+
             if max_PHI <= 0:
                 wall_max_PHI = max_PHI + np.pi
             else:
                 wall_max_PHI = max_PHI - np.pi
 
-            if wall_max_PHI*wall_min_PHI > 0:
+            if wall_max_PHI * wall_min_PHI > 0:
                 lvendo_wall_ROI_idx = lvendo_band_idx[np.intersect1d(np.where(lvendo_band_PHI > wall_min_PHI)[0],
-                                                        np.where(lvendo_band_PHI < wall_max_PHI)[0]
-                                                        )
-                                        ]
+                                                                     np.where(lvendo_band_PHI < wall_max_PHI)[0]
+                                                                     )
+                ]
             else:
 
                 upper_dir = np.where(lvendo_band_PHI > wall_min_PHI)
                 lower_dir = np.where(lvendo_band_PHI < wall_max_PHI)
 
-                #Otherwise is an array of arrays of arrays
-                all_indices_flat = [subitem for sublist in [lower_dir,upper_dir] for item in sublist for subitem in item]
-
+                # Otherwise is an array of arrays of arrays
+                all_indices_flat = [subitem for sublist in [lower_dir, upper_dir] for item in sublist for subitem in
+                                    item]
 
                 lvendo_wall_ROI_idx = lvendo_band_idx[np.unique(all_indices_flat)]
 
-
-            lvendo_wall_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvendo_wall_ROI_idx,"biv"))
-                
+            lvendo_wall_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvendo_wall_ROI_idx, "biv"))
 
             if return_WT:
-                bivepi_idx = files_manipulations.vtx.read(os.path.join(biv_path,"biv.epi.surf.vtx"),
-                                                    "biv")
+                bivepi_idx = files_manipulations.vtx.read(os.path.join(biv_path, "biv.epi.surf.vtx"),
+                                                          "biv")
                 bivepi_Z = UVC_Z[bivepi_idx.indices]
                 bivepi_band_idx = bivepi_idx.indices[np.intersect1d(np.where(bivepi_Z > 0.6),
-                                                        np.where(bivepi_Z < 0.9)
-                                                        )
-                                        ]
+                                                                    np.where(bivepi_Z < 0.9)
+                                                                    )
+                ]
                 bivepi_band_PHI = UVC_PHI[bivepi_band_idx]
 
-                if wall_max_PHI*wall_min_PHI > 0:
+                if wall_max_PHI * wall_min_PHI > 0:
                     lvepi_ROI_idx = bivepi_band_idx[np.intersect1d(np.where(bivepi_band_PHI > wall_min_PHI),
-                                                            np.where(bivepi_band_PHI < wall_max_PHI)
-                                                            )
-                                            ]
+                                                                   np.where(bivepi_band_PHI < wall_max_PHI)
+                                                                   )
+                    ]
                 else:
                     upper_dir = np.where(bivepi_band_PHI > wall_min_PHI)
                     lower_dir = np.where(bivepi_band_PHI < wall_max_PHI)
 
-                    #Otherwise is an array of arrays of arrays
-                    all_indices_flat = [subitem for sublist in [lower_dir,upper_dir] for item in sublist for subitem in item]
+                    # Otherwise is an array of arrays of arrays
+                    all_indices_flat = [subitem for sublist in [lower_dir, upper_dir] for item in sublist for subitem in
+                                        item]
 
                     lvepi_ROI_idx = bivepi_band_idx[np.unique(all_indices_flat)]
 
-
-                lvepi_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvepi_ROI_idx,"biv"))
+                lvepi_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvepi_ROI_idx, "biv"))
 
                 def dist_from_lvepi_to_lvendo_wall(i):
-                    return lvendo_wall_ROI_pts.min_dist(np.array([lvepi_ROI_pts.p1[i], lvepi_ROI_pts.p2[i], lvepi_ROI_pts.p3[i]]))
+                    return lvendo_wall_ROI_pts.min_dist(
+                        np.array([lvepi_ROI_pts.p1[i], lvepi_ROI_pts.p2[i], lvepi_ROI_pts.p3[i]]))
 
                 wall_ROI_thickness = []
-                wall_ROI_thickness.append(Parallel(n_jobs=20)(delayed(dist_from_lvepi_to_lvendo_wall)(i) for i in range(lvepi_ROI_pts.size)))
+                wall_ROI_thickness.append(
+                    Parallel(n_jobs=20)(delayed(dist_from_lvepi_to_lvendo_wall)(i) for i in range(lvepi_ROI_pts.size)))
 
                 # Wall thickness, in mm
-                WT = 1e-3*np.median(wall_ROI_thickness)
+                WT = 1e-3 * np.median(wall_ROI_thickness)
 
-                output_list["Posterior wall thickness, mm"] = round(WT,2)
+                output_list["Posterior wall thickness, mm"] = round(WT, 2)
 
             if return_EDD:
                 def dist_from_lvendo_septum_to_lvendo_wall(i):
-                    return lvendo_wall_ROI_pts.min_dist(np.array([lvendo_septum_ROI_pts.p1[i], lvendo_septum_ROI_pts.p2[i], lvendo_septum_ROI_pts.p3[i]]))
+                    return lvendo_wall_ROI_pts.min_dist(np.array(
+                        [lvendo_septum_ROI_pts.p1[i], lvendo_septum_ROI_pts.p2[i], lvendo_septum_ROI_pts.p3[i]]))
 
                 ED_dimension_ROI = []
 
-                ED_dimension_ROI.append(Parallel(n_jobs=20)(delayed(dist_from_lvendo_septum_to_lvendo_wall)(i) for i in range(lvendo_septum_ROI_pts.size)))
+                ED_dimension_ROI.append(Parallel(n_jobs=20)(
+                    delayed(dist_from_lvendo_septum_to_lvendo_wall)(i) for i in range(lvendo_septum_ROI_pts.size)))
 
                 # End-diastolic dimension, mm
-                EDD = 1e-3*np.median(ED_dimension_ROI)
+                EDD = 1e-3 * np.median(ED_dimension_ROI)
 
-                output_list["Diastolic LV internal dimension, mm"] = round(EDD,2)
+                output_list["Diastolic LV internal dimension, mm"] = round(EDD, 2)
 
     if return_TAT or return_TATLVendo:
-        with open(os.path.join(biv_path,"EP_simulations",simulation_name + ".dat")) as g:
+        with open(os.path.join(biv_path, "EP_simulations", simulation_name + ".dat")) as g:
             AT_vec = g.read().splitlines()
         g.close()
 
@@ -648,27 +676,401 @@ def output(heart_name, return_ISWT = True, return_WT = True,
 
         if return_TAT:
             filtered_TAT = AT_vec_float[np.where(AT_vec_float < 300)]
-            output_list["TAT, ms"] = round(max(filtered_TAT),2)
-        
-        if return_TATLVendo:
+            output_list["TAT, ms"] = round(max(filtered_TAT), 2)
 
+        if return_TATLVendo:
             lvendo_vtx = files_manipulations.vtx.read(os.path.join(biv_path,
-                                                      "biv.lvendo.surf.vtx"),
+                                                                   "biv.lvendo.surf.vtx"),
                                                       "biv")
 
-            UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"),dtype = float)
+            UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"), dtype=float)
 
             Z_90 = np.where(UVC_Z < 0.9)[0]
 
             Z_90_endo_mask = np.in1d(lvendo_vtx.indices, Z_90)
             Z_90_endo = lvendo_vtx.indices[Z_90_endo_mask]
-            
+
             AT_vec_endo = np.array(AT_vec_float)[Z_90_endo.astype(int)]
             filtered_TATLVendo = AT_vec_endo[np.where(AT_vec_endo < 300)]
-            output_list["TAT LV endo, ms"] = round(max(filtered_TATLVendo),2)
+            output_list["TAT LV endo, ms"] = round(max(filtered_TATLVendo), 2)
 
     print(output_list)
     return output_list
+
+
+# def output(heart_name, return_ISWT = True, return_WT = True,
+#                       return_EDD = True, return_LVmass = True,
+#                       return_LVendovol = True, close_LV = True,
+#                       return_LVOTdiam = True, return_RVOTdiam = True,
+#                       close_RV = True, close_LA = True, return_LAendovol = True,
+#                       close_RA = True, return_RAendovol = True,
+#                       return_RVlongdiam = True, return_RVbasaldiam = True,
+#                       return_RVendovol = True, return_TAT = True,
+#                       return_TATLVendo = True, simulation_name = None,
+#            subfolder="."):
+#     """Function that computes the output of the mesh generation and EP
+#     simulation.
+#
+#     Args:
+#         heart_name (str): Name of the four chamber mesh file.
+#         return_ISWT (bool, optional): If True, returns the intra-septal wall
+#         thickness. Defaults to True.
+#         return_WT (bool, optional): If True, returns the lateral wall thickness.
+#         Defaults to True.
+#         return_EDD (bool, optional): If True, returns the end-diastolic
+#         diameter. Defaults to True.
+#         return_LVmass (bool, optional): If True, returns the mass of the LV.
+#         Defaults to True.
+#         return_LVendovol (bool, optional): If True, returns the LV endocardial
+#         volume. Defaults to True.
+#         close_LV (bool, optional): If True, generates the closed LV endocardium
+#         surface. Defaults to True.
+#         return_LVOTdiam (bool, optional): If True, returns the diameter of the
+#         LV outflow tract. Defaults to True.
+#         return_RVOTdiam (bool, optional): If True, returns the diameter of the
+#         RV outflow tract. Defaults to True.
+#         close_RV (bool, optional):  If True, generates the closed RV endocardium
+#         surface. Defaults to True.
+#         close_LA (bool, optional):  If True, generates the closed LA endocardium
+#         surface. Defaults to True.
+#         return_LAendovol (bool, optional): If True, returns the LA endocardial
+#         volume. Defaults to True.
+#         close_RA (bool, optional): f True, generates the closed RA endocardium
+#         surface. Defaults to True.
+#         return_RAendovol (bool, optional): If True, returns the RA endocardial
+#         volume. Defaults to True.
+#         return_RVlongdiam (bool, optional): If True, returns the longitudinal
+#         diameter of the RV. Defaults to True.
+#         return_RVbasaldiam (bool, optional): If True, returns the basal
+#         diameter of the RV. Defaults to True.
+#         return_RVendovol (bool, optional): If True, returns the RV endocardial
+#         volume. Defaults to True.
+#         return_TAT (bool, optional): If True, returns the total activation time
+#         of the ventricles. Defaults to True.
+#         return_TATLVendo (bool, optional): If True, returns the total activation
+#         time of the LV endocardium. Defaults to True.
+#         simulation_name (str, optional): Name of the simulation file. Defaults
+#         to None.
+#
+#     Returns:
+#         dictionary: Dictionary with the specified output.
+#     """
+#
+#     path2fourch = os.path.join("/data","fitting",subfolder,heart_name)
+#     biv_path = os.path.join(path2fourch,"biv")
+#     output_list = {}
+#
+#     if close_LV and (return_LVendovol or return_LVOTdiam):
+#         prepare_mesh.close_lv_endo(heart_name, subfolder=subfolder)
+#
+#     if return_LVOTdiam:
+#         av_la_pts = files_manipulations.pts.read(os.path.join(biv_path,"..",heart_name + ".pts"))
+#         av_la_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","av_ao.surf"),heart_name)
+#
+#         print(os.path.join(biv_path,"..","av_ao.pts"))
+#
+#         area_array = files_manipulations.area_or_vol_surface(pts_file = av_la_pts,
+#                         surf_file = av_la_surf, with_vol = False,
+#                         with_area = True)
+#         LVOT_area = sum(area_array)*1e-6 # In mm2
+#
+#         LVOTdiam = 2*np.sqrt(LVOT_area/np.pi)
+#
+#         output_list["LVOT diameter, mm"] = round(LVOTdiam,2)
+#
+#     if close_RV and (return_RVOTdiam or return_RVlongdiam or return_RVbasaldiam or return_RVendovol):
+#         prepare_mesh.close_rv_endo(heart_name, subfolder=subfolder)
+#
+#     if return_RVOTdiam:
+#         pv_pa_pts = files_manipulations.pts.read(os.path.join(biv_path,"..",heart_name + ".pts"))
+#         pv_pa_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","pv_pa.surf"),heart_name)
+#
+#         area_array = files_manipulations.area_or_vol_surface(pts_file = pv_pa_pts,
+#                         surf_file = pv_pa_surf, with_vol = False,
+#                         with_area = True)
+#         RVOT_area = sum(area_array)*1e-6 # In mm2
+#
+#         RVOTdiam = 2*np.sqrt(RVOT_area/np.pi)
+#
+#         output_list["RVOT diameter, mm"] = round(RVOTdiam,2)
+#
+#     if return_RVendovol or return_RVlongdiam:
+#         rvendo_closed = files_manipulations.pts.read(os.path.join(path2fourch,heart_name + ".pts"))
+#
+#         if return_RVendovol:
+#             rvendo_closed_surf = files_manipulations.surf.read(os.path.join(path2fourch,"rvendo_closed.surf"), heart_name)
+#             vol_array = files_manipulations.area_or_vol_surface(pts_file = rvendo_closed,
+#                         surf_file = rvendo_closed_surf, with_vol = True,
+#                         with_area = False)
+#             RVendovol = sum(vol_array)*1e-12 # In mL
+#
+#             output_list["RV volume, mL"] = np.abs(round(RVendovol,2))
+#
+#     if close_RA and (return_RAendovol or return_RVlongdiam or return_RVbasaldiam):
+#         prepare_mesh.close_RA_endo(heart_name, subfolder=subfolder)
+#
+#     if return_RVlongdiam or return_RVbasaldiam:
+#         tvrv_pts = files_manipulations.pts.read(os.path.join(path2fourch,"tv_rv.pts"))
+#
+#         tvrv_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","tv_rv.elem"),heart_name)
+#
+#         area_array = files_manipulations.area_or_vol_surface(pts_file = tvrv_pts,
+#                         surf_file = tvrv_surf, with_vol = False,
+#                         with_area = True)
+#         tvrv_area = sum(area_array)*1e-6 # In mm2
+#
+#         RVbasaldiam = 2*np.sqrt(tvrv_area/np.pi)
+#
+#         if return_RVbasaldiam:
+#             output_list["RV basal diameter, mm"] = round(RVbasaldiam,2)
+#
+#         if return_RVlongdiam:
+#
+#             num_pts =  tvrv_pts.size
+#
+#             sum_x = np.sum(tvrv_pts.p1)
+#             sum_y = np.sum(tvrv_pts.p2)
+#             sum_z = np.sum(tvrv_pts.p3)
+#
+#             centroid = np.array([sum_x/num_pts, sum_y/num_pts, sum_z/num_pts])
+#
+#             dist_vec = np.zeros(rvendo_closed.size)
+#
+#             for i in range(len(dist_vec)):
+#                 new_point = np.array([rvendo_closed.p1[i],rvendo_closed.p2[i],rvendo_closed.p3[i]])
+#                 dist_vec[i] = np.linalg.norm(centroid - new_point)
+#
+#             RVlongdiam_centroid = max(dist_vec)*1e-3
+#
+#             RVlongdiam = np.sqrt((RVbasaldiam/2.)**2 + RVlongdiam_centroid**2)
+#
+#             output_list["RV long. diameter, mm"] = round(RVlongdiam,2)
+#
+#     if close_LA and return_LAendovol:
+#         prepare_mesh.close_LA_endo(heart_name, subfolder=subfolder)
+#
+#     if return_LAendovol:
+#         laendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","laendo_closed.pts"))
+#         laendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","laendo_closed.elem"),heart_name)
+#
+#         vol_array = files_manipulations.area_or_vol_surface(pts_file = laendo_closed_pts,
+#                         surf_file = laendo_closed_surf, with_vol = True,
+#                         with_area = False)
+#         LAendovol = sum(vol_array)*1e-12 # In mL
+#
+#         output_list["LA volume, mL"] = round(LAendovol,2)
+#
+#     if return_RAendovol:
+#         raendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","raendo_closed.pts"))
+#         raendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","raendo_closed.elem"),heart_name)
+#
+#         vol_array = files_manipulations.area_or_vol_surface(pts_file = raendo_closed_pts,
+#                         surf_file = raendo_closed_surf, with_vol = True,
+#                         with_area = False)
+#         RAendovol = sum(vol_array)*1e-12 # In mL
+#
+#         output_list["RA volume, mL"] = round(RAendovol,2)
+#
+#     if return_LVendovol:
+#         lvendo_closed_pts = files_manipulations.pts.read(os.path.join(biv_path,"..","lvendo_closed.pts"))
+#         lvendo_closed_surf = files_manipulations.surf.read(os.path.join(biv_path,"..","lvendo_closed.elem"),heart_name)
+#
+#         temp_vol = files_manipulations.area_or_vol_surface(pts_file = lvendo_closed_pts,
+#                         surf_file = lvendo_closed_surf, with_vol = True,
+#                         with_area = False)
+#
+#         LV_chamber_vol = np.abs(sum(temp_vol)*1e-12) # In mL
+#
+#         output_list["LV end-diastolic volume, mL"] = round(LV_chamber_vol,2)
+#
+#     if return_ISWT or return_WT or return_EDD or return_LVmass:
+#         path2UVC = os.path.join(biv_path, "UVC_MVTV", "UVC")
+#         biv_pts = files_manipulations.pts.read(os.path.join(biv_path,"biv.pts"))
+#         UVC_Z_elem = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z_elem_scaled.dat"),dtype = float)
+#         UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"),dtype = float)
+#
+#         if return_LVmass:
+#             biv_elem = files_manipulations.elem.read(os.path.join(biv_path,"biv.elem"))
+#             UVC_V_elem = np.genfromtxt(os.path.join(path2UVC, "COORDS_V_elem.dat"),dtype = float)
+#
+#             def six_vol_element_cm3(i):
+#                 result =  np.linalg.det(np.array([np.array([1e-4*biv_pts.p1[biv_elem.i1[i]], 1e-4*biv_pts.p2[biv_elem.i1[i]], 1e-4*biv_pts.p3[biv_elem.i1[i]], 1.], dtype = float),
+#                                     np.array([1e-4*biv_pts.p1[biv_elem.i2[i]], 1e-4*biv_pts.p2[biv_elem.i2[i]], 1e-4*biv_pts.p3[biv_elem.i2[i]], 1.], dtype = float),
+#                                     np.array([1e-4*biv_pts.p1[biv_elem.i3[i]], 1e-4*biv_pts.p2[biv_elem.i3[i]], 1e-4*biv_pts.p3[biv_elem.i3[i]], 1.], dtype = float),
+#                                     np.array([1e-4*biv_pts.p1[biv_elem.i4[i]], 1e-4*biv_pts.p2[biv_elem.i4[i]], 1e-4*biv_pts.p3[biv_elem.i4[i]], 1.], dtype = float)
+#                                     ], dtype = float)
+#                                     )
+#                 return np.abs(result)
+#
+#             LV_mass_idx = np.intersect1d(np.where(UVC_Z_elem < 0.9), np.where(UVC_V_elem < 0))
+#
+#             six_vol_LV = []
+#             six_vol_LV.append(Parallel(n_jobs=20)(delayed(six_vol_element_cm3)(i) for i in range(len(LV_mass_idx))))
+#
+#             LV_mass = 1.05*sum(six_vol_LV[0])/6.
+#
+#             output_list["LV mass, g"] = round(LV_mass,2)
+#         if return_ISWT or return_WT or return_EDD:
+#             septum_idx = files_manipulations.vtx.read(os.path.join(biv_path,"biv.rvsept.surf.vtx"),"biv")
+#             lvendo_idx = files_manipulations.vtx.read(os.path.join(biv_path,"biv.lvendo.surf.vtx"),"biv")
+#             UVC_PHI = np.genfromtxt(os.path.join(path2UVC, "COORDS_PHI.dat"),dtype = float)
+#             septum_Z = UVC_Z[septum_idx.indices]
+#             lvendo_Z = UVC_Z[lvendo_idx.indices]
+#             septum_band_idx = septum_idx.indices[np.intersect1d(np.where(septum_Z > 0.6),
+#                                                         np.where(septum_Z < 0.9)
+#                                                         )
+#                                                 ]
+#             lvendo_band_idx = lvendo_idx.indices[np.intersect1d(np.where(lvendo_Z > 0.6),
+#                                                         np.where(lvendo_Z < 0.9)
+#                                                         )
+#                                         ]
+#             septum_band_PHI = UVC_PHI[septum_band_idx]
+#             lvendo_band_PHI = UVC_PHI[lvendo_band_idx]
+#
+#             midpoint_PHI = (max(septum_band_PHI) + min(septum_band_PHI))/2.
+#             bandwith_PHI = max(septum_band_PHI) - min(septum_band_PHI)
+#             min_PHI = midpoint_PHI-bandwith_PHI/6.
+#             max_PHI = midpoint_PHI+bandwith_PHI/6.
+#
+#         if return_ISWT or return_EDD:
+#             lvendo_septum_ROI_idx = lvendo_band_idx[np.intersect1d(np.where(lvendo_band_PHI > min_PHI),
+#                                                     np.where(lvendo_band_PHI < max_PHI)
+#                                                     )
+#                                     ]
+#             lvendo_septum_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvendo_septum_ROI_idx,"biv"))
+#
+#             if return_ISWT:
+#                 septum_ROI_idx = septum_band_idx[np.intersect1d(np.where(septum_band_PHI > min_PHI),
+#                                                         np.where(septum_band_PHI < max_PHI)
+#                                                         )
+#                                         ]
+#                 septum_ROI_pts = biv_pts.extract(files_manipulations.vtx(septum_ROI_idx,"biv"))
+#
+#                 def dist_from_septum_to_lvendo_septum(i):
+#                     return lvendo_septum_ROI_pts.min_dist(np.array([septum_ROI_pts.p1[i], septum_ROI_pts.p2[i], septum_ROI_pts.p3[i]]))
+#
+#                 septum_ROI_thickness = []
+#                 septum_ROI_thickness.append(Parallel(n_jobs=20)(delayed(dist_from_septum_to_lvendo_septum)(i) for i in range(septum_ROI_pts.size)))
+#
+#                 # Itraventricular septal wall thickness, in mm
+#                 ISWT = 1e-3*np.median(septum_ROI_thickness)
+#
+#                 output_list["Interventricular septal wall thickness, mm"] = round(ISWT,2)
+#
+#         if return_EDD or return_WT:
+#             # Wall thickness as the opposite side of the septum
+#             if min_PHI <= 0:
+#                 wall_min_PHI = min_PHI + np.pi
+#             else:
+#                 wall_min_PHI = min_PHI - np.pi
+#
+#
+#             if max_PHI <= 0:
+#                 wall_max_PHI = max_PHI + np.pi
+#             else:
+#                 wall_max_PHI = max_PHI - np.pi
+#
+#             if wall_max_PHI*wall_min_PHI > 0:
+#                 lvendo_wall_ROI_idx = lvendo_band_idx[np.intersect1d(np.where(lvendo_band_PHI > wall_min_PHI)[0],
+#                                                         np.where(lvendo_band_PHI < wall_max_PHI)[0]
+#                                                         )
+#                                         ]
+#             else:
+#
+#                 upper_dir = np.where(lvendo_band_PHI > wall_min_PHI)
+#                 lower_dir = np.where(lvendo_band_PHI < wall_max_PHI)
+#
+#                 #Otherwise is an array of arrays of arrays
+#                 all_indices_flat = [subitem for sublist in [lower_dir,upper_dir] for item in sublist for subitem in item]
+#
+#
+#                 lvendo_wall_ROI_idx = lvendo_band_idx[np.unique(all_indices_flat)]
+#
+#
+#             lvendo_wall_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvendo_wall_ROI_idx,"biv"))
+#
+#
+#             if return_WT:
+#                 bivepi_idx = files_manipulations.vtx.read(os.path.join(biv_path,"biv.epi.surf.vtx"),
+#                                                     "biv")
+#                 bivepi_Z = UVC_Z[bivepi_idx.indices]
+#                 bivepi_band_idx = bivepi_idx.indices[np.intersect1d(np.where(bivepi_Z > 0.6),
+#                                                         np.where(bivepi_Z < 0.9)
+#                                                         )
+#                                         ]
+#                 bivepi_band_PHI = UVC_PHI[bivepi_band_idx]
+#
+#                 if wall_max_PHI*wall_min_PHI > 0:
+#                     lvepi_ROI_idx = bivepi_band_idx[np.intersect1d(np.where(bivepi_band_PHI > wall_min_PHI),
+#                                                             np.where(bivepi_band_PHI < wall_max_PHI)
+#                                                             )
+#                                             ]
+#                 else:
+#                     upper_dir = np.where(bivepi_band_PHI > wall_min_PHI)
+#                     lower_dir = np.where(bivepi_band_PHI < wall_max_PHI)
+#
+#                     #Otherwise is an array of arrays of arrays
+#                     all_indices_flat = [subitem for sublist in [lower_dir,upper_dir] for item in sublist for subitem in item]
+#
+#                     lvepi_ROI_idx = bivepi_band_idx[np.unique(all_indices_flat)]
+#
+#
+#                 lvepi_ROI_pts = biv_pts.extract(files_manipulations.vtx(lvepi_ROI_idx,"biv"))
+#
+#                 def dist_from_lvepi_to_lvendo_wall(i):
+#                     return lvendo_wall_ROI_pts.min_dist(np.array([lvepi_ROI_pts.p1[i], lvepi_ROI_pts.p2[i], lvepi_ROI_pts.p3[i]]))
+#
+#                 wall_ROI_thickness = []
+#                 wall_ROI_thickness.append(Parallel(n_jobs=20)(delayed(dist_from_lvepi_to_lvendo_wall)(i) for i in range(lvepi_ROI_pts.size)))
+#
+#                 # Wall thickness, in mm
+#                 WT = 1e-3*np.median(wall_ROI_thickness)
+#
+#                 output_list["Posterior wall thickness, mm"] = round(WT,2)
+#
+#             if return_EDD:
+#                 def dist_from_lvendo_septum_to_lvendo_wall(i):
+#                     return lvendo_wall_ROI_pts.min_dist(np.array([lvendo_septum_ROI_pts.p1[i], lvendo_septum_ROI_pts.p2[i], lvendo_septum_ROI_pts.p3[i]]))
+#
+#                 ED_dimension_ROI = []
+#
+#                 ED_dimension_ROI.append(Parallel(n_jobs=20)(delayed(dist_from_lvendo_septum_to_lvendo_wall)(i) for i in range(lvendo_septum_ROI_pts.size)))
+#
+#                 # End-diastolic dimension, mm
+#                 EDD = 1e-3*np.median(ED_dimension_ROI)
+#
+#                 output_list["Diastolic LV internal dimension, mm"] = round(EDD,2)
+#
+#     if return_TAT or return_TATLVendo:
+#         with open(os.path.join(biv_path,"EP_simulations",simulation_name + ".dat")) as g:
+#             AT_vec = g.read().splitlines()
+#         g.close()
+#
+#         AT_vec_float = np.array([float(x) for x in AT_vec])
+#
+#         if return_TAT:
+#             filtered_TAT = AT_vec_float[np.where(AT_vec_float < 300)]
+#             output_list["TAT, ms"] = round(max(filtered_TAT),2)
+#
+#         if return_TATLVendo:
+#
+#             lvendo_vtx = files_manipulations.vtx.read(os.path.join(biv_path,
+#                                                       "biv.lvendo.surf.vtx"),
+#                                                       "biv")
+#
+#             UVC_Z = np.genfromtxt(os.path.join(path2UVC, "COORDS_Z.dat"),dtype = float)
+#
+#             Z_90 = np.where(UVC_Z < 0.9)[0]
+#
+#             Z_90_endo_mask = np.in1d(lvendo_vtx.indices, Z_90)
+#             Z_90_endo = lvendo_vtx.indices[Z_90_endo_mask]
+#
+#             AT_vec_endo = np.array(AT_vec_float)[Z_90_endo.astype(int)]
+#             filtered_TATLVendo = AT_vec_endo[np.where(AT_vec_endo < 300)]
+#             output_list["TAT LV endo, ms"] = round(max(filtered_TATLVendo),2)
+#
+#     print(output_list)
+#     return output_list
 def write_output_casewise(waveno = 0, subfolder = "."):
     """Function to write the output of a given wave. The outputs are specified
     in the written output_labels file.
@@ -690,12 +1092,12 @@ def write_output_casewise(waveno = 0, subfolder = "."):
     output_names = ["LVV","RVV","LAV","RAV",
                     "LVOTdiam", "RVOTdiam",
                     "LVmass", "LVWT", "LVEDD", "SeptumWT",
-                    "RVlongdiam", "RVbasaldiam",
+                    "RVlongdiam",
                     "TAT","TATLVendo"]
     output_units = ["mL", "mL", "mL", "mL",
                     "mm", "mm",
                     "g", "mm", "mm", "mm",
-                    "mm", "mm",
+                    "mm",
                     "ms", "ms"]
 
 
@@ -712,12 +1114,12 @@ def write_output_casewise(waveno = 0, subfolder = "."):
 
     for i in tqdm.tqdm(range(len(mesh_names))):
         print("Computing output...")
-        EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
+        EP_dir = os.path.join("/data","fitting",subfolder,mesh_names[i],"biv",
                           "EP_simulations")
         if os.path.isfile(os.path.join(EP_dir,output_names[-1] + ".dat")):
-            continue 
+            continue
         if os.path.isfile(os.path.join(EP_dir, simulation_names[i] + ".dat")):
-            
+            print("HA IS HERE")
             flag_close_LV = True
             flag_close_RV = True
             flag_close_LA = True
@@ -731,7 +1133,8 @@ def write_output_casewise(waveno = 0, subfolder = "."):
                 flag_close_RV = False
             if(os.path.isfile(os.path.join(mesh_names[i], "raendo_closed.elem"))):
                 flag_close_RA = False
-            
+
+            print("STARTING TO COMPUTE OUTPUT")
             output_list = output(heart_name = mesh_names[i],
                                 simulation_name = simulation_names[i],
                                 return_ISWT = True, return_WT = True,
@@ -746,7 +1149,8 @@ def write_output_casewise(waveno = 0, subfolder = "."):
                                 close_LV = flag_close_LV,
                                 close_RV = flag_close_RV,
                                 close_LA = flag_close_LA,
-                                close_RA = flag_close_RA, 
+                                close_RA = flag_close_RA,
+                                 subfolder=subfolder
                        )
 
             LVV = output_list["LV end-diastolic volume, mL"]
@@ -760,7 +1164,6 @@ def write_output_casewise(waveno = 0, subfolder = "."):
             LVEDD = output_list["Diastolic LV internal dimension, mm"]
             SeptumWT = output_list["Interventricular septal wall thickness, mm"]
             RVlongdiam = output_list["RV long. diameter, mm"]
-            RVbasaldiam = output_list["RV basal diameter, mm"]
             TAT = output_list["TAT, ms"]
             TATLVendo = output_list["TAT LV endo, ms"]
 
@@ -768,11 +1171,11 @@ def write_output_casewise(waveno = 0, subfolder = "."):
             EP_setup(waveno = waveno, subfolder = subfolder)
             EP_simulations(waveno = waveno, subfolder = subfolder)
             i = i - 1
-        
+
         output_numbers = [LVV, RVV, LAV, RAV,
                         LVOTdiam, RVOTdiam,
                         LVmass, LVWT, LVEDD, SeptumWT,
-                        RVlongdiam, RVbasaldiam,
+                        RVlongdiam,
                         TAT,TATLVendo]
 
         for var_i, varname in enumerate(output_names):
@@ -797,7 +1200,7 @@ def collect_output(waveno = 0, subfolder = "."):
     output_names = ["LVV","RVV","LAV","RAV",
                     "LVOTdiam", "RVOTdiam",
                     "LVmass", "LVWT", "LVEDD", "SeptumWT",
-                    "RVlongdiam", "RVbasaldiam",
+                    "RVlongdiam",
                     "TAT","TATLVendo"]
     
     mesh_names = ["heart_" + anatomy_values[i+1].replace(",","")[:-36] for i in range(len(anatomy_values)-1)]
@@ -813,19 +1216,18 @@ def collect_output(waveno = 0, subfolder = "."):
     LVEDD = []
     SeptumWT = []
     RVlongdiam = []
-    RVbasaldiam = []
     TAT = []
     TATLVendo =[]
 
     output_numbers = [LVV, RVV, LAV, RAV,
                         LVOTdiam, RVOTdiam,
                         LVmass, LVWT, LVEDD, SeptumWT,
-                        RVlongdiam, RVbasaldiam,
+                        RVlongdiam,
                         TAT,TATLVendo]
 
     print("Gathering output...")
     for i in tqdm.tqdm(range(len(mesh_names))):
-        EP_dir = os.path.join("/data","fitting",mesh_names[i],"biv", 
+        EP_dir = os.path.join("/data","fitting",subfolder,mesh_names[i],"biv",
                           "EP_simulations")
         for i,outname in enumerate(output_names):
             output_number = np.loadtxt(os.path.join(EP_dir, outname + ".dat"), dtype=float)
@@ -874,3 +1276,20 @@ def preprocess_input(waveno = 0, subfolder = "."):
             f_writer.writerow(["{0:.2f}".format(round(i,2)) for i in output])
 
     f.close()
+def correct_names():
+
+    waveno = 0
+    subfolder="anatomy/meshes"
+    path_lab = os.path.join("/data", "fitting", subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
+    with open(os.path.join(path_gpes, "X_anatomy.csv")) as f:
+        anatomy_values = f.read().splitlines()
+
+    for i in tqdm.tqdm(range(len(anatomy_values) - 1)):
+    # for i in range(8):
+        final_base_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
+        mesh_path = os.path.join( os.path.join("/data", "fitting", subfolder), final_base_name)
+
+
+        os.system("mv " + mesh_path + "/biv/biv_FEC.elem " +
+                  mesh_path + "/biv/biv_fec.elem")

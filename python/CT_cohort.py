@@ -1,20 +1,23 @@
 import numpy as np
 import os
 from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
 import pathlib
 import time
 import tqdm
 
 import fibres
 import files_manipulations
+import fitting_hm
 from global_variables_config import *
+from gpytGPE.gpe import GPEmul
 import prepare_mesh
 import run_EP
 import UVC
 
 np.random.seed(SEED)
 
-def build_meshes(subfolder="CT_anatomy"):
+def build_meshes(subfolder="CT_anatomy", force_construction=False):
     path_lab = os.path.join(PROJECT_PATH, subfolder)
     temp_outpath = os.path.join(path_lab, "temp_meshes")
 
@@ -687,3 +690,128 @@ def collect_output(subfolder="CT_anatomy"):
         np.savetxt(os.path.join(outpath, varname + ".dat"),
                    output_numbers[i],
                    fmt="%.2f")
+
+
+def extend_emulators(train=False, anatomy_waveno=2):
+
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH,"CT_anatomy","X_anatomy.csv")),
+                                delimiter=',',skiprows=1)
+
+    CT_y_train = np.loadtxt(os.path.join(PROJECT_PATH,"CT_anatomy","LVV.dat"), dtype=float)
+    CT_x_train = np.hstack((anatomy_values[0:19,0:9],np.tile([80,70,0.8,0.29,7],(19,1))))
+
+    original_x_train, original_y_train, original_emul = fitting_hm.run_GPE(waveno=anatomy_waveno, train=False, active_feature=["LVV"],
+                                                               n_samples=280, training_set_memory=2,
+                                                               subfolder="anatomy_max_range", only_feasible=False)
+
+    for i in range(-1,len(CT_y_train)):
+        extended_x_train = np.vstack((original_x_train, CT_x_train[0:(i+1),:]))
+        extended_y_train = np.append(original_y_train,CT_y_train[0:(i+1)])
+
+        if i == -1:
+            extended_emul = original_emul
+        else:
+            if train:
+                extended_emul = GPEmul(extended_x_train, extended_y_train)
+                extended_emul.train(X_val = None, y_val = None, max_epochs=100, n_restarts=5,
+                                    savepath=os.path.join(PROJECT_PATH,"CT_anatomy") + "/")
+                extended_emul.save("LVV_extended_CT" + str(i) + "_waveno" + str(anatomy_waveno) + ".gpe")
+            else:
+                extended_emul = GPEmul.load(X_train = extended_x_train, y_train = extended_y_train,
+                                   loadpath=os.path.join(PROJECT_PATH,"CT_anatomy") + "/",
+                                   filename="LVV_extended_CT" + str(i) + "_waveno" + str(anatomy_waveno) + ".gpe")
+
+        y_pred_mean, y_pred_std = extended_emul.predict(CT_x_train)
+        average_pred_mean, average_pred_std = extended_emul.predict([[0,0,0,0,0,0,0,0,0,80,70,0.8,0.29,7]])
+
+        ci = 2  # ~95% confidance interval
+
+        inf_bound = []
+        sup_bound = []
+
+        height = 9.36111
+        width = 5.91667
+        fig, axes = plt.subplots(1, 1, figsize=(2 * width, 2 * height / 4))
+
+        # l = np.argsort(y_pred_mean)  # for the sake of a better visualisation
+        l = range(len(y_pred_mean))
+
+        inf_bound.append((y_pred_mean - ci * y_pred_std).min())
+        sup_bound.append((y_pred_mean + ci * y_pred_std).max())
+
+        axes.scatter(
+            np.arange(1, len(l) + 1),
+            CT_y_train[l],
+            facecolors="none",
+            edgecolors="C0",
+            label="simulated",
+        )
+        axes.scatter(
+            np.arange(1, len(l) + 1),
+            y_pred_mean[l],
+            facecolors="C0",
+            s=16,
+            label="emulated",
+        )
+        axes.errorbar(
+            np.arange(1, len(l) + 1),
+            y_pred_mean[l],
+            yerr=ci * y_pred_std[l],
+            c="C0",
+            ls="none",
+            lw=0.5,
+            label=f"uncertainty ({ci} SD)",
+        )
+
+        xlabels = np.array(["#" + str(i) for i in range(1,20)])
+        axes.set_xticks(range(1,20))
+        axes.set_xticklabels(xlabels[l])
+        axes.set_ylabel("mL", fontsize=12)
+        axes.set_xlabel("CT subject")
+        if i == -1:
+            axes.set_title(
+                "Original enlarged LVV GPE using | Predicted average volume: " + '{0:.2f}'.format(average_pred_mean[0]) +
+                u"\u00B1" + '{0:.2f}'.format(average_pred_std[0]) + " mL",
+                fontsize=12,
+            )
+        else:
+            axes.set_title(
+                "Extended enlarged LVV GPE (from wave " + str(anatomy_waveno) + ") using  " + str(i+1) +
+                " meshes from the CT cohort | Predicted average volume: " + '{0:.2f}'.format(average_pred_mean[0]) +
+                u"\u00B1" + '{0:.2f}'.format(average_pred_std[0]) + " mL",
+                fontsize=12,
+            )
+        axes.legend(loc="upper left")
+
+        # axes.set_ylim([np.min(inf_bound), np.max(sup_bound)])
+        axes.set_ylim(50,180)
+
+        fig.tight_layout()
+        plt.savefig(
+            os.path.join(PROJECT_PATH, "CT_anatomy", "figures", "max_range_LVV_waveno" + str(anatomy_waveno) + "_" +
+                         f'{(i+1):02}' + "_CT_points.png"),
+            bbox_inches="tight", dpi=300
+        )
+        plt.close()
+
+
+def find_ct_outside_range():
+
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
+                                delimiter=',', skiprows=1)
+
+    std_list = np.std(anatomy_values[:20,:],0)[0:9]
+    total_cases = []
+    for i in range(20):
+        list_outside = []
+        for m in range(9):
+            if anatomy_values[i,m] > 2*std_list[m]:
+                list_outside.append(m+1)
+        if len(list_outside) > 0:
+            print("Case " + str(i+1) + " is outside the training range due to mode(s) ", end="")
+            print(list_outside)
+            total_cases.append(i+1)
+        else:
+            print("Case " + str(i+1) + " is completely inside the range")
+
+    print("Summary: " + str(round(100*len(total_cases)/19,2)) + "% of the cases are outside of bounds")

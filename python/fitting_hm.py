@@ -200,6 +200,8 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
     if return_scores:
         return R2score_vec, ISE_vec
     else:
+        if len(emulator) == 1:
+            emulator = emulator[0]
         return X_train, y_train, emulator
 
 def run_GPE(waveno = 2, train = False, active_feature = ["TAT"],
@@ -472,7 +474,7 @@ def run_new_wave(num_wave = 3, run_simulations = False, train_gpe = False,
 def anatomy_new_wave(num_wave = 0, run_simulations = False, train_gpe = False,
                 fill_wave_space = False, cutoff = 0, n_samples = 150,
                 generate_simul_pts = 10, subfolder = "anatomy", training_set_memory = 100,
-                only_feasible = False):
+                only_feasible = False, max_range = False):
     """Pipeline to run a new wave including anatomy and EP.
 
     Args:
@@ -509,14 +511,14 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_gpe = False,
 
     #========== Constant variables =============#
 
-    xlabels_EP = read_labels(os.path.join(PROJECT_PATH, "EP_funct_labels_latex.txt"))
-    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH, "modes_labels.txt"))
+    xlabels_EP = read_labels(os.path.join(PROJECT_PATH, subfolder, "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH, subfolder, "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP] for lab in sublist]
     
     idx_train = round(0.8*0.8*n_samples)
 
     active_features = ["LVV","RVV","LAV","RAV","LVOTdiam","RVOTdiam","LVmass",
-                        "LVWT","LVEDD","SeptumWT","RVlongdiam","RVbasaldiam",
+                        "LVWT","LVEDD","SeptumWT","RVlongdiam",
                         "TAT","TATLVendo"]
     emulator = []
 
@@ -529,7 +531,7 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_gpe = False,
     #================ Load training sets or run simulations =================#
     if run_simulations:
         if num_wave == 0:
-            anatomy.input(n_samples = n_samples/(0.8*0.8), waveno = num_wave, subfolder = subfolder)
+            anatomy.input(n_samples = n_samples/(0.8*0.8), waveno = num_wave, subfolder = subfolder, max_range = max_range)
         else:
             anatomy.preprocess_input(waveno = num_wave, subfolder = subfolder)
 
@@ -625,17 +627,18 @@ def anatomy_new_wave(num_wave = 0, run_simulations = False, train_gpe = False,
     pathlib.Path(os.path.join(PROJECT_PATH,subfolder,"figures")).mkdir(parents=True, exist_ok=True)
 
     print("Printing impl. min...")
-    custom_plots.plot_wave(W = W, xlabels = xlabels,
-                            filename = os.path.join(PROJECT_PATH,
-                            subfolder,"figures","wave" + str(num_wave) + "_impl_min"),
-                            waveno = num_wave, reduction_function = "min",
-                            plot_title = subfolder + ", wave " + str(num_wave) + ": taking the min of each slice",
-                            param_ranges = param_ranges)
+
+    postprocessing.plot_wave(W = W, xlabels = xlabels,
+                            filename = os.path.join(PROJECT_PATH,subfolder,"figures","wave" + str(num_wave) + "_impl_min"),
+                            reduction_function="min",
+                            plot_title=subfolder + ", wave " + str(num_wave) + ": taking the min of each slice",
+                            param_ranges=param_ranges
+                            )
     print("Printing impl. max...")
-    custom_plots.plot_wave(W = W, xlabels = xlabels,
+    postprocessing.plot_wave(W = W, xlabels = xlabels,
                             filename = os.path.join(PROJECT_PATH,
                             subfolder,"figures","wave" + str(num_wave) + "_impl_max"),
-                            waveno = num_wave, reduction_function = "max",
+                            reduction_function = "max",
                             plot_title = subfolder + ", wave " + str(num_wave) + ": taking the max of each slice",
                             param_ranges = param_ranges)
     print("Printing variance...")

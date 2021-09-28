@@ -4,19 +4,22 @@ import os
 
 if __name__ == "__main__":
 
-    type_of_simulation = 'unloading'
+    type_of_simulation = 'contraction'
     input_path = '/work/e348/e348/crg17/wave0'
     script_path = '/work/e348/e348/crg17/scripts'
     scripts_name = 'run_mechanics_ARCHER2.py'
     meshes_path = '/work/e348/e348/crg17/wave0/batch0'
-    runtime = '00:05:00'
+    runtime = '23:59:00'
     nodes = 4
-    force_restart = False
+    force_restart = True
 
     with open(os.path.join(input_path, "X.dat")) as f:
         anatomy_ep_mechanics_values = f.read().splitlines()
 
-    for simulation in anatomy_ep_mechanics_values:
+    #for simulation_i in range(len(anatomy_ep_mechanics_values)):
+    for simulation_i in range(1):
+        
+        simulation = anatomy_ep_mechanics_values[simulation_i]
         values = simulation.split(' ')
 
         sim_name = "heart_" + ''.join(values) + "_" + type_of_simulation
@@ -29,9 +32,13 @@ if __name__ == "__main__":
             if force_restart:
                 os.system("rm -r " + os.path.join(meshes_path, "simulations", sim_name))
                 os.system("rm " + os.path.join(meshes_path, "simulations", sim_name) + ".slrm")
-                os.system("rm " + os.path.join(script_path, "JOB_" + sim_name + ".out"))
+                os.system("rm " + os.path.join(meshes_path, "simulations", "JOB_" + sim_name + ".out"))
             else:
                 flag_run = False
+
+        if type_of_simulation == 'contraction':
+            if not os.path.exists(os.path.join(meshes_path, "simulations", "heart_" + ''.join(values) + "_unloading", "reference.pts")):
+                    flag_run = False
 
         if flag_run:
             os.chdir(os.path.join(meshes_path, "simulations"))
