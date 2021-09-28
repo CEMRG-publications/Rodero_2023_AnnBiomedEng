@@ -8,6 +8,7 @@ from __future__ import print_function
 import os
 
 from carputils import settings
+import sys
 from carputils import tools
 from carputils import model
 
@@ -108,11 +109,20 @@ def run(args, job):
     else:
         final_mesh_name = args.mesh_name + "_unloaded"
 
-        if not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".blon")) and not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".belem")) and not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".bpts")):
+    skip_execution = False
+
+    if not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".blon")) and not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".belem")) and not os.path.isfile(os.path.join(args.mesh_path, final_mesh_name + ".bpts")):
+        if os.path.isfile(os.path.join(args.sim_name[:-11] + "unloading", "reference.pts")):
             use_unloaded_mesh(args)
+        else:
+            skip_execution = True
+
+    if skip_execution:
+        cmd += ['-dry', 1]
 
     cmd += ['-simID', job.ID,
-            '-meshname', os.path.join(args.mesh_path, final_mesh_name)]
+            '-meshname', os.path.join(args.mesh_path, final_mesh_name),
+            '-meshformat', args.meshformat]
 
     cmd += setup_time_variables(args)
 
@@ -142,23 +152,24 @@ def run(args, job):
 
 
 def full_list_of_parameters(args):
-    auxiliary_parameters = {'atria_tags': [3, 4],
+    auxiliary_parameters = {'meshformat': 1, # Mesh in binary format
+                            'atria_tags': [3, 4],
                             'num_mechanic_bs': 3,  # Number of mechanical boundary springs. Veins
                             'num_mechanic_ed': 1,  # Number of mechanical data sets. Pericardium, if contraction.
                             'num_mechanic_nbc': 5,  # Number of mechanical Neumann boundary conditions.
                                                     # Veins + cavities
                             'numSurfVols': 2,  # Number of surface enclosed volumes to keep track of. Ventricles.
                             'passive_tags': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
-                            'ventricular_tags': [1, 2],
+                            'ventricular_tags': [1, 2, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
                             }
     unloading_parameters = {'loadStepping': 50.,  # Apply load in steps to avoid instabilities: (0) off, (1) auto,
                             # (<0) manual choice
                             'timedt': 10.,  # Time between temporal output (ms)
                             'unload_conv': 0,  # 0 - volume-based, 1 - point-based.
                             'unload_err': 1,  # Relative error. 0 for absolute error.
-                            'unload_maxit': 10,
+                            'unload_maxit': 10, # They are usually around 5-7
                             'unload_stagtol': 10.,
-                            'unload_tol': 1e-3
+                            'unload_tol': 1e-3 # Microliter of difference
                             }
     guccione_parameters = {'bf_guccione': 8.,
                            'b_fs_guccione': 4.,
@@ -192,17 +203,19 @@ def full_list_of_parameters(args):
     numerics_parameters = {'mechDT': 1.,  # Time-step for mechanics (ms)
                            'krylov_maxit_mech': 1e3,
                            'krylov_norm_mech': 0,
-                           'krylov_tol_mech': 1e-4,
+                           'krylov_tol_mech': 1e-8,
                            'mass_lumping': 1,
                            'mech_activate_inertia': 1,  # Activate inertia term in mechanics simulations
-                           'mech_lambda_upd': 1,
+                           'mech_lambda_upd': 2,
                            'mech_rho_inf': 0.,
-                           'mech_stiffness_damping': 0.1,
-                           'newton_adaptive_tol_mech': 2,
+                           'mech_stiffness_damping': 0.2,
+                           'mech_mass_damping': 0.2,
+                           'newton_adaptive_tol_mech': 1,
+                           'newton_forcing_term': 3,
                            'newton_line_search': 0,
-                           'newton_tol_mech': 1e-3,
+                           'newton_tol_mech': 1e-6,
                            'newton_tol_cvsys': 1e-3,
-                           'newton_atol_mech': 1e-3,
+                           'newton_atol_mech': 1e-6,
                            'pstrat': 2,  # KDtree-based partitioning strategy
                            'pstrat_i': 2,  # KDtree-based partitioning strategy for intracellular
                            'spacedt': 10.,  # Time between spatial output (ms)
@@ -236,6 +249,7 @@ def use_unloaded_mesh(args):
     Function to move the reference.pts from the unloading simulation to the simulation folder and clear the non-binary
     files.
     """
+
     os.system(MESHTOOL_EXE_PATH + " convert -ifmt=carp_bin -ofmt=carp_txt -imsh=" +
               os.path.join(args.mesh_path, args.mesh_name + "_ED") + " -omsh=" +
               os.path.join(args.mesh_path, args.mesh_name + "_unloaded")
@@ -477,6 +491,7 @@ def set_solver_options(args):
                  '-newton_atol_mech', args.newton_atol_mech,
                  '-newton_tol_mech', args.newton_tol_mech,
                  '-newton_adaptive_tol_mech', args.newton_adaptive_tol_mech,
+                 '-newton_forcing_term', args.newton_forcing_term,
                  '-newton_tol_cvsys', args.newton_tol_cvsys,
                  '-newton_line_search', args.newton_line_search,
                  '-newton_maxit_mech', newton_maxit_mech,
@@ -484,7 +499,7 @@ def set_solver_options(args):
                  '-mass_lumping', args.mass_lumping,
                  '-mech_rho_inf', args.mech_rho_inf,
                  '-mech_stiffness_damping', args.mech_stiffness_damping,
-                 '-mech_mass_damping', args.mech_stiffness_damping,
+                 '-mech_mass_damping', args.mech_mass_damping,
                  '-mech_lambda_upd', args.mech_lambda_upd
                  ]
 
@@ -513,12 +528,12 @@ def set_cv_sys(args):
                  '-num_cavities', 2,
                  '-cavities[0].cav_type', 0,
                  '-cavities[0].cavP', 3,
-                 '-cavities[0].tube', 2,
+                 # '-cavities[0].tube', 2,
                  '-cavities[0].cavVol', 0,
                  '-cavities[0].p0_cav', args.LV_EDP,  # mmHg
                  '-cavities[0].p0_in', args.LV_EDP,  # mmHg
                  '-cavities[0].p0_out', args.Ao_EDP,
-                 '-cavities[0].valve', 0,
+                 # '-cavities[0].valve', 0,
                  '-cavities[0].state', -1,
                  '-lv_wk3.name', 'Aorta',
                  '-lv_wk3.R1', args.AV_resistance,
@@ -529,12 +544,12 @@ def set_cv_sys(args):
                  '-aortic_valve.Rfwd', args.aortic_valve_Rfwd,
                  '-cavities[1].cav_type', 1,
                  '-cavities[1].cavP', 4,
-                 '-cavities[1].tube', 2,
+                 # '-cavities[1].tube', 2,
                  '-cavities[1].cavVol', 1,
                  '-cavities[1].p0_cav', args.RV_EDP,  # mmHg
                  '-cavities[1].p0_in', args.RV_EDP,  # mmHg
                  '-cavities[1].p0_out', args.PA_EDP,
-                 '-cavities[1].valve', 0,
+                 # '-cavities[1].valve', 0,
                  '-cavities[1].state', -1,
                  '-rv_wk3.name', 'PA',
                  '-rv_wk3.R1', args.PV_resistance,
