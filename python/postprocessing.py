@@ -205,6 +205,8 @@ def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
     fig.tight_layout()
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","variance_quotient.png"), bbox_inches="tight", dpi=300)
 
+    return mean_var_quotient_vec
+
 def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
                                    subfolder = ".", only_feasible = True,
                                    output_labels_dir = "",
