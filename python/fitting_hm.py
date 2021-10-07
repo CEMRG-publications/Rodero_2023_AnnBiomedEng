@@ -91,9 +91,9 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
 
     # (7) Plotting mean predictions + uncertainty vs observations
     if saveplot:
-        height = 9.36111
-        width = 5.91667
-        fig, axes = plt.subplots(1, 2, figsize=(2 * width, 2 * height / 4))
+        height = 9.36
+        width = 5.92
+        fig, axes = plt.subplots(1, 2, figsize=(2 * width, 2 * height / 4), subplot_kw={'aspect': 'auto'})
 
         return_scores = True
 
@@ -192,7 +192,7 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
             axes[1].set_ylim([np.min(inf_bound), np.max(sup_bound)])
 
 
-            fig.tight_layout()
+            # fig.tight_layout()
             plt.savefig(
                 os.path.join(path_figures, figure_name + ".png"), bbox_inches="tight", dpi=300
             )
