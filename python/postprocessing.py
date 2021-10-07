@@ -1469,18 +1469,18 @@ def plot_training_points_and_ct(modes_batch=0, waveno=2):
         width_ratios=(in_dim - 1) * [1] + [0.1],
     )
 
-    x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["LVV"], n_samples=280,
-                                                training_set_memory=2, subfolder="anatomy", only_feasible=False)
+    x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["TAT"], n_samples=280,
+                                                training_set_memory=2, subfolder="anatomy_max_range", only_feasible=False)
 
-    xlabels_ep = read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels_latex.txt"))
-    xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
+    xlabels_ep = read_labels(os.path.join("/data/fitting/anatomy_max_range", "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy_max_range", "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
 
     anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
                                 delimiter=',', skiprows=1)
 
     ct_x_train = np.hstack((anatomy_values[0:19, 0:9], np.tile([80, 70, 0.8, 0.29, 7], (19, 1))))
-    ct_y_train = np.loadtxt(os.path.join(PROJECT_PATH, "CT_anatomy", "LVV.dat"), dtype=float)
+    ct_y_train = np.loadtxt(os.path.join(PROJECT_PATH, "CT_anatomy", "TAT.dat"), dtype=float)
 
     for k in range(in_dim * in_dim):
         i_original = k % in_dim
@@ -1531,7 +1531,7 @@ def plot_training_points_and_ct(modes_batch=0, waveno=2):
     plt.suptitle("Coordinates of the training points of wave " + str(waveno) + " (dots) and the CT cohort (x)",
                  fontsize=18)
 
-    plt.savefig(os.path.join(PROJECT_PATH, "anatomy", "figures") + "/training_vs_CT_wave" + str(waveno) + "_" +
+    plt.savefig(os.path.join(PROJECT_PATH, "anatomy_max_range", "figures") + "/training_vs_CT_wave" + str(waveno) + "_" +
                 str(modes_batch) + ".png",
                 bbox_inches="tight", dpi=300)
 
@@ -1607,3 +1607,76 @@ def plot_simulation_vs_emulation():
         bbox_inches="tight", dpi=300
     )
     plt.close()
+
+
+def plot_mechanics_batches(waveno=0, batch_size = 10):
+
+    xlabels = read_labels(os.path.join(PROJECT_PATH,"mechanics","mechanics_funct_labels_brief.txt"))
+
+    height = 9.36111
+    width = 5.91667
+    fig = plt.figure(figsize=(3 * width, 3 * height / 3))
+
+    in_dim = len(xlabels)
+
+    gs = grsp.GridSpec(
+        in_dim - 1,
+        in_dim,
+        width_ratios=(in_dim - 1) * [1] + [0.1],
+    )
+
+    mechanics_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "mechanics", "wave" + str(waveno), "X_mechanics.dat")), dtype = float)
+    batch_number = np.repeat(range(int(mechanics_values.shape[0]/batch_size)+1), batch_size)
+
+    if mechanics_values.shape[0] != len(batch_number):
+        batch_number = batch_number[:mechanics_values.shape[0]]
+
+
+
+    for k in range(in_dim * in_dim):
+        i = k % in_dim
+        j = k // in_dim
+
+        if i > j:
+            axis = fig.add_subplot(gs[i - 1, j])
+            axis.set_facecolor("white")
+
+            hexagon_size = 150
+
+            cbar_label = "batch number"
+            im = axis.hexbin(
+                mechanics_values[:, j],
+                mechanics_values[:, i],
+                C=batch_number,
+                reduce_C_function=np.mean,
+                gridsize=hexagon_size,
+                cmap="turbo"
+            )
+            #
+            # axis.scatter(ct_x_train[:, j], ct_x_train[:, i],
+            #              s=50, marker='s', c=ct_y_train, cmap="turbo"
+            #              )
+            #
+            # axis.scatter(ct_x_train[:, j], ct_x_train[:, i],
+            #              s=50, marker='x', c='black'
+            #              )
+
+            if i == in_dim - 1:
+                axis.set_xlabel(xlabels[j], fontsize=12)
+            else:
+                axis.set_xticklabels([])
+            if j == 0:
+                axis.set_ylabel(xlabels[i], fontsize=12)
+            else:
+                axis.set_yticklabels([])
+
+    cbar_axis = fig.add_subplot(gs[:, in_dim - 1])
+    cbar = fig.colorbar(im, cax=cbar_axis, format='%.2f')
+    cbar.set_label(cbar_label, size=12)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.suptitle("Coordinates of the training points of wave " + str(waveno) ,
+                 fontsize=18)
+
+    plt.savefig(
+        os.path.join(PROJECT_PATH, "mechanics", "figures") + "/training_positions" + str(waveno) + ".png",
+        bbox_inches="tight", dpi=300)

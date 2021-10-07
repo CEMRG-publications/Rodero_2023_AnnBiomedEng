@@ -207,12 +207,13 @@ def full_list_of_parameters(args):
                            'mass_lumping': 1,
                            'mech_activate_inertia': 1,  # Activate inertia term in mechanics simulations
                            'mech_lambda_upd': 2,
-                           'mech_rho_inf': 0.,
+                           'mech_rho_inf': 0,
                            'mech_stiffness_damping': 0.2,
                            'mech_mass_damping': 0.2,
                            'newton_adaptive_tol_mech': 1,
                            'newton_forcing_term': 3,
                            'newton_line_search': 0,
+                           'newton_maxit_mech': 20,
                            'newton_tol_mech': 1e-6,
                            'newton_tol_cvsys': 1e-3,
                            'newton_atol_mech': 1e-6,
@@ -473,11 +474,6 @@ def set_solver_options(args):
     Assignment of the parameters related to the mechanics solver.
     """
 
-    if args.type_of_simulation == 'unloading':
-        newton_maxit_mech = 20
-    else:
-        newton_maxit_mech = 5
-
     # Track tissue volume
     mech_opts = ['-volumeTracking', 1,  # Keep track of myocardial volume changes due to mechanical deformation
                  '-numElemVols', 1,  # Number of mesh volumes to keep track of.
@@ -494,7 +490,7 @@ def set_solver_options(args):
                  '-newton_forcing_term', args.newton_forcing_term,
                  '-newton_tol_cvsys', args.newton_tol_cvsys,
                  '-newton_line_search', args.newton_line_search,
-                 '-newton_maxit_mech', newton_maxit_mech,
+                 '-newton_maxit_mech', args.newton_maxit_mech,
                  '-mech_activate_inertia', args.mech_activate_inertia,
                  '-mass_lumping', args.mass_lumping,
                  '-mech_rho_inf', args.mech_rho_inf,

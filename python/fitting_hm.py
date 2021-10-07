@@ -89,15 +89,17 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
     std_list = []
     emulator = []
 
-    if return_scores:
-        R2score_vec = []
-        ISE_vec = []
-
     # (7) Plotting mean predictions + uncertainty vs observations
     if saveplot:
         height = 9.36111
         width = 5.91667
         fig, axes = plt.subplots(1, 2, figsize=(2 * width, 2 * height / 4))
+
+        return_scores = True
+
+    if return_scores:
+        R2score_vec = []
+        ISE_vec = []
 
     for i, output_name in enumerate(active_features):
         print(output_name)
@@ -131,8 +133,6 @@ def first_GPE(active_features = ["TAT","TATLV"], train = False, saveplot = True,
                 emul.tensorize(y_pred_mean),
                 emul.tensorize(y_pred_std),
             )
-
-            R2string = f"{R2Score:.2f}"
 
             print(f"\nStatistics on test set for GPE trained for the output " + output_name + ":")
             print(f"  R2 = {R2Score:.2f}")

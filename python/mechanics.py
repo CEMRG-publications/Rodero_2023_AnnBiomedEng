@@ -444,6 +444,8 @@ def mechanics_setup(waveno=0, subfolder="mechanics"):
         _, _, files_in_final_mesh = next(os.walk(folder_simulations))
         file_count = len(files_in_final_mesh)
 
+        print(folder_simulations)
+
         if file_count < 11:
             prepare_folder_supercomputer(path2finalmesh=folder_simulations, subfolder=subfolder, mesh_name=mesh_name,
                                          at_name=at_name)

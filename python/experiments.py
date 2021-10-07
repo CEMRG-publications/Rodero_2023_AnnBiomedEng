@@ -30,17 +30,17 @@ def summary_plots(wave_to_plot, experiment_name,
         the output is. Defaults to "".
     """
 
-    custom_plots.plot_var_quotient(first_wave = 1, last_wave = wave_to_plot,
+    postprocessing.plot_var_quotient(first_wave = 1, last_wave = wave_to_plot,
                                     subfolder = experiment_name,
                                     plot_title = "Evolution of variance quotient for " + experiment_name)
-    custom_plots.plot_output_evolution_seaborn(first_wave = 0, last_wave = wave_to_plot,
+    postprocessing.plot_output_evolution_seaborn(first_wave = 0, last_wave = wave_to_plot,
                                             subfolder = experiment_name,
                                             only_feasible = only_feasible,
                                             output_labels_dir = output_labels_dir,
                                             exp_mean_name = exp_mean_name,
                                             exp_std_name = exp_std_name,
                                             units_dir = units_dir)
-    custom_plots.plot_percentages_NROY(subfolder = experiment_name, last_wave = wave_to_plot)
+    postprocessing.plot_percentages_NROY(subfolder = experiment_name, last_wave = wave_to_plot)
 
 def summary_statistics(last_wave,experiment_name):
     """Function to print some statistics about the history matching wave 
@@ -706,17 +706,17 @@ def experiment_anatomy_max_range():
 
     wave_to_plot = wave_to_plot + 1
 
-    fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
-                        fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
-                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
-                        training_set_memory = 2, max_range = True)
+    # fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
+    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2, max_range = True)
 
     wave_to_plot = wave_to_plot + 1
 
-    fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
-                        fill_wave_space = True, cutoff = 3.0, n_samples = int(num_input_param*20),
-                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
-                        training_set_memory = 2, max_range = True)
+    # fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
+    #                     fill_wave_space = True, cutoff = 3.0, n_samples = int(num_input_param*20),
+    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+    #                     training_set_memory = 2, max_range = True)
 
     wave_to_plot = wave_to_plot + 1
 
@@ -725,9 +725,9 @@ def experiment_anatomy_max_range():
                   exp_mean_name=exp_mean_name, exp_std_name=exp_std_name,
                   units_dir=units_dir)
     print("Summary plots finished")
-    # custom_plots.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
-    #                     output_labels_dir = output_labels_dir,
-    #                     input_labels = xlabels)
+    postprocessing.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
+                        output_labels_dir = output_labels_dir,
+                        input_labels = xlabels)
 
 def run_experiment(experiment_name):
     """Function to run one of the previously defined history matching pipelines.

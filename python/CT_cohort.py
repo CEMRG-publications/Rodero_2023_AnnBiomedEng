@@ -15,6 +15,7 @@ import prepare_mesh
 import run_EP
 import UVC
 
+
 np.random.seed(SEED)
 
 def build_meshes(subfolder="CT_anatomy", force_construction=False):
@@ -815,3 +816,85 @@ def find_ct_outside_range():
             print("Case " + str(i+1) + " is completely inside the range")
 
     print("Summary: " + str(round(100*len(total_cases)/19,2)) + "% of the cases are outside of bounds")
+
+
+def validation_emulator_vs_ct(subfolder="anatomy_max_range", waveno=2, active_features=["LVV","RVV","LAV","RAV",
+                                                                                        "LVOTdiam","RVOTdiam","LVmass",
+                                                                                        "LVWT","LVEDD","SeptumWT",
+                                                                                        "RVlongdiam","TAT","TATLVendo"]):
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
+                                delimiter=',', skiprows=1)
+    ylabels = np.genfromtxt(os.path.join(PROJECT_PATH, subfolder, "output_units.txt"), dtype=str)
+
+    for feature_i in range(len(active_features)):
+        CT_y_train = np.loadtxt(os.path.join(PROJECT_PATH, "CT_anatomy", active_features[feature_i] + ".dat"), dtype=float)
+        CT_x_train = np.hstack((anatomy_values[0:19, 0:9], np.tile([80, 70, 0.8, 0.29, 7], (19, 1))))
+
+        original_x_train, original_y_train, original_emul = fitting_hm.run_GPE(waveno=waveno, train=False,
+                                                                               active_feature=[active_features[feature_i]],
+                                                                               n_samples=280, training_set_memory=2,
+                                                                               subfolder=subfolder,
+                                                                               only_feasible=False)
+        extended_emul = original_emul
+
+        y_pred_mean, y_pred_std = extended_emul.predict(CT_x_train)
+
+        ci = 2  # ~95% confidance interval
+
+        inf_bound = []
+        sup_bound = []
+
+        height = 9.36111
+        width = 5.91667
+        fig, axes = plt.subplots(1, 1, figsize=(2 * width, 2 * height / 4))
+
+        # l = np.argsort(y_pred_mean)  # for the sake of a better visualisation
+        l = range(len(y_pred_mean))
+
+        inf_bound.append((y_pred_mean - ci * y_pred_std).min())
+        sup_bound.append((y_pred_mean + ci * y_pred_std).max())
+
+        axes.scatter(
+            np.arange(1, len(l) + 1),
+            CT_y_train[l],
+            facecolors="none",
+            edgecolors="C0",
+            label="simulated",
+        )
+        axes.scatter(
+            np.arange(1, len(l) + 1),
+            y_pred_mean[l],
+            facecolors="C0",
+            s=16,
+            label="emulated",
+        )
+        axes.errorbar(
+            np.arange(1, len(l) + 1),
+            y_pred_mean[l],
+            yerr=ci * y_pred_std[l],
+            c="C0",
+            ls="none",
+            lw=0.5,
+            label=f"uncertainty ({ci} SD)",
+        )
+
+        xlabels = np.array(["#" + str(i) for i in range(1, 20)])
+
+        axes.set_xticks(range(1, 20))
+        axes.set_xticklabels(xlabels[l])
+        axes.set_ylabel(ylabels[feature_i], fontsize=12)
+        axes.set_xlabel("CT subject")
+
+        axes.set_title(active_features[feature_i] + " GPE against CT simulations" ,fontsize=12)
+
+        axes.legend(loc="upper left")
+
+        axes.set_ylim([np.min(inf_bound), np.max(sup_bound)])
+
+        fig.tight_layout()
+        plt.savefig(
+            os.path.join(PROJECT_PATH, "CT_anatomy", "figures", "max_range_" + active_features[feature_i] + " _waveno" +
+                         str(waveno) + "_CT_points.png"),
+            bbox_inches="tight", dpi=300
+        )
+        plt.close()

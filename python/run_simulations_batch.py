@@ -5,10 +5,11 @@ import os
 if __name__ == "__main__":
 
     type_of_simulation = 'contraction'
+    batch=1
     input_path = '/work/e348/e348/crg17/wave0'
     script_path = '/work/e348/e348/crg17/scripts'
     scripts_name = 'run_mechanics_ARCHER2.py'
-    meshes_path = '/work/e348/e348/crg17/wave0/batch0'
+    meshes_path = '/work/e348/e348/crg17/wave0/batch' + str(batch)
     runtime = '23:59:00'
     nodes = 4
     force_restart = True
@@ -16,8 +17,10 @@ if __name__ == "__main__":
     with open(os.path.join(input_path, "X.dat")) as f:
         anatomy_ep_mechanics_values = f.read().splitlines()
 
+    first_sim = int(10*batch)
+
     #for simulation_i in range(len(anatomy_ep_mechanics_values)):
-    for simulation_i in range(1):
+    for simulation_i in range(first_sim,first_sim+9):
         
         simulation = anatomy_ep_mechanics_values[simulation_i]
         values = simulation.split(' ')
@@ -27,6 +30,7 @@ if __name__ == "__main__":
         AT_name = ''.join(values[6:10])
 
         flag_run = True
+
 
         if os.path.exists(os.path.join(meshes_path, "simulations", sim_name)):
             if force_restart:
