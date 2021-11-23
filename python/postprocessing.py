@@ -31,6 +31,8 @@ import fitting_hm
 from global_variables_config import *
 # ----------------------------------------------------------------
 # Make the code reproducible
+SEED=2
+
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
@@ -84,7 +86,7 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
 
         if i > j:
             axis = fig.add_subplot(gs[i - 1, j])
-            axis.set_facecolor("xkcd:light grey")
+            axis.set_facecolor("#800000")
 
             if (xlabels[i] == "$\mathregular{k_{fibre}}$") or (xlabels[j] == "$\mathregular{k_{fibre}}$"):
                 hexagon_size = 9
@@ -523,6 +525,8 @@ def plot_percentages_NROY_break(subfolder = ".", last_wave = 9):
     fig.tight_layout()
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","NROY_size.png"), bbox_inches="tight", dpi=300)
 
+    return NROY_abs
+
 def plot_percentages_NROY(subfolder = ".", last_wave = 9):
     """Function to plot the evolution of the NROY region in absolute and 
     relative terms. 
@@ -606,7 +610,7 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
     I = get_minmax(X_train)
     
     if input_labels == []:
-        index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
+        index_i = read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
     else:
         index_i = input_labels
     # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
@@ -655,8 +659,8 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
 
     # gsa_box(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
     # gsa_donut_anotated(ST, S1, index_i, preffix = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
-    # gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
-    gsa_donut_single(ST, S1, index_i, feature = feature, savepath = in_out_path + "/../figures/", correction=thre)
+    gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
+    # gsa_donut_single(ST, S1, index_i, feature = feature, savepath = in_out_path + "/../figures/", correction=thre)
 
     # gsa_donut(ST = ST, S1 = S1, index_i = index_i, ylabel = feature, savepath = in_out_path + "/", correction=None)
     # gsa_box(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath= in_out_path + "/", correction=None)
@@ -1471,7 +1475,7 @@ def plot_training_points_and_ct(modes_batch=0, waveno=2):
         width_ratios=(in_dim - 1) * [1] + [0.1],
     )
 
-    x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["TAT"], n_samples=280,
+    x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["TAT"], n_training_pts=420,
                                                 training_set_memory=2, subfolder="anatomy_max_range", only_feasible=False)
 
     xlabels_ep = read_labels(os.path.join("/data/fitting/anatomy_max_range", "EP_funct_labels_latex.txt"))
@@ -1535,6 +1539,85 @@ def plot_training_points_and_ct(modes_batch=0, waveno=2):
 
     plt.savefig(os.path.join(PROJECT_PATH, "anatomy_max_range", "figures") + "/training_vs_CT_wave" + str(waveno) + "_" +
                 str(modes_batch) + ".png",
+                bbox_inches="tight", dpi=300)
+
+def plot_training_points_and_ct_ep(subfolder="anatomy_limit_CT", waveno=0):
+
+    height = 9.36111
+    width = 5.91667
+    fig = plt.figure(figsize=(3 * width, 3 * height / 3))
+
+    in_dim = 5
+
+    gs = grsp.GridSpec(
+        in_dim - 1,
+        in_dim,
+        width_ratios=(in_dim - 1) * [1] + [0.1],
+    )
+
+    x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["TAT"], n_training_pts=420,
+                                                training_set_memory=2, subfolder=subfolder, only_feasible=False)
+
+    xlabels_ep = read_labels(os.path.join("/data/fitting", subfolder, "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = read_labels(os.path.join("/data/fitting", subfolder, "modes_labels.txt"))
+    xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
+
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
+                                delimiter=',', skiprows=1)
+
+    ct_x_train = np.hstack((anatomy_values[0:19, 0:9], np.tile([80, 70, 0.8, 0.29, 7], (19, 1))))
+    ct_y_train = np.loadtxt(os.path.join(PROJECT_PATH, "CT_anatomy", "TAT.dat"), dtype=float)
+
+    for k in range(in_dim * in_dim):
+        i_original = k % in_dim
+        j_original = k // in_dim
+
+        if i_original > j_original:
+            axis = fig.add_subplot(gs[i_original - 1, j_original])
+            axis.set_facecolor("white")
+
+            i = i_original + 9
+            j = j_original + 9
+
+            hexagon_size = 150
+
+            cbar_label = "ms"
+            im = axis.hexbin(
+                x_train[:, j],
+                x_train[:, i],
+                C=y_train,
+                reduce_C_function=np.mean,
+                gridsize=hexagon_size,
+                cmap="turbo"
+            )
+
+            axis.scatter(ct_x_train[0, j], ct_x_train[0, i],
+                         s=50, marker='s', c=ct_y_train[0], cmap="turbo"
+                         )
+
+            axis.scatter(ct_x_train[0, j], ct_x_train[0, i],
+                         s=50, marker='x', c='black'
+                         )
+
+
+
+            if i_original == in_dim - 1:
+                axis.set_xlabel(xlabels[j], fontsize=12)
+            else:
+                axis.set_xticklabels([])
+            if j_original == 0:
+                axis.set_ylabel(xlabels[i], fontsize=12)
+            else:
+                axis.set_yticklabels([])
+
+    cbar_axis = fig.add_subplot(gs[:, in_dim - 1])
+    cbar = fig.colorbar(im, cax=cbar_axis, format='%.2f')
+    cbar.set_label(cbar_label, size=12)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.suptitle("Coordinates of the training points of wave " + str(waveno) + " (dots) and the CT cohort (x)",
+                 fontsize=18)
+
+    plt.savefig(os.path.join(PROJECT_PATH, subfolder, "figures") + "/training_vs_CT_ep_wave" + str(waveno) + ".png",
                 bbox_inches="tight", dpi=300)
 
 
@@ -1682,3 +1765,19 @@ def plot_mechanics_batches(waveno=0, batch_size = 10):
     plt.savefig(
         os.path.join(PROJECT_PATH, "mechanics", "figures") + "/training_positions" + str(waveno) + ".png",
         bbox_inches="tight", dpi=300)
+
+
+def impl_measure_per_output(emul_mean, lit_mean, emul_var, lit_var):
+
+    impl_vec = []
+
+    if len(emul_mean > 1):
+        for i in range(len(emul_mean)):
+            impl = np.sqrt(np.power(emul_mean[i] - lit_mean[i], 2) / (emul_var[i] + lit_var[i]))
+
+            impl_vec.append(impl)
+    else:
+        impl_vec = np.sqrt(np.power(emul_mean - lit_mean, 2) / (emul_var + lit_var))
+
+
+    return impl_vec

@@ -143,8 +143,6 @@ def print_NROY_boundaries_anatomy_EP(num_wave=2, n_simul_wave0=280, cutoff=2.5):
               str(round(ranges[input_number][1], 2)) + "]"
         print(msg)
 
-
-
 def experiment_coveney(only_plot = True):
     """History matching pipeline similar to the one presented in the paper
     by Sam coveney. Implausibility thresholds, training sets size and number
@@ -631,7 +629,6 @@ def experiment_anatomy():
     #                     output_labels_dir = output_labels_dir,
     #                     input_labels = xlabels)
 
-
 def experiment_anatomy_bigwave0():
     """History matching pipeline for the EP + anatomy scenario. Implausibility
     thresholds, training sets size and number of waves are detailed in the
@@ -688,7 +685,7 @@ def experiment_anatomy_max_range():
     Same as anatomy but taking the input parameter range as the maximum of the CT cases instead of 2SD.
     """
     num_input_param = 14
-    experiment_name = "anatomy_max_range"
+    experiment_name = "anatomy_max_range_limit_CT25percent"
     wave_to_plot = -1
     output_labels_dir = os.path.join("/data","fitting",experiment_name,"output_labels.txt")
     units_dir = os.path.join("/data","fitting",experiment_name,"output_units.txt")
@@ -699,24 +696,24 @@ def experiment_anatomy_max_range():
     xlabels_anatomy = read_labels(os.path.join("/data","fitting", experiment_name, "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy,xlabels_EP] for lab in sublist]
 
-    # fitting_hm.anatomy_new_wave(num_wave = 0, run_simulations = True, train_gpe = True,
-    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
-    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
-    #                     training_set_memory = 2, max_range = True)
+    fitting_hm.anatomy_new_wave(num_wave = 0, run_simulations = True, train_gpe = True,
+                        fill_wave_space = True, cutoff = 3.2, n_training_pts = int(num_input_param*20),
+                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+                        training_set_memory = 2, max_range = True)
 
     wave_to_plot = wave_to_plot + 1
 
-    # fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
-    #                     fill_wave_space = True, cutoff = 3.2, n_samples = int(num_input_param*20),
-    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
-    #                     training_set_memory = 2, max_range = True)
+    fitting_hm.anatomy_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
+                        fill_wave_space = True, cutoff = 3.2, n_training_pts = int(num_input_param*20),
+                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+                        training_set_memory = 2, max_range = True)
 
     wave_to_plot = wave_to_plot + 1
 
-    # fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
-    #                     fill_wave_space = True, cutoff = 3.0, n_samples = int(num_input_param*20),
-    #                     generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
-    #                     training_set_memory = 2, max_range = True)
+    fitting_hm.anatomy_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
+                        fill_wave_space = True, cutoff = 3.0, n_training_pts = int(num_input_param*20),
+                        generate_simul_pts = int(num_input_param*10), subfolder = experiment_name,
+                        training_set_memory = 2, max_range = True)
 
     wave_to_plot = wave_to_plot + 1
 
@@ -728,6 +725,70 @@ def experiment_anatomy_max_range():
     postprocessing.full_GSA(emul_num = wave_to_plot, subfolder = experiment_name,
                         output_labels_dir = output_labels_dir,
                         input_labels = xlabels)
+
+def EP_template(only_plot = False):
+    """History matching pipeline to test different scenarios. Implausibility
+    thresholds, training sets size and number of waves are detailed in the
+    script.
+
+    Args:
+        only_plot (bool, optional): If True, it only prints the plots.
+        Defaults to True.
+    """
+     # Cut to the chase (memory 2)
+
+    original_training_set_size = 100
+    experiment_name = "EP_template"
+    wave_to_plot = -1
+
+    if only_plot:
+        summary_plots(wave_to_plot = 4, experiment_name = experiment_name)
+    else:
+
+        fitting_hm.run_new_wave(num_wave = 0, run_simulations = True, train_gpe = True,
+                    fill_wave_space = True, cutoff = 3.2, n_samples = original_training_set_size,
+                    generate_simul_pts = 50, subfolder = experiment_name, training_set_memory = 2)
+        wave_to_plot += 1
+
+        fitting_hm.run_new_wave(num_wave = 1, run_simulations = True, train_gpe = True,
+                    fill_wave_space = True, cutoff = 3.2, n_samples = original_training_set_size,
+                    generate_simul_pts = 50, subfolder = experiment_name, training_set_memory = 2)
+        wave_to_plot += 1
+
+        fitting_hm.run_new_wave(num_wave = 2, run_simulations = True, train_gpe = True,
+                    fill_wave_space = True, cutoff = 3.2, n_samples = original_training_set_size,
+                    generate_simul_pts = 50, subfolder = experiment_name, training_set_memory = 2)
+        wave_to_plot += 1
+
+        fitting_hm.run_new_wave(num_wave = 3, run_simulations = True, train_gpe = True,
+                    fill_wave_space = True, cutoff = 3., n_samples = original_training_set_size,
+                    generate_simul_pts = 50, subfolder = experiment_name, training_set_memory = 2)
+        wave_to_plot += 1
+
+        fitting_hm.run_new_wave(num_wave = 4, run_simulations = True, train_gpe = True,
+                    fill_wave_space = True, cutoff = 3., n_samples = original_training_set_size,
+                    generate_simul_pts = 50, subfolder = experiment_name, training_set_memory = 2)
+        wave_to_plot += 1
+        summary_plots(wave_to_plot = wave_to_plot, experiment_name = experiment_name)
+
+def summary_R2_ISE_anatomy():
+    active_features = ["LVV", "RVV", "LAV", "RAV", "LVOTdiam", "RVOTdiam", "LVmass",
+                       "LVWT", "LVEDD", "SeptumWT", "RVlongdiam",
+                       "TAT", "TATLVendo"]
+
+    R2_vec, ISE_vec = fitting_hm.first_GPE(active_features=active_features,
+                                           train=False, saveplot=False,
+                                           start_size=280,
+                                           subfolder="anatomy_max_range",
+                                           only_feasible=False, return_scores=True)
+
+    R2_mean = round(np.mean([float(i) for i in R2_vec]),2)
+    ISE_mean = round(np.mean([float(i) for i in ISE_vec]),2)
+    R2_std = round(np.std([float(i) for i in R2_vec]),2)
+    ISE_std = round(np.std([float(i) for i in ISE_vec]),2)
+
+    print("R2: " + str(R2_mean) + "+-" + str(R2_std))
+    print("ISE: " + str(ISE_mean) + "+-" + str(ISE_std))
 
 def run_experiment(experiment_name):
     """Function to run one of the previously defined history matching pipelines.

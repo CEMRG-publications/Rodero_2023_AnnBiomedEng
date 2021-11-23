@@ -28,13 +28,11 @@ def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
         Defaults to ".".
     """
 
-    path_lab = os.path.join("/data","fitting")
+    path_lab = os.path.join("/data","fitting", subfolder)
     path_match = os.path.join("/data","fitting","match")
-    path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
 
     pathlib.Path(path_gpes).mkdir(parents = True, exist_ok = True)
-    
-    param_names = read_labels(os.path.join(path_lab, "EP_funct_labels.txt"))
 
 
     param_ranges_lower = np.loadtxt(os.path.join(path_match, "input_range_lower.dat"), dtype=float)
@@ -49,10 +47,6 @@ def EP_funct_param(n_samples = None, waveno = 0, subfolder = "."):
 
     sobol = skopt.sampler.Sobol(min_skip = SEED, max_skip = SEED)
     x = sobol.generate(space.dimensions, n_samples, random_state = SEED)
-
-    f = open(os.path.join("/data", "fitting", "EP_funct_labels.txt"), "w")
-    [f.write('%s\n' % key) for key in param_names]
-    f.close()
 
     f = open(os.path.join(path_gpes, "X.dat"), "w")
     [f.write('%s\n' % ' '.join(map(str,[format(i, '.2f') for i in lhs_array]))) for lhs_array in x]
@@ -76,9 +70,9 @@ def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = ".
         Otherwise is False.
     """
 
-    path_lab = os.path.join("/data","fitting")
-    path_gpes = os.path.join(path_lab, subfolder, "wave" + str(waveno))
-    path_EP = os.path.join("/data","fitting","Full_Heart_Mesh_Template","biv",
+    path_lab = os.path.join("/data","fitting", subfolder)
+    path_gpes = os.path.join(path_lab, "wave" + str(waveno))
+    path_EP = os.path.join("/data","fitting", subfolder, "Full_Heart_Mesh_Template","biv",
                             "EP_simulations")
 
     pathlib.Path(path_EP).mkdir(parents = True, exist_ok = True)
@@ -152,7 +146,7 @@ def template_EP_parallel(line_from = 0, line_to = 10, waveno = 0, subfolder = ".
 
     alpha_idx = int(np.where([x == "alpha" for x in param_names])[0])
     FEC_height_idx = int(np.where([x == "FEC_height" for x in param_names])[0])
-    CV_l_idx = int(np.where([x == "CV_l" for x in param_names])[0])
+    CV_l_idx = int(np.where([x == "CV" for x in param_names])[0])
     k_fibre_idx = int(np.where([x == "k_fibre" for x in param_names])[0])
     k_FEC_idx = int(np.where([x == "k_FEC" for x in param_names])[0])
 
@@ -222,10 +216,10 @@ def EP_output(waveno = 0, subfolder = "."):
         /data/fitting. Defaults to ".".
     """
 
-    EP_dir = os.path.join("/data","fitting","Full_Heart_Mesh_Template","biv", 
+    EP_dir = os.path.join("/data","fitting", subfolder, "Full_Heart_Mesh_Template","biv",
                           "EP_simulations")
     labels_dir = os.path.join("/data","fitting")
-    path2UVC = os.path.join("/data","fitting","Full_Heart_Mesh_Template","biv",
+    path2UVC = os.path.join("/data","fitting",subfolder, "Full_Heart_Mesh_Template","biv",
                             "UVC_MVTV","UVC")
 
     outpath = os.path.join("/data", "fitting",subfolder, "wave" + str(waveno))
@@ -236,7 +230,7 @@ def EP_output(waveno = 0, subfolder = "."):
     [f.write("%s\n" % phenotype) for phenotype in output_names]
     f.close()
 
-    lvendo_vtx = files_manipulations.vtx.read(os.path.join("/data","fitting",
+    lvendo_vtx = files_manipulations.vtx.read(os.path.join("/data","fitting", subfolder,
                                                       "Full_Heart_Mesh_Template",
                                                       "biv","biv.lvendo.surf.vtx"),
                                         "biv")

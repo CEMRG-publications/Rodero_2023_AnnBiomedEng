@@ -2,18 +2,27 @@ import numpy as np
 import os
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
+import matplotlib
 import pathlib
 import time
+import torchmetrics
 import tqdm
+
+import seaborn as sns
 
 import fibres
 import files_manipulations
 import fitting_hm
 from global_variables_config import *
 from gpytGPE.gpe import GPEmul
+from gpytGPE.utils.metrics import IndependentStandardError as ISE
+import postprocessing
 import prepare_mesh
 import run_EP
 import UVC
+
+from Historia.shared.design_utils import read_labels
+
 
 
 np.random.seed(SEED)
@@ -702,7 +711,7 @@ def extend_emulators(train=False, anatomy_waveno=2):
     CT_x_train = np.hstack((anatomy_values[0:19,0:9],np.tile([80,70,0.8,0.29,7],(19,1))))
 
     original_x_train, original_y_train, original_emul = fitting_hm.run_GPE(waveno=anatomy_waveno, train=False, active_feature=["LVV"],
-                                                               n_samples=280, training_set_memory=2,
+                                                               n_training_pts=420, training_set_memory=2,
                                                                subfolder="anatomy_max_range", only_feasible=False)
 
     for i in range(-1,len(CT_y_train)):
@@ -832,7 +841,7 @@ def validation_emulator_vs_ct(subfolder="anatomy_max_range", waveno=2, active_fe
 
         original_x_train, original_y_train, original_emul = fitting_hm.run_GPE(waveno=waveno, train=False,
                                                                                active_feature=[active_features[feature_i]],
-                                                                               n_samples=280, training_set_memory=2,
+                                                                               n_training_pts=420, training_set_memory=2,
                                                                                subfolder=subfolder,
                                                                                only_feasible=False)
         extended_emul = original_emul
@@ -893,8 +902,83 @@ def validation_emulator_vs_ct(subfolder="anatomy_max_range", waveno=2, active_fe
 
         fig.tight_layout()
         plt.savefig(
-            os.path.join(PROJECT_PATH, "CT_anatomy", "figures", "max_range_" + active_features[feature_i] + " _waveno" +
+            os.path.join(PROJECT_PATH, "CT_anatomy", "figures", subfolder + "_" + active_features[feature_i] + " _waveno" +
                          str(waveno) + "_CT_points.png"),
             bbox_inches="tight", dpi=300
         )
         plt.close()
+
+
+def report_scores_emulation(subfolder="anatomy_max_range", waveno=2, active_features=["LVV", "RVV", "LAV", "RAV",
+                                                                                      "LVOTdiam", "RVOTdiam", "LVEDD",
+                                                                                      "RVlongdiam", "LVWT", "SeptumWT",
+                                                                                      "TAT", "TATLVendo", "LVmass"]):
+
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
+                                delimiter=',', skiprows=1)
+
+    R2Score_vec = []
+    iseScore_vec = []
+    impl_mean_vec = []
+    impl_std_vec = []
+
+    for feature_i in range(len(active_features)):
+        CT_y_train = np.loadtxt(os.path.join(PROJECT_PATH, "CT_anatomy", active_features[feature_i] + ".dat"), dtype=float)
+        CT_x_train = np.hstack((anatomy_values[0:19, 0:9], np.tile([80, 70, 0.8, 0.29, 7], (19, 1))))
+
+        _, _, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=[active_features[feature_i]],
+                                        n_training_pts=420, training_set_memory=2, subfolder=subfolder, only_feasible=False)
+
+        y_pred_mean, y_pred_std = emul.predict(CT_x_train)
+
+        R2Score = torchmetrics.R2Score()(emul.tensorize(y_pred_mean), emul.tensorize(CT_y_train))
+
+        iseScore = ISE(
+            emul.tensorize(CT_y_train),
+            emul.tensorize(y_pred_mean),
+            emul.tensorize(y_pred_std),
+        )
+
+        impl = postprocessing.impl_measure_per_output(emul_mean = y_pred_mean, lit_mean = CT_y_train,
+                                                      emul_var = y_pred_std**2, lit_var = y_pred_std*0)
+
+        R2Score_vec.append(R2Score)
+        iseScore_vec.append(iseScore)
+        impl_mean_vec.append(np.mean(impl))
+        impl_std_vec.append(np.std(impl))
+
+    return R2Score_vec, iseScore_vec, impl_mean_vec, impl_std_vec
+
+def plot_CT_output_vs_literature():
+    matplotlib.rcParams.update({'font.size': 22})
+
+    active_features=read_labels(os.path.join("/data","fitting","anatomy_max_range","output_labels.txt"))
+    CT_output_matrix = np.zeros((19, len(active_features)), dtype=float)
+
+    for feature_i in range(len(active_features)):
+        CT_output = np.loadtxt(os.path.join(PROJECT_PATH, "CT_anatomy", active_features[feature_i] + ".dat"), dtype=float)
+        CT_output_matrix[:,feature_i] = CT_output
+
+    exp_means = np.loadtxt(os.path.join("/data", "fitting", "match", "exp_mean_anatomy_EP.txt"), dtype=float)
+    exp_stds = np.loadtxt(os.path.join("/data", "fitting", "match", "exp_std_anatomy_EP.txt"), dtype=float)
+
+    for i in range(CT_output_matrix.shape[0]):
+        if i > 8:
+            plt.plot(CT_output_matrix[i,:].T, marker=r'$' + str(i+1) + '$', linestyle = 'None', markersize=10)
+        else:
+            plt.plot(CT_output_matrix[i, :].T, marker=r'$0' + str(i + 1) + '$', linestyle='None', markersize=10)
+    # plt.legend(['1','2'])
+    plt.xticks(range(CT_output_matrix.shape[1]), active_features,rotation = 20)
+
+    y_lim_max=225.
+    plt.ylim((0, y_lim_max))
+
+    min_rectangles = (exp_means - 2*exp_stds)/y_lim_max
+    max_rectangles = (exp_means + 2 * exp_stds) / y_lim_max
+
+    for i in range(len(min_rectangles)):
+        plt.axvspan(xmin=i-0.25, xmax=i+0.25, ymin = min_rectangles[i], ymax=max_rectangles[i], alpha=0.25, color='green')
+
+    plt.title('CT cohort biomarkers compared with literature ranges')
+
+    plt.show()
