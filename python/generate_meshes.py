@@ -12,10 +12,10 @@ from global_variables_config import *
 def deformetrica_single_mesh(mesh_path, anatomy_values, i):
     """Function to create a mesh from the template using Deformetrica.
 
-    @param mesh_path (str): Path where the meshes are going to be created. Currently is /data/fitting/meshes
-    @param anatomy_values (array of str): Array where each line corresponds to one mesh. Each component is a single
+    @param mesh_path: Path where the meshes are going to be created. Currently is /data/fitting/meshes
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
     str with the values of the modes (1 to 18)
-    @param i (int): Index of the mesh to create from anatomy values.
+    @param i: Index of the mesh to create from anatomy values.
 
     @returns The mesh created will be named wavei in the meshes_path folder.
     """
@@ -29,10 +29,10 @@ def preprocess_for_carp(mesh_path, anatomy_values, i):
     """Function to convert to carp format, convert the pts to micrometre instead of millimetre and safe-copying the
     elem file.
 
-    @param mesh_path (str): Path where the meshes are going to be created. Currently is /data/fitting/meshes
-    @param anatomy_values (array of str): Array where each line corresponds to one mesh. Each component is a single
+    @param mesh_path: Path where the meshes are going to be created. Currently is /data/fitting/meshes
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
     str with the values of the modes (1 to 18)
-    @param i (int): Index of the mesh to create from anatomy values.
+    @param i: Index of the mesh to create from anatomy values.
 
     @returns The final mesh will be in the meshes_path under the name heart_xx where xx is the values of the first
     9 modes appended without commas.
@@ -64,8 +64,8 @@ def preprocess_for_carp(mesh_path, anatomy_values, i):
 def sample_atlas(subfolder = "initial_sweep", csv_filename = "input_anatomy_training.csv"):
     """Function to generate meshes from the atlas, in parallel (in chunks of 18 meshes).
 
-    @param subfolder (str): Folder within PROJECT_PATH where the input data will be read.
-    @param csv_filename (str): Name of the csv file containing _all_ the meshes modes values.
+    @param subfolder: Folder within PROJECT_PATH where the input data will be read.
+    @param csv_filename: Name of the csv file containing _all_ the meshes modes values.
 
     @returns The final mesh in the meshes folder.
     """
@@ -90,7 +90,7 @@ def sample_atlas(subfolder = "initial_sweep", csv_filename = "input_anatomy_trai
     header_line = anatomy_values[0]
     del anatomy_values[0]
 
-    for batch in tqdm.tqdm(range(len(anatomy_values)//18)):
+    for batch in tqdm.tqdm(range((len(anatomy_values)//18) + 1)):
         sub_dataset = anatomy_values[(18*batch):np.min([18*(batch+1),len(anatomy_values)])]
 
         for i in tqdm.tqdm(range(len(sub_dataset))):
