@@ -9,6 +9,14 @@ import files_manipulations
 import prepare_mesh
 
 def lvv(anatomy_values, i):
+    """Function to write a file with the LV volume, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
 
     # heart_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
     if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "EP_simulations", "LVV.dat")):
@@ -39,6 +47,15 @@ def lvv(anatomy_values, i):
         #                     fmt="%s")
 
 def rvv(anatomy_values, i):
+    """Function to write a file with the RV volume, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     # heart_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
     if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "EP_simulations", "RVV.dat")):
         if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "pv_pa.surf")):
@@ -73,6 +90,15 @@ def rvv(anatomy_values, i):
         #                     fmt="%s")
 
 def lav(anatomy_values, i):
+    """Function to write a file with the LA volume, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     # heart_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
     if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "EP_simulations", "LAV.dat")):
         if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "mv_lv.pts")):
@@ -93,6 +119,15 @@ def lav(anatomy_values, i):
                        with_vol=True, with_area=False)) * 1e-12), 2)], fmt="%s")
 
 def rav(anatomy_values, i):
+    """Function to write a file with the RA volume, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     # heart_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
     if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "EP_simulations", "RAV.dat")):
         if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "tv_rv.pts")):
@@ -113,6 +148,15 @@ def rav(anatomy_values, i):
                        with_vol=True, with_area=False)) * 1e-12), 2)], fmt="%s")
 
 def lvotdiam(anatomy_values, i):
+    """Function to write a file with the LV outflow tract diameter, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     if not os.path.isfile(
             os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
                          "EP_simulations", "LVOTdiam.dat")):
@@ -135,6 +179,15 @@ def lvotdiam(anatomy_values, i):
                                 with_vol=False,with_area=True)) * 1e-6) / np.pi), 2)], fmt="%s")
 
 def rvotdiam(anatomy_values, i):
+    """Function to write a file with the RV outflow tract diameter, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     if not os.path.isfile(
             os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
                          "EP_simulations", "RVOTdiam.dat")):
@@ -157,6 +210,16 @@ def rvotdiam(anatomy_values, i):
                                 with_vol=False,with_area=True)) * 1e-6) / np.pi), 2)], fmt="%s")
 
 def tat(anatomy_values, param_values, i):
+    """Function to write a file with the total activation time of the biventricular mesh, parallelized.
+
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+    @param_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of EP parameters.
+    @param i: Index of the mesh to create from anatomy values.
+
+    @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
     if not os.path.isfile(
             os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
                          "EP_simulations", "TAT.dat")):
@@ -175,6 +238,17 @@ def tat(anatomy_values, param_values, i):
                                            ".dat")).read().splitlines()]) < 300)]), 2)],fmt="%s")
 
 def tatlvendo(anatomy_values, param_values, i):
+    """Function to write a file with the total activation time of the biventricular mesh, parallelized.
+
+        @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+        str with the values of the modes (1 to 18)
+        @param_values: Array where each line corresponds to one mesh. Each component is a single
+        str with the values of EP parameters.
+        @param i: Index of the mesh to create from anatomy values.
+
+        @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     # simulation_name = '{0:.2f}'.format(round(float(param_values[i].split(' ')[0]), 2)) + \
     #                   '{0:.2f}'.format(round(float(param_values[i].split(' ')[1]), 2)) + \
     #                   '{0:.2f}'.format(round(float(param_values[i].split(' ')[2]), 2)) + \
@@ -257,6 +331,16 @@ def tatlvendo(anatomy_values, param_values, i):
     #                             "EP_simulations", "TATLVendo.dat"),[round(max(filtered_TATLVendo), 2)],fmt="%s")
 
 def non_parallelizable(anatomy_values, i):
+    """Function to write a file with the biomarkers that I couldn't parallelize. It includes the LV mass, the septal
+    wall thickness, the LV wall thickness, the end-diastolic diameter and the RV longitudinal diameter.
+
+        @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+        str with the values of the modes (1 to 18)
+        @param i: Index of the mesh to create from anatomy values.
+
+        @returns The .dat file in the EP_simulations folder of the mesh i.
+    """
+
     return_LVmass = False
     return_ISWT = False
     return_WT = False
@@ -509,24 +593,87 @@ def non_parallelizable(anatomy_values, i):
                                  "EP_simulations", "LVEDD.dat"),
                     [round(EDD, 2)], fmt="%s")
 
-def extract(subfolder="initial_sweep", anatomy_csv_file="input_anatomy_training.csv", ep_dat_file="input_ep_training.dat"):
+def collect(subfolder, anatomy_values):
+    """Function to copy all the values of the biomarkers from the individual meshes to a common file.
 
+    @param subfolder: Folder within PROJECT_PATH (initially /data/fitting) where the input is read and the output is
+    written.
+    @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
+    str with the values of the modes (1 to 18)
+
+    @return 13 .dat files in the subfolder with the values of the biomarkers.
+    """
+
+    outpath = os.path.join(PROJECT_PATH, subfolder)
+
+
+    output_names = ["LVV", "RVV", "LAV", "RAV",
+                    "LVOTdiam", "RVOTdiam",
+                    "LVmass", "LVWT", "LVEDD", "SeptumWT",
+                    "RVlongdiam",
+                    "TAT", "TATLVendo"]
+
+    mesh_names = ["heart_" + anatomy_values[i + 1].replace(",", "")[:-36] for i in range(len(anatomy_values) - 1)]
+
+    LVV = []
+    RVV = []
+    LAV = []
+    RAV = []
+    LVOTdiam = []
+    RVOTdiam = []
+    LVmass = []
+    LVWT = []
+    LVEDD = []
+    SeptumWT = []
+    RVlongdiam = []
+    TAT = []
+    TATLVendo = []
+
+    output_numbers = [LVV, RVV, LAV, RAV,
+                      LVOTdiam, RVOTdiam,
+                      LVmass, LVWT, LVEDD, SeptumWT,
+                      RVlongdiam,
+                      TAT, TATLVendo]
+
+    print("Gathering output...")
+    for i in tqdm.tqdm(range(len(mesh_names))):
+        EP_dir = os.path.join(PROJECT_PATH, "meshes", mesh_names[i], "biv", "EP_simulations")
+        for i, outname in enumerate(output_names):
+            output_number = np.loadtxt(os.path.join(EP_dir, outname + ".dat"), dtype=float)
+            output_numbers[i].append(output_number)
+
+    for i, varname in enumerate(output_names):
+        np.savetxt(os.path.join(outpath, varname + ".dat"),
+                   output_numbers[i],
+                   fmt="%.2f")
+
+def extract(subfolder="initial_sweep", anatomy_csv_file="input_anatomy_training.csv", ep_dat_file="input_ep_training.dat"):
+    """Function to extract the biomarkers once the simulations are finished.
+
+    @param subfolder: Folder within PROJECT_PATH (initially /data/fitting) where the input is read and the output is
+    written.
+    @param anatomy_csv_file: Name of the csv file containing _all_ the meshes modes values.
+    @param ep_dat_file: Name of the dat file containing the values of the EP parameters.
+
+    @return Writes .dat file for each output in the subfolder.
+    """
     with open(os.path.join(PROJECT_PATH, subfolder, anatomy_csv_file)) as f:
         anatomy_values = f.read().splitlines()
 
     with open(os.path.join(PROJECT_PATH, subfolder, ep_dat_file)) as f:
         param_values = f.read().splitlines()
 
-    Parallel(n_jobs=20)(delayed(lvv)(anatomy_values=anatomy_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(rvv)(anatomy_values=anatomy_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(lav)(anatomy_values=anatomy_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(rav)(anatomy_values=anatomy_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(lvotdiam)(anatomy_values=anatomy_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(rvotdiam)(anatomy_values=anatomy_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(tat)(anatomy_values=anatomy_values, param_values=param_values, i=i) for i in range(20))
-    Parallel(n_jobs=20)(delayed(tatlvendo)(anatomy_values=anatomy_values, param_values=param_values, i=i) for i in range(20))
+    Parallel(n_jobs=20)(delayed(lvv)(anatomy_values=anatomy_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(rvv)(anatomy_values=anatomy_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(lav)(anatomy_values=anatomy_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(rav)(anatomy_values=anatomy_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(lvotdiam)(anatomy_values=anatomy_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(rvotdiam)(anatomy_values=anatomy_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(tat)(anatomy_values=anatomy_values, param_values=param_values, i=i) for i in range(len(anatomy_values) - 1))
+    Parallel(n_jobs=20)(delayed(tatlvendo)(anatomy_values=anatomy_values, param_values=param_values, i=i) for i in range(len(anatomy_values) - 1))
 
-    for i in tqdm.tqdm(range(20)):
+    for i in tqdm.tqdm(range(len(anatomy_values) - 1)):
         # In parallel we'd have to read the elem file more often so it's actually slower.
         non_parallelizable(anatomy_values=anatomy_values, i=i)
 
+    collect(subfolder=subfolder, anatomy_values=anatomy_values)
