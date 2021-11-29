@@ -593,13 +593,14 @@ def non_parallelizable(anatomy_values, i):
                                  "EP_simulations", "LVEDD.dat"),
                     [round(EDD, 2)], fmt="%s")
 
-def collect(subfolder, anatomy_values):
+def collect(subfolder, anatomy_values, suffix):
     """Function to copy all the values of the biomarkers from the individual meshes to a common file.
 
     @param subfolder: Folder within PROJECT_PATH (initially /data/fitting) where the input is read and the output is
     written.
     @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
     str with the values of the modes (1 to 18)
+    @param suffix: Suffix for the output. Recommended to be training, validation or test.
 
     @return 13 .dat files in the subfolder with the values of the biomarkers.
     """
@@ -635,7 +636,6 @@ def collect(subfolder, anatomy_values):
                       RVlongdiam,
                       TAT, TATLVendo]
 
-    print("Gathering output...")
     for i in tqdm.tqdm(range(len(mesh_names))):
         EP_dir = os.path.join(PROJECT_PATH, "meshes", mesh_names[i], "biv", "EP_simulations")
         for i, outname in enumerate(output_names):
@@ -643,7 +643,7 @@ def collect(subfolder, anatomy_values):
             output_numbers[i].append(output_number)
 
     for i, varname in enumerate(output_names):
-        np.savetxt(os.path.join(outpath, varname + ".dat"),
+        np.savetxt(os.path.join(outpath, varname + "_" + suffix + ".dat"),
                    output_numbers[i],
                    fmt="%.2f")
 
@@ -676,4 +676,4 @@ def extract(subfolder="initial_sweep", anatomy_csv_file="input_anatomy_training.
         # In parallel we'd have to read the elem file more often so it's actually slower.
         non_parallelizable(anatomy_values=anatomy_values, i=i)
 
-    collect(subfolder=subfolder, anatomy_values=anatomy_values)
+    collect(subfolder=subfolder, anatomy_values=anatomy_values, suffix=anatomy_csv_file.split('_')[-1].split('.')[0])
