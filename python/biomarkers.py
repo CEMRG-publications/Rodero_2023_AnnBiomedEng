@@ -5,6 +5,7 @@ import tqdm
 
 from global_variables_config import *
 
+import ep_simulations
 import files_manipulations
 import prepare_mesh
 
@@ -130,7 +131,8 @@ def rav(anatomy_values, i):
 
     # heart_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
     if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "EP_simulations", "RAV.dat")):
-        if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "tv_rv.pts")):
+        if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "tv_rv.pts")) or\
+                not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "raendo_closed.pts")):
             prepare_mesh.close_RA_endo(fourch_name="heart_" + anatomy_values[i + 1].replace(",", "")[:-36], subfolder="meshes")
 
         np.savetxt(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
@@ -214,7 +216,7 @@ def tat(anatomy_values, param_values, i):
 
     @param anatomy_values: Array where each line corresponds to one mesh. Each component is a single
     str with the values of the modes (1 to 18)
-    @param_values: Array where each line corresponds to one mesh. Each component is a single
+    @param param_values: Array where each line corresponds to one mesh. Each component is a single
     str with the values of EP parameters.
     @param i: Index of the mesh to create from anatomy values.
 
@@ -223,6 +225,14 @@ def tat(anatomy_values, param_values, i):
     if not os.path.isfile(
             os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
                          "EP_simulations", "TAT.dat")):
+        if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
+                         "EP_simulations",'{0:.2f}'.format(round(float(param_values[i].split(' ')[0]), 2)) + \
+                                           '{0:.2f}'.format(round(float(param_values[i].split(' ')[1]), 2)) + \
+                                           '{0:.2f}'.format(round(float(param_values[i].split(' ')[2]), 2)) + \
+                                           '{0:.2f}'.format(round(float(param_values[i].split(' ')[3]), 2)) + \
+                                           '{0:.2f}'.format(round(float(param_values[i].split(' ')[4]), 2)) + \
+                                           ".dat")):
+            ep_simulations.launch_simulation(anatomy_values=anatomy_values, param_values=param_values, i=i)
 
         np.savetxt(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv",
                                 "EP_simulations", "TAT.dat"),[round(max(np.array([float(x) for x in open(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "EP_simulations", '{0:.2f}'.format(round(float(param_values[i].split(' ')[0]), 2)) + \
@@ -368,6 +378,7 @@ def non_parallelizable(anatomy_values, i):
         return_RVlongdiam = True
     path2fourch = os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36])
     biv_path = os.path.join(path2fourch, "biv")
+    heart_name = "heart_" + anatomy_values[i + 1].replace(",", "")[:-36]
     if return_RVlongdiam:
         if not os.path.isfile(os.path.join(PROJECT_PATH, "meshes", "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "pv_pa.surf")):
             prepare_mesh.close_rv_endo(fourch_name="heart_" + anatomy_values[i + 1].replace(",", "")[:-36], subfolder="meshes")
@@ -397,9 +408,9 @@ def non_parallelizable(anatomy_values, i):
 
         dist_vec = np.zeros(rvendo_closed.size)
 
-        for i in range(len(dist_vec)):
-            new_point = np.array([rvendo_closed.p1[i], rvendo_closed.p2[i], rvendo_closed.p3[i]])
-            dist_vec[i] = np.linalg.norm(centroid - new_point)
+        for j in range(len(dist_vec)):
+            new_point = np.array([rvendo_closed.p1[j], rvendo_closed.p2[j], rvendo_closed.p3[j]])
+            dist_vec[j] = np.linalg.norm(centroid - new_point)
 
         RVlongdiam_centroid = max(dist_vec) * 1e-3
 
