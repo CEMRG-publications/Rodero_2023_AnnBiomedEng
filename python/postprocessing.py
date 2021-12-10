@@ -157,6 +157,82 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
     plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
+def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
+    """Function to plot the points that are emulated to compute the NROY region. It can be plotted a single plot or
+    a triangular plot
+
+    @param subfolder: Name of the subfolder where the emulated points are in.
+    @param offset: Number that indicates which parameters to plot. If 0, it plots the first pair, 1 plots the second
+    and the third, etc. Max is 12. If "all" plots everything.
+    @param in_dim: Number (+1) of the bottom row. For individual plot, =2, and for whole triangular =14.
+    """
+    if offset=="all":
+        for offset_i in range(0,13,2):
+            plot_emulated_points(subfolder=subfolder, offset=offset_i, in_dim=in_dim)
+        plot_emulated_points(subfolder=subfolder, offset=0, in_dim=14)
+
+    else:
+        height = 9.36111
+        width = 5.91667
+        fig = plt.figure(figsize=(3 * width, 3 * height / 3))
+
+        gs = grsp.GridSpec(
+            in_dim - 1,
+            in_dim,
+            width_ratios=(in_dim - 1) * [1] + [0.1],
+        )
+
+        xlabels_ep = read_labels(os.path.join("/data/fitting", "EP_funct_labels_latex.txt"))
+        xlabels_ep_plain = read_labels(os.path.join("/data/fitting", "EP_funct_labels.txt"))
+        xlabels_anatomy = read_labels(os.path.join("/data/fitting", "modes_labels.txt"))
+        xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
+        xlabels_plain = [lab for sublist in [xlabels_anatomy, xlabels_ep_plain] for lab in sublist]
+
+        emulated_points = np.loadtxt(open(os.path.join(PROJECT_PATH, subfolder, "points_to_emulate.dat")))
+
+
+        for k in range(in_dim * in_dim):
+            i_original = k % in_dim
+            j_original = k // in_dim
+
+            if i_original > j_original:
+                axis = fig.add_subplot(gs[i_original - 1, j_original])
+                axis.set_facecolor("white")
+
+                i = i_original + offset
+                j = j_original + offset
+
+                axis.scatter(emulated_points[:, j], emulated_points[:, i],
+                             s=50, marker='.', c='black'
+                             )
+
+
+
+                if i_original == in_dim - 1:
+                    axis.set_xlabel(xlabels[j], fontsize=12)
+                else:
+                    axis.set_xticklabels([])
+                if j_original == 0:
+                    axis.set_ylabel(xlabels[i], fontsize=12)
+                else:
+                    axis.set_yticklabels([])
+
+        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.suptitle("Points emulated to compute the NROY region",
+                     fontsize=18)
+
+        if in_dim == 2:
+            plt.savefig(os.path.join(PROJECT_PATH, subfolder, "figures", "emulated_points_" + xlabels_plain[i] + "_"+  xlabels_plain[j] + ".png"),
+                        bbox_inches="tight", dpi=300)
+        else:
+            plt.savefig(os.path.join(PROJECT_PATH, subfolder, "figures",
+                                     "emulated_points.png"),
+                        bbox_inches="tight", dpi=300)
+
+        plt.close(fig)
+
+
+
 def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
                         plot_title = "Evolution of variance quotient"):
     """Function to plot the uncertainty quantification of an emulator. The 
@@ -1619,7 +1695,7 @@ def plot_training_points_and_ct_ep(subfolder="anatomy_limit_CT", waveno=0):
 
     plt.savefig(os.path.join(PROJECT_PATH, subfolder, "figures") + "/training_vs_CT_ep_wave" + str(waveno) + ".png",
                 bbox_inches="tight", dpi=300)
-
+                
 
 def plot_simulation_vs_emulation():
 
