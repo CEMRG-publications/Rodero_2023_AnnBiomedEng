@@ -127,6 +127,7 @@ def biv_setup(subfolder = "initial_sweep", anatomy_csv_file = "input_anatomy_tra
 
     for i in tqdm.tqdm(range(len(anatomy_values)-1)):
         if not os.path.isfile(os.path.join(mesh_path, "heart_" + anatomy_values[i + 1].replace(",", "")[:-36], "biv", "UVC_mvtv", "UVC", "COORDS_RHO_elem.dat")):
+
             create_uvc(mesh_path, anatomy_values, i)
         run_laplacian(mesh_path, anatomy_values, i)
 
