@@ -60,7 +60,6 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
         axis correctly. If None, it sets the training points range. Defaults to 
         None.
     """
-
     X = W.reconstruct_tests()
 
     if xlabels is None:
@@ -80,7 +79,7 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
         width_ratios=(W.input_dim - 1) * [1] + [0.1],
     )
 
-    for k in range(W.input_dim * W.input_dim):
+    for k in tqdm.tqdm(range(W.input_dim * W.input_dim)):
         i = k % W.input_dim
         j = k // W.input_dim
 
@@ -156,6 +155,7 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
     fig.tight_layout()
     plt.suptitle(plot_title, fontsize = 18)
     plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
+    plt.close(fig)
 
 def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
                         plot_title = "Evolution of variance quotient"):
