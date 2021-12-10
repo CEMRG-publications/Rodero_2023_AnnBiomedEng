@@ -36,6 +36,10 @@ def create(fourch_name, base, subfolder="."):
                   os.path.join(path2biv, "UVC_"+base, "UVC", coord_case+".dat") +
                   " -odat=" + os.path.join(path2biv, "UVC_"+base, "UVC", coord_case+"_elem.dat")
                   )
+        if not os.path.isfile(os.path.join(path2biv, "UVC_"+base, "UVC",
+                                   coord_case+"_elem.dat")):
+            create(fourch_name=fourch_name, base=base, subfolder=subfolder)
+
         not_scaled = np.genfromtxt(os.path.join(path2biv, "UVC_"+base, "UVC",
                                    coord_case+"_elem.dat"), dtype=float)
         scaled = files_manipulations.reescale(not_scaled)
