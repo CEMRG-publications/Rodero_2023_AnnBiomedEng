@@ -982,3 +982,19 @@ def plot_CT_output_vs_literature():
     plt.title('CT cohort biomarkers compared with literature ranges')
 
     plt.show()
+
+
+def generate_patient_distances():
+    """Function to generate a matrix with the distances between the modes of the patients. The metric used is l1.
+    """
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "X_anatomy.csv")),
+                                delimiter=',', skiprows=1)
+    anatomy_values = anatomy_values[0:19,0:9]
+
+    distance_matrix = np.zeros((19,19))
+
+    for i in range(19):
+        for j in range(19):
+            distance_matrix[i,j] = np.linalg.norm(anatomy_values[i] - anatomy_values[j], 1)
+
+    np.savetxt(os.path.join(PROJECT_PATH,'CT_patients_distance_l1.dat'), distance_matrix, fmt='%.2f')
