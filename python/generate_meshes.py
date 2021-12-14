@@ -1,4 +1,5 @@
 import csv
+import glob
 from joblib import Parallel, delayed
 import numpy as np
 import os
@@ -111,3 +112,57 @@ def sample_atlas(subfolder = "initial_sweep", csv_filename = "input_anatomy_trai
             os.system("rm -rf " + os.path.join("/home","crg17","Desktop","KCL_projects","fitting","python","CardiacMeshConstruction_" + individual_name.replace('.','')))
             preprocess_for_carp(mesh_path=mesh_path, anatomy_values=sub_dataset, i=i)
 
+def clean_meshes_dir():
+    """Function to remove all the directories in the meshes directory that are not present in the .csv files of
+    the experiments present in the /data/fitting folder. If they not appear is because they are probably from
+    older experiments.
+    """
+
+    first_level_dirs = glob.glob(PROJECT_PATH + "/*/") # With slashes
+    first_level_dirs.remove(PROJECT_PATH + "/meshes/")
+
+    all_directories = []
+    for subfolder in first_level_dirs:
+        all_directories.append(glob.glob(subfolder + "*/"))
+
+    all_directories = [item for sublist in all_directories for item in sublist]
+
+    all_anatomy_values = []
+    for subfolder in all_directories:
+        append_flag = False
+        if os.path.isfile(subfolder +  "input_anatomy_training.csv"):
+            append_flag = True
+            with open(subfolder +  "input_anatomy_training.csv") as f:
+                anatomy_values = f.read().splitlines()
+                anatomy_values.pop(0)
+        if os.path.isfile(subfolder +  "input_anatomy_validation.csv"):
+            append_flag = True
+            with open(subfolder +  "input_anatomy_validation.csv") as f:
+                anatomy_values = f.read().splitlines()
+                anatomy_values.pop(0)
+        if os.path.isfile(subfolder +  "input_anatomy_test.csv"):
+            append_flag = True
+            with open(subfolder +  "input_anatomy_test.csv") as f:
+                anatomy_values = f.read().splitlines()
+                anatomy_values.pop(0)
+
+        if append_flag:
+            all_anatomy_values.append(anatomy_values)
+
+    all_anatomy_values = [item for sublist in all_anatomy_values for item in sublist]
+
+    all_mesh_folder_names = []
+    for i in  range(len(all_anatomy_values)):
+        all_mesh_folder_names.append(PROJECT_PATH + "/meshes/heart_" + all_anatomy_values[i].replace(",", "")[:-36])
+
+    folder_names_to_keep = list(set(all_mesh_folder_names))
+
+    folder_names_to_clean = glob.glob(os.path.join(PROJECT_PATH,"meshes/*"))
+    folder_names_to_clean.remove(os.path.join(PROJECT_PATH, "meshes","meshing_files"))
+
+    folders_to_remove = list(set(folder_names_to_clean) - set(folder_names_to_keep))
+
+    for path_i in tqdm.tqdm(range(len(folders_to_remove))):
+        os.system("gio trash " + folders_to_remove[path_i])
+
+    print("Note: The folders have not been permanently deleted. If you want to do so, remove the .Trash folder in the /data directory.")
