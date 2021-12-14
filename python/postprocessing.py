@@ -17,15 +17,14 @@ from SALib.analyze import sobol
 from SALib.sample import saltelli
 from scipy.special import binom
 import seaborn as sns
+import skopt
 import tqdm
 import pandas as pd
 
-from Historia.shared.design_utils import read_labels, get_minmax
-from gpytGPE.gpe import GPEmul
-from gpytGPE.utils.plotting import gsa_box, gsa_donut, gsa_network, gsa_heat, correct_index
-from Historia.history import hm
-from Historia.shared.plot_utils import interp_col, get_col
+import Historia
+import gpytGPE
 
+import emulators
 import fitting_hm
 
 from global_variables_config import *
@@ -182,9 +181,9 @@ def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
             width_ratios=(in_dim - 1) * [1] + [0.1],
         )
 
-        xlabels_ep = read_labels(os.path.join("/data/fitting", "EP_funct_labels_latex.txt"))
-        xlabels_ep_plain = read_labels(os.path.join("/data/fitting", "EP_funct_labels.txt"))
-        xlabels_anatomy = read_labels(os.path.join("/data/fitting", "modes_labels.txt"))
+        xlabels_ep = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting", "EP_funct_labels_latex.txt"))
+        xlabels_ep_plain = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting", "EP_funct_labels.txt"))
+        xlabels_anatomy = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting", "modes_labels.txt"))
         xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
         xlabels_plain = [lab for sublist in [xlabels_anatomy, xlabels_ep_plain] for lab in sublist]
 
@@ -231,6 +230,53 @@ def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
 
         plt.close(fig)
 
+def compare_nroy_binary(n_samples, whole_space,
+                        original_emulators=["initial_sweep", "patient2_sd_10/wave1","patient2_sd_10/wave2"],
+                        original_wave="/data/fitting/patient2_sd_10/wave2/wave2_patient2_sd_10",
+                        reusing_emulators=["initial_sweep", "patient1_sd_10/wave1","patient1_sd_10/wave2"],
+                        reusing_wave="/data/fitting/using_patient1_sd_10/wave2/wave2_patient2_using_patient1_sd_10"):
+
+    """Function to compare the NROY regions of two waves. Takes as reference the NROY region of original_wave and
+    check if those points are implausible or not in the reusing_wave. It can also check in the whole space instead
+    of only in the NROY region.
+
+    @param n_samples: Number of points to be evaluated. With 1e5 seems reliable.
+    @param whole_space: If True, it compares the whole parameter space, otherwise only the NROY region.
+    @param original_emulators: Emulators used to load the reference wave.
+    @param original_wave: Full path of the reference wave.
+    @param reusing_emulators: Emulators used to load the wave to compare.
+    @param reusing_wave: Full path of the wave to compare.
+
+    @return Percentage of the match between the two waves.
+    """
+    emulators_vector_original = emulators.train(
+        folders=original_emulators)
+    wave_original = Historia.history.hm.Wave()
+    wave_original.load(original_wave)
+    wave_original.emulator = emulators_vector_original
+
+    emulators_vector_reusing = emulators.train(
+        folders=reusing_emulators)
+    wave_reusing = Historia.history.hm.Wave()
+    wave_reusing.load(reusing_wave)
+    wave_reusing.emulator = emulators_vector_reusing
+
+    if whole_space:
+        space = skopt.space.Space(wave_original.Itrain)
+        points_to_evaluate = space.rvs(int(n_samples))
+    else:
+        points_to_evaluate = wave_original.NIMP
+
+
+    original_impl = compute_impl_modified(wave_original,points_to_evaluate)
+    reusing_impl = compute_impl_modified(wave_reusing,points_to_evaluate)
+
+    boolean_original = original_impl < 3
+    boolean_reusing = reusing_impl < 3
+
+    intersection_space = [boolean_original[i] == boolean_reusing[i] for i in range(len(boolean_original))]
+
+    return 100*sum(intersection_space)/len(intersection_space)
 
 
 def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
@@ -319,7 +365,7 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
 
     exp_means = np.loadtxt(os.path.join("/data","fitting","match", exp_mean_name), dtype=float)
     exp_stds = np.loadtxt(os.path.join("/data","fitting","match", exp_std_name), dtype=float)
-    output_labels = read_labels(output_labels_dir)
+    output_labels = Historia.shared.design_utils.read_labels(output_labels_dir)
 
     if units_dir != "":
         units = read_labels(units_dir)
@@ -344,7 +390,7 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
             X_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), X_name),dtype=float)
             y_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), y_name),dtype=float)
             
-            emul = GPEmul.load(X_train, y_train, loadpath=os.path.join("/data","fitting",subfolder,"wave" + str(w) + "/"),filename = "wave" + str(w) + "_" + output_labels[i] + ".gpe")
+            emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join("/data","fitting",subfolder,"wave" + str(w) + "/"),filename = "wave" + str(w) + "_" + output_labels[i] + ".gpe")
             emulated_means, _ = emul.predict(X_test)
 
             min_value_axis = min(min_value_axis,min(y_train))
@@ -458,10 +504,10 @@ def plot_accumulated_waves_points(subfolder, last_wave):
     """
     
     XL = []
-    xlabels = read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
+    xlabels = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting", "EP_funct_labels_latex.txt"))
     for counter, idx in enumerate(range(last_wave+1)):
         print(f"\nLoading wave {idx}...")
-        W = hm.Wave()
+        W = Historia.history.hm.Wave()
         path_to_waves = os.path.join("/data","fitting",subfolder,"wave" + str(idx),"wave_" + str(idx))
         W.load(path_to_waves)
         W.print_stats()
@@ -471,7 +517,7 @@ def plot_accumulated_waves_points(subfolder, last_wave):
         else:
             XL.append(W.IMP)
 
-    colors = interp_col(get_col("blue"), last_wave + 1)
+    colors = Historia.shared.plot_utils.interp_col(Historia.shared.plot_utils.get_col("blue"), last_wave + 1)
 
     wnames = ["Initial space"] + [f"wave_{idx}" for idx in range(last_wave+1)]
 
@@ -672,7 +718,7 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
     X_train = np.loadtxt(os.path.join(in_out_path, "X.dat"), dtype=float)
     y_train = np.loadtxt(os.path.join(in_out_path, feature + ".dat"), dtype=float)
 
-    emul = GPEmul.load(X_train, y_train,
+    emul = gpytGPE.gpe.GPEmul.load(X_train, y_train,
                         loadpath=in_out_path + "/",
                         filename = "wave" + str(emul_num) + "_" + feature + ".gpe")
 
@@ -683,10 +729,10 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
     n_draws = 1000
 
     D = X_train.shape[1]
-    I = get_minmax(X_train)
+    I = Historia.shared.design_utils.get_minmax(X_train)
     
     if input_labels == []:
-        index_i = read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
+        index_i = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
     else:
         index_i = input_labels
     # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
@@ -735,7 +781,7 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
 
     # gsa_box(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
     # gsa_donut_anotated(ST, S1, index_i, preffix = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
-    gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
+    gpytGPE.utils.plotting.gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
     # gsa_donut_single(ST, S1, index_i, feature = feature, savepath = in_out_path + "/../figures/", correction=thre)
 
     # gsa_donut(ST = ST, S1 = S1, index_i = index_i, ylabel = feature, savepath = in_out_path + "/", correction=None)
@@ -760,7 +806,7 @@ def full_GSA(emul_num, subfolder, output_labels_dir, input_labels):
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    output_labels = read_labels(output_labels_dir)
+    output_labels = Historia.shared.design_utils.read_labels(output_labels_dir)
     
     for i in range(len(output_labels)):
         if os.path.isfile(os.path.join("/data","fitting",subfolder,"wave" + str(emul_num),"Sij_" + output_labels[i] + ".txt")):
@@ -785,8 +831,8 @@ def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
         it to avoid numerical issues. Defaults to None.
     """
     if correction is not None:
-        ST = correct_index(ST, correction)
-        S1 = correct_index(S1, correction)
+        ST = gpytGPE.utils.plotting.correct_index(ST, correction)
+        S1 = gpytGPE.utils.plotting.correct_index(S1, correction)
 
     ST_mean = np.mean(ST, axis=0)
     S1_mean = np.mean(S1, axis=0)
@@ -950,7 +996,7 @@ def print_ranking(emul_num, subfolder, output_labels, input_labels):
         X_train = np.loadtxt(os.path.join(in_out_path, "X.dat"), dtype=float)
         y_train = np.loadtxt(os.path.join(in_out_path, feature + ".dat"), dtype=float)
 
-        emul = GPEmul.load(X_train, y_train,
+        emul = gpytGPE.gpe.GPEmul.load(X_train, y_train,
                             loadpath=in_out_path + "/",
                             filename = "wave" + str(emul_num) + "_" + feature + ".gpe")
 
@@ -961,10 +1007,10 @@ def print_ranking(emul_num, subfolder, output_labels, input_labels):
         n_draws = 1000
 
         D = X_train.shape[1]
-        I = get_minmax(X_train)
+        I = Historia.shared.design_utils.get_minmax(X_train)
         
         if input_labels == []:
-            index_i = read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
+            index_i = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting","EP_funct_labels_latex.txt"))
         else:
             index_i = input_labels
         # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
@@ -1006,8 +1052,8 @@ def print_ranking(emul_num, subfolder, output_labels, input_labels):
             S1 = np.loadtxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), dtype=float)
             S2 = np.loadtxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), dtype=float)
 
-        ST = correct_index(ST, 1e-6)
-        S1 = correct_index(S1, 1e-6)
+        ST = gpytGPE.utils.plotting.correct_index(ST, 1e-6)
+        S1 = gpytGPE.utils.plotting.correct_index(S1, 1e-6)
 
         ST_mean = np.mean(ST, axis=0)
 
@@ -1041,8 +1087,8 @@ def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
     """
 
     if correction is not None:
-        ST = correct_index(ST, correction)
-        S1 = correct_index(S1, correction)
+        ST = gpytGPE.utils.plotting.correct_index(ST, correction)
+        S1 = gpytGPE.utils.plotting.correct_index(S1, correction)
 
     ST_mean = np.mean(ST, axis=0)
     S1_mean = np.mean(S1, axis=0)
@@ -1127,8 +1173,8 @@ def emulate_output_anatomy(feature, ci, normalise=False, waveno=2):
 
     ep_param_paper = np.array([80, 70, 0.8, 0.29, 7])
 
-    output_labels = read_labels(os.path.join("/data","fitting","CT_anatomy","output_labels.txt"))
-    output_units = read_labels(os.path.join("/data","fitting","CT_anatomy","output_units.txt"))
+    output_labels = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting","CT_anatomy","output_labels.txt"))
+    output_units = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting","CT_anatomy","output_units.txt"))
 
     if feature == "all":
         for feature_i in output_labels:
@@ -1244,7 +1290,7 @@ def infer_parameters_anatomy():
     exp_mean = np.nanmean(wanted_ct_simulation_output,axis=0)
     # exp_std = np.nanmean(wanted_ct_simulation_output,axis=0)
 
-    wave = hm.Wave()
+    wave = Historia.history.hm.Wave()
     wave.load(os.path.join("/data/fitting", "anatomy", "wave2", "wave_2"))
 
     difference_matrix = np.empty((0,len(wave.NIMP)))
@@ -1259,8 +1305,8 @@ def infer_parameters_anatomy():
 
     winner_idx = np.argmin(matrix_to_minimise)
 
-    xlabels_EP = read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels.txt"))
-    xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
+    xlabels_EP = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels.txt"))
+    xlabels_anatomy = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy, xlabels_EP] for lab in sublist]
 
     for i, lab in enumerate(xlabels):
@@ -1272,7 +1318,7 @@ def plot_inference_emulation_discrepancy(plot_title, filename, reduction_functio
     features_names = ["TAT", "LVV"]
     features_values = [90., 120]
 
-    wave = hm.Wave()
+    wave = Historia.history.hm.Wave()
     wave.load(os.path.join("/data/fitting", "anatomy", "wave2", "wave_2"))
     X = wave.reconstruct_tests()
 
@@ -1304,8 +1350,8 @@ def plot_inference_emulation_discrepancy(plot_title, filename, reduction_functio
         width_ratios=(wave.input_dim - 1) * [1] + [0.1],
     )
 
-    xlabels_EP = read_labels(os.path.join(PROJECT_PATH,"anatomy", "EP_funct_labels_latex.txt"))
-    xlabels_anatomy = read_labels(os.path.join(PROJECT_PATH,"anatomy", "modes_labels.txt"))
+    xlabels_EP = Historia.shared.design_utils.read_labels(os.path.join(PROJECT_PATH,"anatomy", "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = Historia.shared.design_utils.read_labels(os.path.join(PROJECT_PATH,"anatomy", "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy, xlabels_EP] for lab in sublist]
 
     path_match = os.path.join(PROJECT_PATH, "match")
@@ -1380,7 +1426,7 @@ def plot_inference_emulation_discrepancy(plot_title, filename, reduction_functio
 
 def plot_cv_vs_fec_template(feature = "TAT"):
 
-    wave = hm.Wave()
+    wave = Historia.history.hm.Wave()
     wave.load(os.path.join("/data", "fitting", "EP_template", "experiment_7_unfiltered", "wave4", "wave_4"))
     whole_space = wave.reconstruct_tests()
     fec_height_idx = 4
@@ -1429,12 +1475,12 @@ def plot_param_pairs_fixing_rest(feature="TAT", scenario="EP_template", fix_othe
     if scenario == "EP_template":
         subfolder += "/experiment_7_unfiltered"
         emul_num = 4
-        xlabels = read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
+        xlabels = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
         n_samples = 100
     elif scenario == "anatomy":
         emul_num = 2
-        xlabels_ep = read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels_latex.txt"))
-        xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
+        xlabels_ep = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting/anatomy", "EP_funct_labels_latex.txt"))
+        xlabels_anatomy = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting/anatomy", "modes_labels.txt"))
         xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
         n_samples = 280
 
@@ -1442,8 +1488,8 @@ def plot_param_pairs_fixing_rest(feature="TAT", scenario="EP_template", fix_othe
         print("Scenario not accepted.")
         sys.exit()
 
-    output_labels = read_labels(os.path.join("/data", "fitting", subfolder, "output_labels.txt"))
-    units = read_labels(os.path.join("/data", "fitting", subfolder, "output_units.txt"))
+    output_labels = Historia.shared.design_utils.read_labels(os.path.join("/data", "fitting", subfolder, "output_labels.txt"))
+    units = Historia.shared.design_utils.read_labels(os.path.join("/data", "fitting", subfolder, "output_units.txt"))
     cbar_label = "Mean " + feature + " (" + units[output_labels.index(feature)] + ")"
     plot_title = "Mean pairwise emulation in the last NROY region"
     filename = os.path.join("/data", "fitting", subfolder, "figures", "pairwise_emulation_" + feature)
@@ -1451,7 +1497,7 @@ def plot_param_pairs_fixing_rest(feature="TAT", scenario="EP_template", fix_othe
     if not fix_others:
         filename += "_not_fixing"
 
-    wave = hm.Wave()
+    wave = Historia.history.hm.Wave()
     wave.load(os.path.join("/data", "fitting", subfolder+ "/original_waves_and_figures", "wave" + str(emul_num), "wave_" + str(emul_num)))
 
     height = 9.36111
@@ -1531,7 +1577,7 @@ def plot_pairwise_emulation_all(scenario, fix_others):
     if scenario == "EP_template":
         subfolder += "/experiment_7_unfiltered"
 
-    feature_labels = read_labels(os.path.join("/data/fitting",subfolder,"output_labels.txt"))
+    feature_labels = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting",subfolder,"output_labels.txt"))
 
     for feature in feature_labels:
         plot_param_pairs_fixing_rest(feature=feature, scenario=scenario, fix_others=fix_others)
@@ -1554,8 +1600,8 @@ def plot_training_points_and_ct(modes_batch=0, waveno=2):
     x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["TAT"], n_training_pts=420,
                                                 training_set_memory=2, subfolder="anatomy_max_range", only_feasible=False)
 
-    xlabels_ep = read_labels(os.path.join("/data/fitting/anatomy_max_range", "EP_funct_labels_latex.txt"))
-    xlabels_anatomy = read_labels(os.path.join("/data/fitting/anatomy_max_range", "modes_labels.txt"))
+    xlabels_ep = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting/anatomy_max_range", "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting/anatomy_max_range", "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
 
     anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
@@ -1634,8 +1680,8 @@ def plot_training_points_and_ct_ep(subfolder="anatomy_limit_CT", waveno=0):
     x_train, y_train, emul = fitting_hm.run_GPE(waveno=waveno, train=False, active_feature=["TAT"], n_training_pts=420,
                                                 training_set_memory=2, subfolder=subfolder, only_feasible=False)
 
-    xlabels_ep = read_labels(os.path.join("/data/fitting", subfolder, "EP_funct_labels_latex.txt"))
-    xlabels_anatomy = read_labels(os.path.join("/data/fitting", subfolder, "modes_labels.txt"))
+    xlabels_ep = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting", subfolder, "EP_funct_labels_latex.txt"))
+    xlabels_anatomy = Historia.shared.design_utils.read_labels(os.path.join("/data/fitting", subfolder, "modes_labels.txt"))
     xlabels = [lab for sublist in [xlabels_anatomy, xlabels_ep] for lab in sublist]
 
     anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "CT_anatomy", "X_anatomy.csv")),
@@ -1772,7 +1818,7 @@ def plot_simulation_vs_emulation():
 
 def plot_mechanics_batches(waveno=0, batch_size = 10):
 
-    xlabels = read_labels(os.path.join(PROJECT_PATH,"mechanics","mechanics_funct_labels_brief.txt"))
+    xlabels = Historia.shared.design_utils.read_labels(os.path.join(PROJECT_PATH,"mechanics","mechanics_funct_labels_brief.txt"))
 
     height = 9.36111
     width = 5.91667
@@ -1857,3 +1903,22 @@ def impl_measure_per_output(emul_mean, lit_mean, emul_var, lit_var):
 
 
     return impl_vec
+
+def compute_impl_modified(wave,dataset):
+    M = np.zeros((len(dataset), wave.output_dim), dtype=float)
+    V = np.zeros((len(dataset), wave.output_dim), dtype=float)
+    for j, emul in enumerate(wave.emulator):
+        mean, std = emul.predict(dataset)
+        var = np.power(std, 2)
+        M[:, j] = mean
+        V[:, j] = var
+
+    I = np.zeros((len(dataset),), dtype=float)
+    for i in range(len(dataset)):
+        In = np.sqrt(
+            (np.power(M[i, :] - wave.mean, 2)) / (V[i, :] + wave.var)
+        )
+
+        I[i] = np.sort(In)[-wave.maxno]
+
+    return I
