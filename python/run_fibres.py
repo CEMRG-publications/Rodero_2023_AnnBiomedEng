@@ -11,6 +11,8 @@ import os
 import carputils
 from carputils import tools
 
+from global_variables_config import *
+
 def parser():
     parser = carputils.tools.standard_parser()
     parser.add_argument('--experiment',
@@ -27,8 +29,8 @@ def jobID(args):
     Generate name of top level output directory.
     """
     subtest = args.experiment
-    meshdir  = "/data/fitting/" + args.current_case + "/biv"
-    simdir = os.path.join(meshdir,"fibres")
+    meshdir = PROJECT_PATH + "/" + args.current_case + "/biv"
+    simdir = os.path.join(meshdir, "fibres")
 
     if not os.path.exists(simdir):
       os.makedirs(simdir)
@@ -38,7 +40,7 @@ def jobID(args):
 @tools.carpexample(parser, jobID)
 def run(args, job):
 
-    meshdir = "/data/fitting/" + args.current_case + "/biv"
+    meshdir = PROJECT_PATH + "/" + args.current_case + "/biv"
     meshname = '{}/biv'.format(meshdir)
     experiment = args.experiment
 
