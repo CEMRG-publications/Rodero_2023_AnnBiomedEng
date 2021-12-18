@@ -96,6 +96,8 @@ def sample_atlas(subfolder = "initial_sweep", csv_filename = "input_anatomy_trai
 
         for i in tqdm.tqdm(range(len(sub_dataset))):
             individual_name = sub_dataset[i].replace(",", "")[:-36]
+
+            print("Couldn't find " + os.path.join(mesh_path, "heart_" + sub_dataset[i].replace(",", "")[:-36], "heart_" + sub_dataset[i].replace(",", "")[:-36] + "_default.elem"))
             np.savetxt(os.path.join(mesh_path, "meshing_files", individual_name + ".csv"),
                        np.array([header_line, sub_dataset[i]]), fmt='%s', delimiter='\n')
             os.system("rm -rf " + os.path.join("/home", "crg17", "Desktop", "KCL_projects", "fitting", "python",
@@ -117,6 +119,8 @@ def clean_meshes_dir():
     the experiments present in the /data/fitting folder. If they not appear is because they are probably from
     older experiments.
     """
+
+    PROJECT_PATH = "/data/fitting"
 
     first_level_dirs = glob.glob(PROJECT_PATH + "/*/") # With slashes
     first_level_dirs.remove(PROJECT_PATH + "/meshes/")
