@@ -349,3 +349,23 @@ def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
                                wave=wave, literature_data=False,
                                patient_number=new_patient, sd_magnitude=sd_magnitude,
                                title = "Wave for #" + str(new_patient) + " using data from #" + str(use_emulators_from_patient) + "(SD=" + str(sd_magnitude) + "%)")
+    wave.save(os.path.join(PROJECT_PATH, "using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
+                                                    sd_magnitude) + "/wave2", "wave2_patient" + str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude)))
+    history_matching.generate_new_training_pts(wave=wave, num_pts=0,
+                                               output_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
+                                                    sd_magnitude) + "/wave3",
+                                               input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
+                                                    sd_magnitude) + "/wave2",
+                                               wave_name="wave2_patient" + str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude))
+
+
+def run_farthest_patients(patient_number):
+
+    distance_matrix = np.loadtxt(os.path.join(PROJECT_PATH,"CT_patients_distance_l1.dat"))
+
+    farthest_patient = np.argmax(distance_matrix[patient_number-1]) + 1
+
+    patient(patient_number=patient_number, run_wave0=True, run_wave1=True, run_wave2=True, sd_magnitude=10)
+    patient(patient_number=farthest_patient, run_wave0=True, run_wave1=True, run_wave2=True, sd_magnitude=10)
+
+    mix_patients(use_emulators_from_patient=patient_number, new_patient=farthest_patient, sd_magnitude=10)
