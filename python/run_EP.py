@@ -5,6 +5,8 @@ import shutil
 
 import files_manipulations
 
+from global_variables_config import *
+
 
 def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
               CV_l = None, k_fibre = None, k_fec = None,
@@ -32,7 +34,7 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
     CV_t = float(CV_l)*float(k_fibre)
     CV_fec = float(CV_l)*float(k_fec)
 
-    path2biv = os.path.join("/data","fitting",subfolder,fourch_name, "biv")
+    path2biv = os.path.join(PROJECT_PATH,subfolder,fourch_name, "biv")
     lastfectag = int(float(lastfectag))
     tags_myo = np.append([1, 2],range(lastfectag + 1, 39))
     tags_fec = np.array(range(25,lastfectag + 1))
@@ -84,7 +86,7 @@ def launch_init(fourch_name="Full_Heart_Mesh_Template", alpha_endo=None, alpha_e
         map_to_fourch: If True, maps the resulting activation times file to the four chamber
         mesh, as long as it doesn't exist already.
     """
-    path2fourch = os.path.join("/data", "fitting", subfolder, fourch_name)
+    path2fourch = os.path.join(PROJECT_PATH, subfolder, fourch_name)
     path2biv = os.path.join(path2fourch, "biv")
     path2sim = path_ep
 
