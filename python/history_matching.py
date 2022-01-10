@@ -48,7 +48,7 @@ def save_patient_implausibility(emulators_vector, input_folder, patient_number, 
 
 def compute_nroy_region(emulators_vector, implausibility_threshold, literature_data, input_folder, previous_wave_name=None,
                         patient_number=None,
-                        sd_magnitude=None, first_time=False):
+                        sd_magnitude=None, first_time=False, sampling_pts_lhd=0):
     """Function to compute the not-ruled-out-yet (NROY) region using specified emulators and biomarkers. It also saves
     the points to emulate and the percentage of NROY region compared to the previous wave.
 
@@ -61,6 +61,8 @@ def compute_nroy_region(emulators_vector, implausibility_threshold, literature_d
     @param patient_number: If not using literature value, number of the patient to be used.
     @param sd_magnitude: Percentage of the value of the biomarker to be used as standard deviation.
     @param first_time: If true, it doesn't load a previous wave.
+    @param sampling_pts_lhd: If >0 samples the points to emulate with latin hypercube design using that number
+    of points. Otherwise it uses the cloud technique
 
     @return The new wave object.
     """
@@ -113,17 +115,26 @@ def compute_nroy_region(emulators_vector, implausibility_threshold, literature_d
         wave.mean = exp_mean
         wave.var = exp_var
 
-
-    if not os.path.isfile(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat")):
-        if first_time:
-            points_to_emulate = Historia.shared.design_utils.lhd(param_ranges, int(1e5), SEED)
+    if sampling_pts_lhd == 0:
+        if not os.path.isfile(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat")):
+            if first_time:
+                points_to_emulate = Historia.shared.design_utils.lhd(param_ranges, int(1e5), SEED)
+            else:
+                points_to_emulate = add_points_to_nroy(input_wave=wave, param_ranges=param_ranges, n_pts=int(1e5),
+                                                       scale=0.1)
+            np.savetxt(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat"), points_to_emulate, fmt="%.2f")
         else:
-            points_to_emulate = add_points_to_nroy(input_wave=wave, param_ranges=param_ranges, n_pts=int(1e5),
-                                                   scale=0.1)
-        np.savetxt(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat"), points_to_emulate, fmt="%.2f")
-    else:
-        points_to_emulate = np.loadtxt(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat"), dtype=float)
+            points_to_emulate = np.loadtxt(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat"), dtype=float)
 
+    else:
+        if not os.path.isfile(os.path.join(PROJECT_PATH,input_folder,"points_to_emulate_lhd_" +
+                                                                     str(int(sampling_pts_lhd)) + ".dat")):
+            points_to_emulate = Historia.shared.design_utils.lhd(param_ranges,int(sampling_pts_lhd),SEED)
+            np.savetxt(os.path.join(PROJECT_PATH,input_folder,"points_to_emulate_lhd_" +
+                                    str(int(sampling_pts_lhd)) + ".dat"), points_to_emulate, fmt="%.2f")
+        else:
+            points_to_emulate = np.loadtxt(os.path.join(PROJECT_PATH,input_folder,"points_to_emulate_lhd_" +
+                                    str(int(sampling_pts_lhd)) + ".dat"), dtype=float)
     # ============= We finally print and show the wave we wanted =============#
     print("Computing implausibility of NROY...")
     wave.find_regions(points_to_emulate)  # enforce the implausibility criterion to detect regions of
@@ -137,9 +148,124 @@ def compute_nroy_region(emulators_vector, implausibility_threshold, literature_d
     if literature_data:
         np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_literature.dat"), [perc], fmt='%.2f')
     else:
-        np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_patient" + str(patient_number) + "_sd_" +
-                                str(sd_magnitude) + ".dat"), [perc], fmt='%.2f')
+        if sampling_pts_lhd == 0:
+            np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_patient" + str(patient_number) + "_sd_" +
+                                    str(sd_magnitude) + ".dat"), [perc], fmt='%.2f')
+        else:
+            np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_patient" + str(patient_number) + "_sd_" +
+                                    str(sd_magnitude) + "_lhd_" + str(int(sampling_pts_lhd)) + ".dat"), [perc], fmt='%.2f')
+    print("Results saved in " + os.path.join(PROJECT_PATH,input_folder))
+    return wave
 
+def compute_nroy_relative_percentage(emulators_vector, implausibility_threshold, literature_data, input_folder, previous_wave_name=None,
+                        patient_number=None,
+                        sd_magnitude=None, first_time=False, sampling_pts_lhd=0):
+    """Function to compute the not-ruled-out-yet (NROY) region using specified emulators and biomarkers. It also saves
+    the points to emulate and the percentage of NROY region compared to the previous wave.
+
+    @param emulators_vector: array with emulator objects that will be used to compute implausibility.
+    @param implausibility_threshold: Threshold to decide if a point is implausible or not.
+    @param literature_data: If True, uses literature data instead of patient.
+    @param input_folder: Folder name where the results will be saved.
+    @param previous_wave_name: If it's not the first run, name of the previous wave to start from the previous NROY
+    region.
+    @param patient_number: If not using literature value, number of the patient to be used.
+    @param sd_magnitude: Percentage of the value of the biomarker to be used as standard deviation.
+    @param first_time: If true, it doesn't load a previous wave.
+    @param sampling_pts_lhd: If >0 samples the points to emulate with latin hypercube design using that number
+    of points. Otherwise it uses the cloud technique
+
+    @return The new wave object.
+    """
+
+    pathlib.Path(os.path.join(PROJECT_PATH, input_folder)).mkdir(parents=True, exist_ok=True)
+
+    SEED = 2
+    # ----------------------------------------------------------------
+    # Make the code reproducible
+    np.random.seed(SEED)
+
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_lower.dat"),
+                                            dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_upper.dat"),
+                                            dtype=float)
+
+    param_ranges_lower_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_ep)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_ep)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+
+    if literature_data:
+        exp_mean = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_EP_lit_mean.txt"), dtype=float)
+        exp_std = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_EP_lit_sd.txt"), dtype=float)
+        exp_var = np.power(exp_std, 2)
+    else:
+        patients_simulation_output = np.loadtxt(open(os.path.join(PROJECT_PATH, "anatomy_EP_patients.csv"), "rb"),
+                                                   delimiter=",", skiprows=1)
+        exp_mean = patients_simulation_output[patient_number-1,]
+        exp_std = sd_magnitude/100.*exp_mean
+        exp_var = np.power(exp_std, 2)
+
+    if first_time:
+        wave = Historia.history.hm.Wave(emulator=emulators_vector,
+                                        Itrain=param_ranges,
+                                        cutoff=implausibility_threshold,
+                                        maxno=1,
+                                        mean=exp_mean,
+                                        var=exp_var)
+    else:
+        wave = Historia.history.hm.Wave()
+        wave.load(previous_wave_name)
+        wave.emulator = emulators_vector
+        wave.Itrain = param_ranges
+        wave.cutoff = implausibility_threshold
+        wave.maxno = 1
+        wave.mean = exp_mean
+        wave.var = exp_var
+
+    if sampling_pts_lhd == 0:
+        if not os.path.isfile(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat")):
+            if first_time:
+                points_to_emulate = Historia.shared.design_utils.lhd(param_ranges, int(1e5), SEED)
+            else:
+                points_to_emulate = add_points_to_nroy(input_wave=wave, param_ranges=param_ranges, n_pts=int(1e5),
+                                                       scale=0.1)
+            np.savetxt(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat"), points_to_emulate, fmt="%.2f")
+        else:
+            points_to_emulate = np.loadtxt(os.path.join(PROJECT_PATH,input_folder, "points_to_emulate.dat"), dtype=float)
+
+    else:
+        if not os.path.isfile(os.path.join(PROJECT_PATH,input_folder,"points_to_emulate_lhd_" +
+                                                                     str(int(sampling_pts_lhd)) + ".dat")):
+            points_to_emulate = Historia.shared.design_utils.lhd(param_ranges,int(sampling_pts_lhd),SEED)
+            np.savetxt(os.path.join(PROJECT_PATH,input_folder,"points_to_emulate_lhd_" +
+                                    str(int(sampling_pts_lhd)) + ".dat"), points_to_emulate, fmt="%.2f")
+        else:
+            points_to_emulate = np.loadtxt(os.path.join(PROJECT_PATH,input_folder,"points_to_emulate_lhd_" +
+                                    str(int(sampling_pts_lhd)) + ".dat"), dtype=float)
+    # ============= We finally print and show the wave we wanted =============#
+    print("Computing implausibility of NROY...")
+    wave.find_regions(points_to_emulate)  # enforce the implausibility criterion to detect regions of
+    # non-implausible and of implausible points
+    print("Finished")
+    nimp = len(wave.nimp_idx)
+    imp = len(wave.imp_idx)
+    tests = nimp + imp
+    perc = 100 * nimp / tests
+
+    if literature_data:
+        np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_literature.dat"), [perc], fmt='%.2f')
+    else:
+        if sampling_pts_lhd == 0:
+            np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_patient" + str(patient_number) + "_sd_" +
+                                    str(sd_magnitude) + ".dat"), [perc], fmt='%.2f')
+        else:
+            np.savetxt(os.path.join(PROJECT_PATH, input_folder, "NROY_rel_patient" + str(patient_number) + "_sd_" +
+                                    str(sd_magnitude) + "_lhd_" + str(int(sampling_pts_lhd)) + ".dat"), [perc], fmt='%.2f')
+    print("Results saved in " + os.path.join(PROJECT_PATH,input_folder))
     return wave
 
 def plot_nroy(input_folder, wave, literature_data, patient_number=None, sd_magnitude=None, title=None):
