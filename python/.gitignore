@@ -12,3 +12,4 @@ __pycache__/prepare_mesh.cpython-36.pyc
 CardiacMeshConstruction_old
 CardiacMeshConstruction_outside
 .idea/
+*pyc
