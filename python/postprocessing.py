@@ -230,11 +230,9 @@ def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
 
         plt.close(fig)
 
-def compare_nroy_binary(n_samples, whole_space,
-                        original_emulators=["initial_sweep", "patient2_sd_10/wave1","patient2_sd_10/wave2"],
-                        original_wave="/data/fitting/patient2_sd_10/wave2/wave2_patient2_sd_10",
-                        reusing_emulators=["initial_sweep", "patient1_sd_10/wave1","patient1_sd_10/wave2"],
-                        reusing_wave="/data/fitting/using_patient1_sd_10/wave2/wave2_patient2_using_patient1_sd_10"):
+def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_last_wave=2, using_patient=2,
+                        using_last_wave=2):
+
 
     """Function to compare the NROY regions of two waves. Takes as reference the NROY region of original_wave and
     check if those points are implausible or not in the reusing_wave. It can also check in the whole space instead
@@ -242,13 +240,31 @@ def compare_nroy_binary(n_samples, whole_space,
 
     @param n_samples: Number of points to be evaluated. With 1e5 seems reliable.
     @param whole_space: If True, it compares the whole parameter space, otherwise only the NROY region.
-    @param original_emulators: Emulators used to load the reference wave.
-    @param original_wave: Full path of the reference wave.
-    @param reusing_emulators: Emulators used to load the wave to compare.
-    @param reusing_wave: Full path of the wave to compare.
+    @param original_patient: Patient number used to load the reference wave.
+    @param original_last_wave: Number of the reference wave.
+    @param using_patient: Patient number used to load the wave to compare.
+    @param using_last_wave: Number of the wave to compare.
 
     @return Percentage of the match between the two waves.
     """
+    original_emulators = ["initial_sweep"]
+    for i in range(original_last_wave):
+        original_emulators.append("patient" + str(original_patient) + "_sd_10/wave" + str(i+1))
+
+    original_wave = os.path.join(PROJECT_PATH,"patient" + str(original_patient) + "_sd_10",
+                                 "wave" + str(original_last_wave) + "/wave" + str(original_last_wave) + "_patient" +
+                                 str(original_patient) + "_sd_10")
+
+    reusing_emulators = ["initial_sweep"]
+    for i in range(using_last_wave):
+        reusing_emulators.append("patient" + str(using_patient) + "_sd_10/wave" + str(i+1))
+
+    reusing_wave = os.path.join(PROJECT_PATH,"using_patient" + str(using_patient) + "_sd_10",
+                                "wave" + str(using_last_wave),
+                                "wave" + str(using_last_wave) + "_patient" +str(original_patient)+ "_using_patient"+str(using_patient)+"_sd_10")
+
+
+
     emulators_vector_original = emulators.train(
         folders=original_emulators)
     wave_original = Historia.history.hm.Wave()
