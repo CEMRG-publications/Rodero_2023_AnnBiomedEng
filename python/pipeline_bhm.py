@@ -332,6 +332,11 @@ def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
         folders=["initial_sweep", "patient" + str(use_emulators_from_patient) + "_sd_" + str(sd_magnitude) + "/wave1",
                  "patient" + str(use_emulators_from_patient) + "_sd_" + str(sd_magnitude) + "/wave2"])
 
+    if use_emulators_from_patient != new_patient:
+        sampling_pts_lhd = 1e6
+    else:
+        sampling_pts_lhd = 0
+
     wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector, implausibility_threshold=3.0,
                                                 literature_data=False,
                                                 input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
@@ -339,7 +344,7 @@ def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
                                                 patient_number=new_patient, sd_magnitude=sd_magnitude,
                                                 previous_wave_name=os.path.join(PROJECT_PATH,"patient" + str(use_emulators_from_patient) + "_sd_" + str(
                                                        sd_magnitude) + "/wave2","wave2_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                       sd_magnitude)))
+                                                       sd_magnitude)), sampling_pts_lhd=sampling_pts_lhd)
     history_matching.save_patient_implausibility(emulators_vector=emulators_vector,
                                                  input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
                                                     sd_magnitude) + "/wave2",
@@ -357,7 +362,6 @@ def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
                                                input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
                                                     sd_magnitude) + "/wave2",
                                                wave_name="wave2_patient" + str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude))
-
 
 def run_farthest_patients(patient_number):
 
