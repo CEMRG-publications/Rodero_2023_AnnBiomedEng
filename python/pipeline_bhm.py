@@ -230,7 +230,7 @@ def literature(run_wave0, run_wave1, run_wave2):
         # history_matching.generate_new_training_pts(wave=wave, num_pts=140, output_folder="literature/wave3",
         #                                            input_folder="literature/wave2", wave_name="wave2_literature")
 
-def patient(patient_number, run_wave0, run_wave1, run_wave2, sd_magnitude):
+def patient(patient_number, run_wave0, run_wave1, run_wave2, run_wave3, sd_magnitude):
     """Function to pipeline the generation of meshes and the running of simulations when using values from the
     simulations of a specific patient.
 
@@ -319,6 +319,49 @@ def patient(patient_number, run_wave0, run_wave1, run_wave2, sd_magnitude):
                                                    wave_name="wave2_patient" + str(patient_number) + "_sd_" + str(
                                                        sd_magnitude))
 
+    if run_wave3:
+        print("Running wave 3...")
+
+        generate_meshes.sample_atlas(subfolder="patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave3",
+                                     csv_filename="input_anatomy_training.csv")
+        preprocess_mesh.biv_setup(subfolder="patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave3",
+                                  anatomy_csv_file="input_anatomy_training.csv",
+                                  ep_dat_file="input_ep_training.dat")
+        ep_simulations.run(subfolder="patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave3",
+                           anatomy_csv_file="input_anatomy_training.csv",
+                           ep_dat_file="input_ep_training.dat")
+        biomarkers.extract(subfolder="patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave3",
+                           anatomy_csv_file="input_anatomy_training.csv",
+                           ep_dat_file="input_ep_training.dat")
+
+        emulators_vector = emulators.train(
+            folders=["initial_sweep", "patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave1",
+                     "patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave2",
+                     "patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave3"])
+        history_matching.save_patient_implausibility(emulators_vector=emulators_vector,
+                                                     input_folder="patient" + str(patient_number) + "_sd_" + str(
+                                                        sd_magnitude) + "/wave3",
+                                                     patient_number=patient_number, sd_magnitude=sd_magnitude)
+        wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector, implausibility_threshold=3.0,
+                                                    literature_data=False,
+                                                    input_folder="patient" + str(patient_number) + "_sd_" + str(
+                                                        sd_magnitude) + "/wave3",
+                                                    patient_number=patient_number, sd_magnitude=sd_magnitude,
+                                                    previous_wave_name=os.path.join(PROJECT_PATH,
+                                                                                    "patient" + str(patient_number) +  "_sd_" + str(sd_magnitude)+ "/wave2",
+                                                                                    "wave2_patient" + str(patient_number) +  "_sd_" + str(sd_magnitude)))
+        history_matching.plot_nroy(input_folder="patient" + str(patient_number) + "_sd_" + str(sd_magnitude) + "/wave3",
+                                   wave=wave, literature_data=False,
+                                   patient_number=patient_number, sd_magnitude=sd_magnitude,
+                                   title = "Fourth wave for #" + str(patient_number) + " with SD=" + str(sd_magnitude) + "%")
+        history_matching.generate_new_training_pts(wave=wave, num_pts=140,
+                                                   output_folder="patient" + str(patient_number) + "_sd_" + str(
+                                                       sd_magnitude) + "/wave4",
+                                                   input_folder="patient" + str(patient_number) + "_sd_" + str(
+                                                       sd_magnitude) + "/wave3",
+                                                   wave_name="wave3_patient" + str(patient_number) + "_sd_" + str(
+                                                       sd_magnitude))
+
 def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
     """Function to use the emulators train for one patient but with the biomarkers of a different patient. Runs one
     wave for now.
@@ -363,13 +406,15 @@ def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
                                                     sd_magnitude) + "/wave2",
                                                wave_name="wave2_patient" + str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude))
 
-def run_farthest_patients(patient_number):
+def run_farthest_patients(patient_number,input_or_output="input"):
 
-    distance_matrix = np.loadtxt(os.path.join(PROJECT_PATH,"CT_patients_distance_l1.dat"))
+    distance_matrix = np.loadtxt(os.path.join(PROJECT_PATH,"CT_patients_distance_l1_" + input_or_output + ".dat"))
 
     farthest_patient = np.argmax(distance_matrix[patient_number-1]) + 1
 
-    patient(patient_number=patient_number, run_wave0=True, run_wave1=True, run_wave2=True, sd_magnitude=10)
+    print("Running patient " + str(farthest_patient))
+
+    # patient(patient_number=patient_number, run_wave0=True, run_wave1=True, run_wave2=True, sd_magnitude=10)
     patient(patient_number=farthest_patient, run_wave0=True, run_wave1=True, run_wave2=True, sd_magnitude=10)
 
     mix_patients(use_emulators_from_patient=patient_number, new_patient=farthest_patient, sd_magnitude=10)
