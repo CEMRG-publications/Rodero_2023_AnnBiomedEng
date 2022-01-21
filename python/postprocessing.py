@@ -12,6 +12,7 @@ import scipy
 from scipy.stats import iqr
 import random
 import torch
+import torchmetrics
 import os
 from SALib.analyze import sobol
 from SALib.sample import saltelli
@@ -1938,3 +1939,63 @@ def compute_impl_modified(wave,dataset):
         I[i] = np.sort(In)[-wave.maxno]
 
     return I
+
+def compute_R2_ISE():
+    """Function to compute the R2 score and the ISE of the initial emulators for the initial sweep.
+
+    Returns:
+        Two arrays, the first one with the R2 scores and the second with the ISE.
+    """
+
+    SEED = 2
+    # ----------------------------------------------------------------
+    # Make the code reproducible
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    active_features = ["LVV", "RVV", "LAV", "RAV", "LVOTdiam", "RVOTdiam", "LVmass", "LVWT", "LVEDD", "SeptumWT",
+                       "RVlongdiam", "TAT", "TATLVendo"]
+
+    path_gpes = os.path.join(PROJECT_PATH,"initial_sweep")
+
+    x_train = np.loadtxt(os.path.join(path_gpes, "input_space_training.dat"), dtype=float)
+    x_test = np.loadtxt(os.path.join(path_gpes, "input_space_test.dat"), dtype=float)
+
+    mean_list = []
+    std_list = []
+    emulator = []
+
+    R2score_vec = []
+    ISE_vec = []
+
+    for i, output_name in enumerate(active_features):
+        print(output_name)
+
+        y_train = np.loadtxt(os.path.join(path_gpes, output_name + "_training.dat"),dtype=float)
+        y_test = np.loadtxt(os.path.join(path_gpes, output_name + "_test.dat"),dtype=float)
+
+        emul = gpytGPE.gpe.GPEmul.load(x_train, y_train, loadpath=path_gpes + "/",filename = output_name + "_initial_sweep.gpe")
+
+        emulator.append(emul)
+
+        y_pred_mean, y_pred_std = emul.predict(x_test)
+        mean_list.append(y_pred_mean)
+        std_list.append(y_pred_std)
+
+        R2Score = torchmetrics.R2Score()(emul.tensorize(y_pred_mean), emul.tensorize(y_test))
+
+        iseScore = gpytGPE.utils.metrics.IndependentStandardError(
+            emul.tensorize(y_test),
+            emul.tensorize(y_pred_mean),
+            emul.tensorize(y_pred_std),
+        )
+
+        print(f"\nStatistics on test set for GPE trained for the output " + output_name + ":")
+        print(f"  R2 = {R2Score:.2f}")
+        print(f"  %ISE = {iseScore:.2f} %\n")
+
+        R2score_vec.append(f"{R2Score:.2f}")
+        ISE_vec.append(f"{iseScore:.2f}")
+
+    return R2score_vec, ISE_vec

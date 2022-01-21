@@ -106,9 +106,9 @@ def sample_atlas(subfolder = "initial_sweep", csv_filename = "input_anatomy_trai
                                                "CardiacMeshConstruction_outside ") + \
                       os.path.join("/home", "crg17", "Desktop", "KCL_projects", "fitting", "python",
                                    "CardiacMeshConstruction_" +individual_name.replace('.','')))
-
+        print("Running deformetrica")
         Parallel(n_jobs=20)(delayed(deformetrica_single_mesh)(mesh_path,sub_dataset,i) for i in range(len(sub_dataset)))
-
+        print("Deformetrica finished")
         for i in range(len(sub_dataset)):
             individual_name = sub_dataset[i].replace(",", "")[:-36]
             os.system("rm -rf " + os.path.join("/home","crg17","Desktop","KCL_projects","fitting","python","CardiacMeshConstruction_" + individual_name.replace('.','')))
