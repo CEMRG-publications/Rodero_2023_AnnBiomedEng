@@ -227,8 +227,8 @@ def literature(run_wave0, run_wave1, run_wave2):
                                                     literature_data=True, input_folder="literature/wave2",
                                                     previous_wave_name=os.path.join(PROJECT_PATH,"literature/wave1","wave1_literature"))
         history_matching.plot_nroy(input_folder="literature/wave2", wave=wave, literature_data=True, title = "Third literature wave")
-        # history_matching.generate_new_training_pts(wave=wave, num_pts=140, output_folder="literature/wave3",
-        #                                            input_folder="literature/wave2", wave_name="wave2_literature")
+        history_matching.generate_new_training_pts(wave=wave, num_pts=140, output_folder="literature/wave3",
+                                                   input_folder="literature/wave2", wave_name="wave2_literature")
 
 def patient(patient_number, run_wave0, run_wave1, run_wave2, run_wave3, sd_magnitude):
     """Function to pipeline the generation of meshes and the running of simulations when using values from the
