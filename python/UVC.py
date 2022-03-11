@@ -104,6 +104,7 @@ def create_fec(fourch_name = "Full_Heart_Mesh_Template", uvc_base="MVTV", subfol
     biv_elem = files_manipulations.elem.read(os.path.join(path2biv, "biv_default.elem"))
     biv_endo = files_manipulations.vtx.read(os.path.join(path2biv, "biv.endo.surf.vtx"), "biv")
 
+
     fec_levels = np.append(0.33, np.arange(0.35, 1.01, 0.05))
     fec_tags = range(25, 25 + len(fec_levels))
 
