@@ -14,6 +14,7 @@ import random
 import torch
 import torchmetrics
 import os
+import pathlib
 from SALib.analyze import sobol
 from SALib.sample import saltelli
 from scipy.special import binom
@@ -24,6 +25,7 @@ import pandas as pd
 
 import Historia
 import gpytGPE
+from gpytGPE.utils import plotting
 
 import emulators
 import fitting_hm
@@ -157,6 +159,7 @@ def plot_wave(W, xlabels=None, filename="./wave_impl",
     plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
+
 def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
     """Function to plot the points that are emulated to compute the NROY region. It can be plotted a single plot or
     a triangular plot
@@ -230,6 +233,7 @@ def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
                         bbox_inches="tight", dpi=300)
 
         plt.close(fig)
+
 
 def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_last_wave=2, using_patient=2,
                         using_last_wave=2):
@@ -348,6 +352,7 @@ def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
 
     return mean_var_quotient_vec
 
+
 def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
                                    subfolder = ".", only_feasible = True,
                                    output_labels_dir = "",
@@ -372,7 +377,7 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
         units_dir (str, optional): Directory where the file containing the 
         labels for the units of the output is. Defaults to "".
     """
-    matplotlib.rcParams.update({'font.size': 9})
+    matplotlib.rcParams.update({'font.size': 20})
     SEED = 2
     # ----------------------------------------------------------------
     # Make the code reproducible
@@ -380,20 +385,20 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    exp_means = np.loadtxt(os.path.join("/data","fitting","match", exp_mean_name), dtype=float)
-    exp_stds = np.loadtxt(os.path.join("/data","fitting","match", exp_std_name), dtype=float)
+    exp_means = np.loadtxt(os.path.join(PROJECT_PATH, exp_mean_name), dtype=float)
+    exp_stds = np.loadtxt(os.path.join(PROJECT_PATH, exp_std_name), dtype=float)
     output_labels = Historia.shared.design_utils.read_labels(output_labels_dir)
 
     if units_dir != "":
-        units = read_labels(units_dir)
+        units = Historia.shared.design_utils.read_labels(units_dir)
 
     for i in range(len(output_labels)):
         if only_feasible:
             X_name = "X_feasible.dat"
             y_name = output_labels[i] + "_feasible.dat"
         else:
-            X_name = "X.dat"
-            y_name = output_labels[i] + ".dat"
+            X_name = "input_space_training.dat"
+            y_name = output_labels[i] + "_training.dat"
 
         fig, ax = plt.subplots()
         
@@ -403,11 +408,31 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
 
         for w in range(first_wave, last_wave + 1):
 
-            X_test = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), "X_test.dat"),dtype=float)
-            X_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), X_name),dtype=float)
-            y_train = np.loadtxt(os.path.join("/data","fitting",subfolder,"wave" + str(w), y_name),dtype=float)
-            
-            emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join("/data","fitting",subfolder,"wave" + str(w) + "/"),filename = "wave" + str(w) + "_" + output_labels[i] + ".gpe")
+            if w == 1:
+                X_test = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), "points_to_emulate.dat"), dtype=float)
+                X_train = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), X_name), dtype=float)
+                y_train = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), y_name), dtype=float)
+
+                emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join(PROJECT_PATH, subfolder,
+                                                                                       "wave" + str(w) + "/"),
+                                               filename = output_labels[i] + "_initial_sweep_" + subfolder + "_wave" + str(w) + ".gpe")
+
+            if w == 2:
+                X_test = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), "points_to_emulate.dat"), dtype=float)
+                X_train = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), X_name), dtype=float)
+                y_train = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), y_name), dtype=float)
+
+                emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join(PROJECT_PATH, subfolder,
+                                                                                       "wave" + str(w) + "/"),
+                                               filename = output_labels[i] + "_initial_sweep_" + subfolder + "_wave1_literature_wave2.gpe")
+            if w == 0:
+                X_test = np.loadtxt(os.path.join(PROJECT_PATH, "initial_sweep", "points_to_emulate.dat"),
+                                    dtype=float)
+                X_train = np.loadtxt(os.path.join(PROJECT_PATH, "initial_sweep", X_name), dtype=float)
+                y_train = np.loadtxt(os.path.join(PROJECT_PATH, "initial_sweep", y_name), dtype=float)
+
+                emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join(PROJECT_PATH, "initial_sweep/"),
+                                               filename= output_labels[i] + "_initial_sweep.gpe")
             emulated_means, _ = emul.predict(X_test)
 
             min_value_axis = min(min_value_axis,min(y_train))
@@ -450,7 +475,7 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
         ax.legend([hor_line, legend_3SD, emul_box, simul_box],
                     ["Exp. mean", r'Exp. mean $\pm 3$SD',"Emulation mean of the previous NROY", "Added training points"])
 
-        plt.title("Distribution of the outputs for " + output_labels[i])
+        # plt.title(output_labels[i])
         plt.xlabel("Wave")
         if units_dir == "":
             plt.ylabel("ms")
@@ -459,9 +484,12 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
         plt.xlim([first_wave-0.5, len(range(first_wave,last_wave)) + 0.5])
         plt.ylim([1.1*min_value_axis,1.1*max_value_axis])
         plt.xticks(np.arange(first_wave, len(range(first_wave,last_wave)) + 1, 1.0))
-        ax.set_xticklabels(np.arange(first_wave,len(range(first_wave,last_wave)) + 1, 1.0))
+        ax.set_xticklabels(np.arange(first_wave,len(range(first_wave,last_wave)) + 1, 1.0) + 1)
         fig.tight_layout()
-        plt.savefig(os.path.join("/data","fitting",subfolder,"figures", output_labels[i] + "_complete_evolution.png"), bbox_inches="tight", dpi=300)
+        pathlib.Path(os.path.join(PROJECT_PATH,subfolder,"figures")).mkdir(parents=True, exist_ok=True)
+        ax.get_legend().remove()
+        plt.savefig(os.path.join(PROJECT_PATH,subfolder,"figures", output_labels[i] + "_complete_evolution.png"), bbox_inches="tight", dpi=300)
+
 
 def plot_dataset_modified(Xdata, xlabels, Impl, cutoff):
     """Plot X high-dimensional dataset by pairwise plotting its features against each other.
@@ -510,6 +538,7 @@ def plot_dataset_modified(Xdata, xlabels, Impl, cutoff):
     )
     plt.show()
     return
+
 
 def plot_accumulated_waves_points(subfolder, last_wave):
     """Function to plot the evolution of all the waves in a single plot.
@@ -592,6 +621,7 @@ def plot_accumulated_waves_points(subfolder, last_wave):
     plt.savefig(os.path.join(os.path.join("/data","fitting",subfolder,"figures"),"NROY_reduction_"  + subfolder + ".png"), bbox_inches="tight", dpi=300)
     print("Printed in " + os.path.join(os.path.join("/data","fitting",subfolder,"figures"),"NROY_reduction_"  + subfolder + ".png"))
 
+
 def plot_percentages_NROY_break(subfolder = ".", last_wave = 9):
     """Function to plot the evolution of the NROY region in absolute and 
     relative terms. It breaks the y-axis to improve the aesthetics.
@@ -666,6 +696,7 @@ def plot_percentages_NROY_break(subfolder = ".", last_wave = 9):
 
     return NROY_abs
 
+
 def plot_percentages_NROY(subfolder = ".", last_wave = 9):
     """Function to plot the evolution of the NROY region in absolute and 
     relative terms. 
@@ -708,8 +739,9 @@ def plot_percentages_NROY(subfolder = ".", last_wave = 9):
     plt.legend(loc='lower left')
     plt.savefig(os.path.join("/data","fitting",subfolder,"figures","NROY_size.png"), bbox_inches="tight", dpi=300)
 
-def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
-        input_labels = []):
+
+def GSA(feature = "TAT", generate_Sobol = False, subfolder =".",
+        input_labels = [], first_order = True, second_order = False):
     """Function to perform the pie charts of the Global Sensitivity Analysis.
 
     Args:
@@ -726,18 +758,19 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
         parameters. Defaults to [].
     """
 
-    in_out_path = os.path.join("/data","fitting",subfolder,"wave" + str(emul_num))
+    in_out_path = os.path.join(PROJECT_PATH, subfolder)
 
     # ================================================================
     # GPE loading
     # ================================================================
 
-    X_train = np.loadtxt(os.path.join(in_out_path, "X.dat"), dtype=float)
-    y_train = np.loadtxt(os.path.join(in_out_path, feature + ".dat"), dtype=float)
+    X_train = np.loadtxt(os.path.join(in_out_path, "input_space_training.dat"), dtype=float)
+    y_train = np.loadtxt(os.path.join(in_out_path, feature + "_training.dat"), dtype=float)
 
     emul = gpytGPE.gpe.GPEmul.load(X_train, y_train,
                         loadpath=in_out_path + "/",
-                        filename = "wave" + str(emul_num) + "_" + feature + ".gpe")
+                        filename = feature + "_" + subfolder + ".gpe",
+                        verbose=False)
 
     # ================================================================
     # Estimating Sobol' sensitivity indices
@@ -749,7 +782,7 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
     I = Historia.shared.design_utils.get_minmax(X_train)
     
     if input_labels == []:
-        index_i = Historia.shared.design_utils.read_labels(os.path.join("/data","fitting",subfolder,"EP_funct_labels_latex.txt"))
+        index_i = Historia.shared.design_utils.read_labels(os.path.join(PROJECT_PATH,subfolder,"EP_funct_labels_latex.txt"))
     else:
         index_i = input_labels
     # index_ij = [f"({c[0]}, {c[1]})" for c in combinations(index_i, 2)]
@@ -796,16 +829,14 @@ def GSA(emul_num = 5, feature = "TAT", generate_Sobol = False, subfolder =".",
     # ================================================================
     thre = 1e-6
 
-    # gsa_box(ST, S1, S2, index_i, index_ij, ylabel = feature, savepath = in_out_path + "/", correction=thre)
-    # gsa_donut_anotated(ST, S1, index_i, preffix = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
-    gpytGPE.utils.plotting.gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_" + str(emul_num), savepath = in_out_path + "/../figures/", correction=thre)
-    # gsa_donut_single(ST, S1, index_i, feature = feature, savepath = in_out_path + "/../figures/", correction=thre)
+    # gsa_donut_anotated(ST, S1, index_i, preffix = feature + "_training", savepath = in_out_path + "/figures/", correction=thre)
+    if second_order:
+        plotting.gsa_network(ST, S1, S2, index_i, index_ij, ylabel = feature + "_training", savepath = in_out_path + "/figures/", correction=thre)
+    if first_order:
+        gsa_donut_single(ST, S1, index_i, feature = feature, savepath = in_out_path + "/figures/", correction=thre)
 
-    # gsa_donut(ST = ST, S1 = S1, index_i = index_i, ylabel = feature, savepath = in_out_path + "/", correction=None)
-    # gsa_box(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath= in_out_path + "/", correction=None)
-    # gsa_network(ST = ST, S1 = S1, S2 = S2, index_i = index_i, index_ij = index_ij, ylabel = feature, savepath = in_out_path + "/", correction=None)
 
-def full_GSA(emul_num, subfolder, output_labels_dir, input_labels):
+def full_GSA(subfolder, output_labels_dir, input_labels, first_order=True, second_order=False):
     """Function to perform the global sensitivity analysis of all the output
     values.
 
@@ -826,13 +857,15 @@ def full_GSA(emul_num, subfolder, output_labels_dir, input_labels):
     output_labels = Historia.shared.design_utils.read_labels(output_labels_dir)
     
     for i in range(len(output_labels)):
-        if os.path.isfile(os.path.join("/data","fitting",subfolder,"wave" + str(emul_num),"Sij_" + output_labels[i] + ".txt")):
+        if os.path.isfile(os.path.join(PROJECT_PATH, subfolder,
+                                       "Sij_" + output_labels[i] + ".txt")):
             flag_Sobol = False
         else:
             flag_Sobol = True
 
-        GSA(emul_num = emul_num, feature = output_labels[i], generate_Sobol = flag_Sobol,
-        subfolder = subfolder, input_labels = input_labels)
+        GSA(feature = output_labels[i], generate_Sobol = flag_Sobol,
+        subfolder = subfolder, input_labels = input_labels, first_order=first_order, second_order=second_order)
+
 
 def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
     """Function to do a pie chart for the GSA, where the chunks are annotated
@@ -848,8 +881,8 @@ def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
         it to avoid numerical issues. Defaults to None.
     """
     if correction is not None:
-        ST = gpytGPE.utils.plotting.correct_index(ST, correction)
-        S1 = gpytGPE.utils.plotting.correct_index(S1, correction)
+        ST = plotting.correct_index(ST, correction)
+        S1 = plotting.correct_index(S1, correction)
 
     ST_mean = np.mean(ST, axis=0)
     S1_mean = np.mean(S1, axis=0)
@@ -976,6 +1009,7 @@ def gsa_donut_anotated(ST, S1, index_i, preffix, savepath, correction=None):
         savepath + preffix + "_donut.png", bbox_inches="tight", dpi=300
     )
 
+
 def print_ranking(emul_num, subfolder, output_labels, input_labels):
     """Function to print the ranking of the importance of the input parameters
     based on median positions across all the outputs.
@@ -1069,8 +1103,8 @@ def print_ranking(emul_num, subfolder, output_labels, input_labels):
             S1 = np.loadtxt(os.path.join(in_out_path,"Si_" + feature + ".txt"), dtype=float)
             S2 = np.loadtxt(os.path.join(in_out_path,"Sij_" + feature + ".txt"), dtype=float)
 
-        ST = gpytGPE.utils.plotting.correct_index(ST, 1e-6)
-        S1 = gpytGPE.utils.plotting.correct_index(S1, 1e-6)
+        ST = plotting.correct_index(ST, 1e-6)
+        S1 = plotting.correct_index(S1, 1e-6)
 
         ST_mean = np.mean(ST, axis=0)
 
@@ -1089,6 +1123,7 @@ def print_ranking(emul_num, subfolder, output_labels, input_labels):
     print("...and the corresponding scores")
     print(np.sort(final_score))
 
+
 def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
     """Function to do a pie chart for the GSA, where the chunks are annotated
     and color-blind safe. It plots only the first order effects
@@ -1104,8 +1139,8 @@ def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
     """
 
     if correction is not None:
-        ST = gpytGPE.utils.plotting.correct_index(ST, correction)
-        S1 = gpytGPE.utils.plotting.correct_index(S1, correction)
+        ST = plotting.correct_index(ST, correction)
+        S1 = plotting.correct_index(S1, correction)
 
     ST_mean = np.mean(ST, axis=0)
     S1_mean = np.mean(S1, axis=0)
@@ -1126,7 +1161,7 @@ def gsa_donut_single(ST, S1, index_i, feature, savepath, correction=None):
     colors += [np.array(colors_EP_list[i]) for i in range(len(colors_EP_list))]
     colors += [np.array([0,0,0])]
 
-    all_xlabels = index_i + ["higher-order int."]
+    all_xlabels = np.concatenate((index_i, ["higher-order int."]))
 
     x_si_indices_numbers = np.where(x_si>0.01*sum(x_si))
     x_si_indices = np.in1d(range(x_si.shape[0]),x_si_indices_numbers)
@@ -1441,6 +1476,7 @@ def plot_inference_emulation_discrepancy(plot_title, filename, reduction_functio
     plt.suptitle(plot_title, fontsize=18)
     plt.savefig(filename + ".png", bbox_inches="tight", dpi=300)
 
+
 def plot_cv_vs_fec_template(feature = "TAT"):
 
     wave = Historia.history.hm.Wave()
@@ -1484,6 +1520,7 @@ def plot_cv_vs_fec_template(feature = "TAT"):
 
     plt.suptitle("Emulated mean " + feature + " in the template mesh", fontsize=18)
     plt.show()
+
 
 def plot_param_pairs_fixing_rest(feature="TAT", scenario="EP_template", fix_others=True):
 
@@ -1679,6 +1716,7 @@ def plot_training_points_and_ct(modes_batch=0, waveno=2):
     plt.savefig(os.path.join(PROJECT_PATH, "anatomy_max_range", "figures") + "/training_vs_CT_wave" + str(waveno) + "_" +
                 str(modes_batch) + ".png",
                 bbox_inches="tight", dpi=300)
+
 
 def plot_training_points_and_ct_ep(subfolder="anatomy_limit_CT", waveno=0):
 
@@ -1921,6 +1959,7 @@ def impl_measure_per_output(emul_mean, lit_mean, emul_var, lit_var):
 
     return impl_vec
 
+
 def compute_impl_modified(wave,dataset):
     M = np.zeros((len(dataset), wave.output_dim), dtype=float)
     V = np.zeros((len(dataset), wave.output_dim), dtype=float)
@@ -1940,7 +1979,10 @@ def compute_impl_modified(wave,dataset):
 
     return I
 
+
 def compute_R2_ISE():
+
+
     """Function to compute the R2 score and the ISE of the initial emulators for the initial sweep.
 
     Returns:
@@ -1970,12 +2012,11 @@ def compute_R2_ISE():
     ISE_vec = []
 
     for i, output_name in enumerate(active_features):
-        print(output_name)
 
         y_train = np.loadtxt(os.path.join(path_gpes, output_name + "_training.dat"),dtype=float)
         y_test = np.loadtxt(os.path.join(path_gpes, output_name + "_test.dat"),dtype=float)
 
-        emul = gpytGPE.gpe.GPEmul.load(x_train, y_train, loadpath=path_gpes + "/",filename = output_name + "_initial_sweep.gpe")
+        emul = gpytGPE.gpe.GPEmul.load(x_train, y_train, loadpath=path_gpes + "/",filename = output_name + "_initial_sweep.gpe", verbose=False)
 
         emulator.append(emul)
 
