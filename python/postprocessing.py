@@ -269,15 +269,15 @@ def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_las
                                 "wave" + str(using_last_wave) + "_patient" +str(original_patient)+ "_using_patient"+str(using_patient)+"_sd_10")
 
 
-
     emulators_vector_original = emulators.train(
-        folders=original_emulators)
+        folders=original_emulators, verbose=False)
+    
     wave_original = Historia.history.hm.Wave()
     wave_original.load(original_wave)
     wave_original.emulator = emulators_vector_original
 
     emulators_vector_reusing = emulators.train(
-        folders=reusing_emulators)
+        folders=reusing_emulators, verbose=False)
     wave_reusing = Historia.history.hm.Wave()
     wave_reusing.load(reusing_wave)
     wave_reusing.emulator = emulators_vector_reusing
@@ -415,7 +415,8 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
 
                 emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join(PROJECT_PATH, subfolder,
                                                                                        "wave" + str(w) + "/"),
-                                               filename = output_labels[i] + "_initial_sweep_" + subfolder + "_wave" + str(w) + ".gpe")
+                                               filename = output_labels[i] + "_initial_sweep_" + subfolder + "_wave" + str(w) + ".gpe",
+                                               verbose = False)
 
             if w == 2:
                 X_test = np.loadtxt(os.path.join(PROJECT_PATH,subfolder, "wave" + str(w), "points_to_emulate.dat"), dtype=float)
@@ -424,7 +425,8 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
 
                 emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join(PROJECT_PATH, subfolder,
                                                                                        "wave" + str(w) + "/"),
-                                               filename = output_labels[i] + "_initial_sweep_" + subfolder + "_wave1_literature_wave2.gpe")
+                                               filename = output_labels[i] + "_initial_sweep_" + subfolder + "_wave1_literature_wave2.gpe",
+                                               verbose = False)
             if w == 0:
                 X_test = np.loadtxt(os.path.join(PROJECT_PATH, "initial_sweep", "points_to_emulate.dat"),
                                     dtype=float)
@@ -432,7 +434,8 @@ def plot_output_evolution_seaborn(first_wave = 0, last_wave = 9,
                 y_train = np.loadtxt(os.path.join(PROJECT_PATH, "initial_sweep", y_name), dtype=float)
 
                 emul = gpytGPE.gpe.GPEmul.load(X_train, y_train, loadpath=os.path.join(PROJECT_PATH, "initial_sweep/"),
-                                               filename= output_labels[i] + "_initial_sweep.gpe")
+                                               filename= output_labels[i] + "_initial_sweep.gpe",
+                                               verbose = False)
             emulated_means, _ = emul.predict(X_test)
 
             min_value_axis = min(min_value_axis,min(y_train))
@@ -857,7 +860,7 @@ def full_GSA(subfolder, output_labels_dir, input_labels, first_order=True, secon
     output_labels = Historia.shared.design_utils.read_labels(output_labels_dir)
     
     for i in range(len(output_labels)):
-        if os.path.isfile(os.path.join(PROJECT_PATH, subfolder,
+        if os.path.isfile(os.path.join(PROJECT_PATH_NOSLASHES, subfolder,
                                        "Sij_" + output_labels[i] + ".txt")):
             flag_Sobol = False
         else:
