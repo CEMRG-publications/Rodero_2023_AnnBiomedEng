@@ -106,7 +106,7 @@ def load_test(folders, load_x, load_y, biomarker):
     if load_x and load_y:
         return x_train, y_train
 
-def train(folders):
+def train(folders, verbose=True):
     """Function to train emulators using the data present in the folders specified.
 
     @param folders Array of strings with the name of the folders where the training set is loaded from.
@@ -136,7 +136,8 @@ def train(folders):
         if os.path.isfile(os.path.join(PROJECT_PATH, folders[-1], biomarkers[biomarkers_i] + '_' + '_'.join(folders).replace("/","_") + '.gpe')):
             emul = gpytGPE.gpe.GPEmul.load(X_train=x_train, y_train=y_train,
                                            loadpath=os.path.join(PROJECT_PATH, folders[-1] + "/"),
-                                           filename=biomarkers[biomarkers_i] + '_' + '_'.join(folders).replace("/","_") + '.gpe')
+                                           filename=biomarkers[biomarkers_i] + '_' + '_'.join(folders).replace("/","_") + '.gpe',
+                                           verbose=verbose)
         else:
             emul = gpytGPE.gpe.GPEmul(X_train=x_train, y_train=y_train)
             emul.train(X_val=x_val, y_val=y_val, max_epochs=100, n_restarts=5,
