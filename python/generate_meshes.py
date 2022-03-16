@@ -120,8 +120,6 @@ def clean_meshes_dir():
     older experiments.
     """
 
-    PROJECT_PATH = "/data/fitting"
-
     first_level_dirs = glob.glob(PROJECT_PATH + "/*/") # With slashes
     first_level_dirs.remove(PROJECT_PATH + "/meshes/")
 
@@ -156,7 +154,7 @@ def clean_meshes_dir():
     all_anatomy_values = [item for sublist in all_anatomy_values for item in sublist]
 
     all_mesh_folder_names = []
-    for i in  range(len(all_anatomy_values)):
+    for i in range(len(all_anatomy_values)):
         all_mesh_folder_names.append(PROJECT_PATH + "/meshes/heart_" + all_anatomy_values[i].replace(",", "")[:-36])
 
     folder_names_to_keep = list(set(all_mesh_folder_names))
