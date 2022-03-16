@@ -284,7 +284,7 @@ def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_las
 
     if whole_space:
         space = skopt.space.Space(wave_original.Itrain)
-        points_to_evaluate = space.rvs(int(n_samples))
+        points_to_evaluate = space.rvs(int(n_samples), random_state=SEED)
     else:
         points_to_evaluate = wave_original.NIMP
 
