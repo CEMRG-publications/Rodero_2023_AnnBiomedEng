@@ -181,6 +181,41 @@ def initial_sweep():
 
     return emulators_vector
 
+def first_wave(subfolder="literature/wave1"):
+    """ Function to pipeline the generation of meshes and run simulations for the initial emulators. It will be common
+    for multiple patients, but for the sake of code performance we separate in in different folders.
+    """
+    write_input_files(subfolder=subfolder, n_training_pts=280, n_validation_pts=70, n_test_pts=88)
+
+    generate_meshes.sample_atlas(subfolder=subfolder, csv_filename="input_anatomy_training.csv")
+    generate_meshes.sample_atlas(subfolder=subfolder, csv_filename="input_anatomy_validation.csv")
+    generate_meshes.sample_atlas(subfolder=subfolder, csv_filename="input_anatomy_test.csv")
+
+    preprocess_mesh.biv_setup(subfolder=subfolder, anatomy_csv_file="input_anatomy_training.csv",
+                              ep_dat_file="input_ep_training.dat")
+    preprocess_mesh.biv_setup(subfolder=subfolder, anatomy_csv_file="input_anatomy_validation.csv",
+                              ep_dat_file="input_ep_validation.dat")
+    preprocess_mesh.biv_setup(subfolder=subfolder, anatomy_csv_file="input_anatomy_test.csv",
+                              ep_dat_file="input_ep_test.dat")
+
+    ep_simulations.run(subfolder=subfolder, anatomy_csv_file="input_anatomy_training.csv",
+                       ep_dat_file="input_ep_training.dat")
+    ep_simulations.run(subfolder=subfolder, anatomy_csv_file="input_anatomy_validation.csv",
+                       ep_dat_file="input_ep_validation.dat")
+    ep_simulations.run(subfolder=subfolder, anatomy_csv_file="input_anatomy_test.csv",
+                       ep_dat_file="input_ep_test.dat")
+
+    biomarkers.extract(subfolder=subfolder, anatomy_csv_file="input_anatomy_training.csv",
+                       ep_dat_file="input_ep_training.dat")
+    biomarkers.extract(subfolder=subfolder, anatomy_csv_file="input_anatomy_validation.csv",
+                       ep_dat_file="input_ep_validation.dat")
+    biomarkers.extract(subfolder=subfolder, anatomy_csv_file="input_anatomy_test.csv",
+                       ep_dat_file="input_ep_test.dat")
+
+    emulators_vector = emulators.train(folders=[subfolder])
+
+    return emulators_vector
+
 def literature(run_wave0, run_wave1, run_wave2):
     """Function to pipeline the generation of meshes and the running of simulations when using values from the
     literature (for verification).
@@ -229,6 +264,84 @@ def literature(run_wave0, run_wave1, run_wave2):
         history_matching.plot_nroy(input_folder="literature/wave2", wave=wave, literature_data=True, title = "Third literature wave")
         history_matching.generate_new_training_pts(wave=wave, num_pts=140, output_folder="literature/wave3",
                                                    input_folder="literature/wave2", wave_name="wave2_literature")
+
+
+def literature_convergence(perc_convergence=95.):
+    """Function to pipeline the generation of meshes and the running of simulations using biomarkers from literature
+    values. There will be two waves with implausibility of 3.2 and then the convergence starts with an implausibility
+    threshold of 3.
+
+    @param perc_convergence: threshold value for convergence. It is based on the percentage of new NROY (relative to
+    the previous NROY region).
+    """
+    wave_number = 1
+    converged = False
+
+    while not converged:
+        print("Running wave " + str(wave_number) + "...")
+
+        if wave_number == 1:
+            emulators_vector = first_wave(subfolder="literature/wave" + str(wave_number))
+        else:
+            generate_meshes.sample_atlas(subfolder="literature/wave" + str(wave_number),
+                                         csv_filename="input_anatomy_training.csv")
+            preprocess_mesh.biv_setup(subfolder="literature/wave" + str(wave_number),
+                                      anatomy_csv_file="input_anatomy_training.csv",
+                                      ep_dat_file="input_ep_training.dat")
+            ep_simulations.run(subfolder="literature/wave" + str(wave_number),
+                               anatomy_csv_file="input_anatomy_training.csv",
+                               ep_dat_file="input_ep_training.dat")
+            biomarkers.extract(subfolder="literature/wave" + str(wave_number),
+                               anatomy_csv_file="input_anatomy_training.csv",
+                               ep_dat_file="input_ep_training.dat")
+
+            emulators_folders = []
+            for waves in range(wave_number):
+                emulators_folders.append("literature/wave" + str(waves+1))
+            emulators_vector = emulators.train(folders=emulators_folders)
+
+        if wave_number < 3:
+            implausibility_threshold = 3.2
+        else:
+            implausibility_threshold = 3.
+
+        if wave_number == 1:
+            wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector,
+                                                    implausibility_threshold=implausibility_threshold,
+                                                    literature_data=True,
+                                                    input_folder="literature/wave" + str(wave_number), first_time=True)
+        else:
+            wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector,
+                                                        implausibility_threshold=implausibility_threshold,
+                                                        literature_data=True,
+                                                        input_folder="literature/wave" + str(wave_number),
+                                                        previous_wave_name=os.path.join(PROJECT_PATH,
+                                                                                        "literature/wave" +
+                                                                                        str(wave_number-1),
+                                                                                        "wave" + str(wave_number-1) +
+                                                                                        "_literature"))
+
+        history_matching.plot_nroy(input_folder="literature/wave" + str(wave_number-1), wave=wave, literature_data=True,
+                                   title="Literature wave " + str(wave_number))
+        np.savetxt(os.path.join(PROJECT_PATH, "literature/wave" + str(wave_number),
+                                "variance_quotient_wave" + str(wave_number) + "_literature.dat"), wave.PV,
+                   fmt="%.2f")
+
+        nroy_rel = np.genfromtxt("/media/crg17/Seagate Expansion Drive/literature/wave" + str(wave_number) +
+                                 "/NROY_rel_literature.dat", dtype=float)
+
+        if nroy_rel < perc_convergence:
+            history_matching.generate_new_training_pts(wave=wave, num_pts=140,
+                                                       output_folder="literature/wave" + str(wave_number + 1),
+                                                       input_folder="literature/wave" + str(wave_number),
+                                                       wave_name="wave" + str(wave_number) + "_literature")
+            wave_number += 1
+
+        else:
+            if implausibility_threshold == 3.:
+                converged = True
+
+
 
 def patient(patient_number, run_wave0, run_wave1, run_wave2, run_wave3, sd_magnitude):
     """Function to pipeline the generation of meshes and the running of simulations when using values from the
