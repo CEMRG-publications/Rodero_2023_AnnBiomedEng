@@ -460,3 +460,10 @@ def generate_new_training_pts(wave, num_pts, output_folder, input_folder, wave_n
                     f_writer.writerow(["{0:.2f}".format(round(i, 2)) for i in output])
 
             f.close()
+
+
+def save_uncertainty_quotient(wave, output_folder, input_folder, wave_name):
+
+    if not os.path.isfile(os.path.join(PROJECT_PATH, input_folder, "variance_quotient" + wave_name + ".dat")):
+        np.savetxt(os.path.join(PROJECT_PATH, input_folder, "variance_quotient_" + wave_name + ".dat"), wave.PV,
+                   fmt="%.2f")
