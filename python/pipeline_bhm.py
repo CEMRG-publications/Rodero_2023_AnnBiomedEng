@@ -342,7 +342,6 @@ def literature_convergence(perc_convergence=95.):
                 converged = True
 
 
-
 def patient(patient_number, run_wave0, run_wave1, run_wave2, run_wave3, sd_magnitude):
     """Function to pipeline the generation of meshes and the running of simulations when using values from the
     simulations of a specific patient.
@@ -474,6 +473,92 @@ def patient(patient_number, run_wave0, run_wave1, run_wave2, run_wave3, sd_magni
                                                        sd_magnitude) + "/wave3",
                                                    wave_name="wave3_patient" + str(patient_number) + "_sd_" + str(
                                                        sd_magnitude))
+
+
+def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
+    wave_number = 1
+    converged = False
+
+    while not converged:
+        print("Running wave " + str(wave_number) + "...")
+        subfolder_name = "patient" + str(patient_number) + "_sd_" + str(fixed_sd)
+
+        if wave_number == 1:
+            emulators_vector = first_wave(subfolder=subfolder_name + "/wave" + str(wave_number))
+        else:
+
+            generate_meshes.sample_atlas(subfolder=subfolder_name + "/wave" + str(wave_number),
+                                         csv_filename="input_anatomy_training.csv")
+
+            preprocess_mesh.biv_setup(subfolder=subfolder_name + "/wave" + str(wave_number),
+                                      anatomy_csv_file="input_anatomy_training.csv",
+                                      ep_dat_file="input_ep_training.dat")
+
+            ep_simulations.run(subfolder=subfolder_name  + "/wave" + str(wave_number),
+                               anatomy_csv_file="input_anatomy_training.csv",
+                               ep_dat_file="input_ep_training.dat")
+
+            biomarkers.extract(subfolder=subfolder_name + "/wave" + str(wave_number),
+                               anatomy_csv_file="input_anatomy_training.csv",
+                               ep_dat_file="input_ep_training.dat")
+
+            emulators_folders = []
+            for waves in range(wave_number):
+                emulators_folders.append(subfolder_name + "/wave" + str(waves + 1))
+            emulators_vector = emulators.train(folders=emulators_folders)
+
+            history_matching.save_patient_implausibility(emulators_vector=emulators_vector,
+                                                         input_folder=subfolder_name + "/wave" + str(wave_number),
+                                                         patient_number=patient_number,
+                                                         sd_magnitude=sd_magnitude)
+
+        if wave_number < 3:
+            implausibility_threshold = 3.2
+        else:
+            implausibility_threshold = 3.
+
+        if wave_number == 1:
+            wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector,
+                                                        implausibility_threshold=implausibility_threshold,
+                                                        literature_data=False,
+                                                        input_folder=subfolder_name + "/wave" + str(wave_number),
+                                                        first_time=True,
+                                                        patient_number=patient_number, sd_magnitude=sd_magnitude
+                                                        )
+        else:
+            # WARNING: Probably will fail because of previous_wave_name
+            wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector,
+                                                        implausibility_threshold=implausibility_threshold,
+                                                        literature_data=False,
+                                                        input_folder=subfolder_name + "/wave" + str(wave_number),
+                                                        patient_number=patient_number, sd_magnitude=sd_magnitude,
+                                                        previous_wave_name=os.path.join(PROJECT_PATH,
+                                                                                        subfolder_name + "/wave" +
+                                                                                        str(wave_number - 1),
+                                                                                        "wave" + str(wave_number - 1) +
+                                                                                        "_" + subfolder_name))
+
+        history_matching.plot_nroy(input_folder=subfolder_name + "/wave" + str(wave_number - 1), wave=wave,
+                                   literature_data=False,
+                                   patient_number=patient_number, sd_magnitude=sd_magnitude,
+                                   title="Wave " + str(wave_number) + ", patient #" + str(patient_number) + ", SD=" + str(fixed_sd) + "%")
+        np.savetxt(os.path.join(PROJECT_PATH, subfolder_name + "/wave" + str(wave_number),
+                                "variance_quotient_wave" + str(wave_number) + "_" + subfolder_name + ".dat"), wave.PV,
+                   fmt="%.2f")
+
+        nroy_rel = np.genfromtxt(os.path.join(PROJECT_PATH, subfolder_name, "wave" + str(wave_number) +
+                                 "NROY_rel_" + subfolder_name + ".dat"), dtype=float)
+
+        if nroy_rel < perc_convergence:
+            history_matching.generate_new_training_pts(wave=wave, num_pts=140,
+                                                       output_folder=subfolder_name + "/wave" + str(wave_number + 1),
+                                                       input_folder=subfolder_name + "/wave" + str(wave_number),
+                                                       wave_name="wave" + str(wave_number) + "_" + subfolder_name)
+            wave_number += 1
+
+        else:
+            if implausibility_threshold == 3.:
+                converged = True
 
 def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
     """Function to use the emulators train for one patient but with the biomarkers of a different patient. Runs one
