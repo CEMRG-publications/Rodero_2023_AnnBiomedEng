@@ -321,7 +321,7 @@ def literature_convergence(perc_convergence=95.):
                                                                                         "wave" + str(wave_number-1) +
                                                                                         "_literature"))
 
-        history_matching.plot_nroy(input_folder="literature/wave" + str(wave_number-1), wave=wave, literature_data=True,
+        history_matching.plot_nroy(input_folder="literature/wave" + str(wave_number), wave=wave, literature_data=True,
                                    title="Literature wave " + str(wave_number))
         np.savetxt(os.path.join(PROJECT_PATH, "literature/wave" + str(wave_number),
                                 "variance_quotient_wave" + str(wave_number) + "_literature.dat"), wave.PV,
@@ -330,7 +330,7 @@ def literature_convergence(perc_convergence=95.):
         nroy_rel = np.genfromtxt("/media/crg17/Seagate Expansion Drive/literature/wave" + str(wave_number) +
                                  "/NROY_rel_literature.dat", dtype=float)
 
-        if nroy_rel < perc_convergence:
+        if (implausibility_threshold > 3.) or (nroy_rel < perc_convergence):
             history_matching.generate_new_training_pts(wave=wave, num_pts=140,
                                                        output_folder="literature/wave" + str(wave_number + 1),
                                                        input_folder="literature/wave" + str(wave_number),
@@ -338,8 +338,7 @@ def literature_convergence(perc_convergence=95.):
             wave_number += 1
 
         else:
-            if implausibility_threshold == 3.:
-                converged = True
+            converged = True
 
 
 def patient(patient_number, run_wave0, run_wave1, run_wave2, run_wave3, sd_magnitude):
@@ -538,7 +537,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
                                                                                         "wave" + str(wave_number - 1) +
                                                                                         "_" + subfolder_name))
 
-        history_matching.plot_nroy(input_folder=subfolder_name + "/wave" + str(wave_number - 1), wave=wave,
+        history_matching.plot_nroy(input_folder=subfolder_name + "/wave" + str(wave_number), wave=wave,
                                    literature_data=False,
                                    patient_number=patient_number, sd_magnitude=sd_magnitude,
                                    title="Wave " + str(wave_number) + ", patient #" + str(patient_number) + ", SD=" + str(fixed_sd) + "%")
