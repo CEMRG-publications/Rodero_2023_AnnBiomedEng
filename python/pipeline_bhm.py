@@ -522,7 +522,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
                                                         literature_data=False,
                                                         input_folder=subfolder_name + "/wave" + str(wave_number),
                                                         first_time=True,
-                                                        patient_number=patient_number, sd_magnitude=sd_magnitude
+                                                        patient_number=patient_number, sd_magnitude=fixed_sd
                                                         )
         else:
             # WARNING: Probably will fail because of previous_wave_name
@@ -530,7 +530,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
                                                         implausibility_threshold=implausibility_threshold,
                                                         literature_data=False,
                                                         input_folder=subfolder_name + "/wave" + str(wave_number),
-                                                        patient_number=patient_number, sd_magnitude=sd_magnitude,
+                                                        patient_number=patient_number, sd_magnitude=fixed_sd,
                                                         previous_wave_name=os.path.join(PROJECT_PATH,
                                                                                         subfolder_name + "/wave" +
                                                                                         str(wave_number - 1),
@@ -539,7 +539,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
 
         history_matching.plot_nroy(input_folder=subfolder_name + "/wave" + str(wave_number), wave=wave,
                                    literature_data=False,
-                                   patient_number=patient_number, sd_magnitude=sd_magnitude,
+                                   patient_number=patient_number, sd_magnitude=fixed_sd,
                                    title="Wave " + str(wave_number) + ", patient #" + str(patient_number) + ", SD=" + str(fixed_sd) + "%")
         np.savetxt(os.path.join(PROJECT_PATH, subfolder_name + "/wave" + str(wave_number),
                                 "variance_quotient_wave" + str(wave_number) + "_" + subfolder_name + ".dat"), wave.PV,
