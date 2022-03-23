@@ -545,7 +545,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
                                 "variance_quotient_wave" + str(wave_number) + "_" + subfolder_name + ".dat"), wave.PV,
                    fmt="%.2f")
 
-        nroy_rel = np.genfromtxt(os.path.join(PROJECT_PATH, subfolder_name, "wave" + str(wave_number) +
+        nroy_rel = np.genfromtxt(os.path.join(PROJECT_PATH, subfolder_name, "wave" + str(wave_number),
                                  "NROY_rel_" + subfolder_name + ".dat"), dtype=float)
 
         if (implausibility_threshold > 3.) or (nroy_rel < perc_convergence):
