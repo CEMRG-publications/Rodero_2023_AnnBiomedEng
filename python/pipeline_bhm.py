@@ -548,7 +548,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
         nroy_rel = np.genfromtxt(os.path.join(PROJECT_PATH, subfolder_name, "wave" + str(wave_number) +
                                  "NROY_rel_" + subfolder_name + ".dat"), dtype=float)
 
-        if nroy_rel < perc_convergence:
+        if (implausibility_threshold > 3.) or (nroy_rel < perc_convergence):
             history_matching.generate_new_training_pts(wave=wave, num_pts=140,
                                                        output_folder=subfolder_name + "/wave" + str(wave_number + 1),
                                                        input_folder=subfolder_name + "/wave" + str(wave_number),
@@ -556,8 +556,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
             wave_number += 1
 
         else:
-            if implausibility_threshold == 3.:
-                converged = True
+            converged = True
 
 def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
     """Function to use the emulators train for one patient but with the biomarkers of a different patient. Runs one
