@@ -509,7 +509,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
             history_matching.save_patient_implausibility(emulators_vector=emulators_vector,
                                                          input_folder=subfolder_name + "/wave" + str(wave_number),
                                                          patient_number=patient_number,
-                                                         sd_magnitude=sd_magnitude)
+                                                         sd_magnitude=fixed_sd)
 
         if wave_number < 3:
             implausibility_threshold = 3.2
