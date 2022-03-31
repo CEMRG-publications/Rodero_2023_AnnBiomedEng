@@ -13,3 +13,4 @@ CardiacMeshConstruction_old
 CardiacMeshConstruction_outside
 .idea/
 *pyc
+./.*/

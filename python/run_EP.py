@@ -19,8 +19,8 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
     Args:
         fourch_name (str, optional): Name of the four-chamber mesh. Defaults to 
         "Full_Heart_Mesh_Template".
-        lastfectag (int, optional): Last tag to include in the fec layer. Minimum 25,
-        maximum tag is 38. The rest of the tags is myocardium. Defaults to None.
+        lastfectag (int, optional): Last tag to include in the fec layer. The tag is the percentage of the FEC layer
+        times 1e4. The rest of the tags is myocardium. Defaults to None.
         CV_l (float, optional): Conduction velocity in the fibre direction. 
         Defaults to None.
         k_fibre (float, optional): Fibre anisotropy. Defaults to None.
@@ -36,8 +36,8 @@ def carp2init(fourch_name = "Full_Heart_Mesh_Template", lastfectag = None,
 
     path2biv = os.path.join(PROJECT_PATH,subfolder,fourch_name, "biv")
     lastfectag = int(float(lastfectag))
-    tags_myo = np.append([1, 2],range(lastfectag + 1, 39))
-    tags_fec = np.array(range(25,lastfectag + 1))
+    tags_myo = np.append([1, 2], range(lastfectag + 1, 10000))
+    tags_fec = np.array(range(3300, lastfectag + 1))
 
     bottom_third = files_manipulations.vtx.read(os.path.join(path2biv,"EP",
                                                 "bottom_third.vtx"),

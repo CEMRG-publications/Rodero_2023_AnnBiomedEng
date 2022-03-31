@@ -3,12 +3,13 @@ import shutil
 import pathlib
 import numpy as np
 import collections
+import subprocess
 
 import files_manipulations
 
 from global_variables_config import *
 
-def create(fourch_name, base, subfolder="."):
+def create(fourch_name, base, subfolder=".", recursion_counter=0):
     """Function to create Universal Ventricular Coordinates
 
     Args:
@@ -20,6 +21,9 @@ def create(fourch_name, base, subfolder="."):
     path2biv = os.path.join(PROJECT_PATH, subfolder, fourch_name, "biv")
     path2scripts = os.path.join("/home", "crg17", "Desktop", "KCL_projects", "fitting")
     exe = os.path.join(path2scripts, "python", "model_arch_ek.py")
+
+    if os.path.exists(os.path.join(path2biv, "UVC_" + base)):
+        shutil.rmtree(os.path.join(path2biv, "UVC_" + base))
 
     shutil.copy(os.path.join(path2biv, base + "_base.surf"), os.path.join(path2biv, "biv.base.surf"))
     shutil.copy(os.path.join(path2biv, base + "_base.surf.vtx"), os.path.join(path2biv, "biv.base.surf.vtx"))
@@ -38,7 +42,13 @@ def create(fourch_name, base, subfolder="."):
                   )
         if not os.path.isfile(os.path.join(path2biv, "UVC_"+base, "UVC",
                                    coord_case+"_elem.dat")):
-            create(fourch_name=fourch_name, base=base, subfolder=subfolder)
+            if recursion_counter < 5:
+                create(fourch_name=fourch_name, base=base, subfolder=subfolder, recursion_counter=recursion_counter+1)
+            else:
+                print("A new terminal has been opened")
+                subprocess.call('/home/crg17/Desktop/KCL_projects/fitting/python/Historia/venv/bin/python3 /home/crg17/Desktop/KCL_projects/fitting/python/main.py',
+                                shell=True)
+                raise SystemExit(0)
 
         not_scaled = np.genfromtxt(os.path.join(path2biv, "UVC_"+base, "UVC",
                                    coord_case+"_elem.dat"), dtype=float)
@@ -87,7 +97,7 @@ def bottom_third(fourch_name = "Full_Heart_Mesh_Template", UVC_base = "MVTV", su
 
 def create_fec(fourch_name = "Full_Heart_Mesh_Template", uvc_base="MVTV", subfolder="."):
     """Function to create the labels for the fec layer. It consists on different
-    labels in the ventricular endocardium from 0.35 to 1 of the apico-basal
+    labels in the ventricular endocardium from 0.33 to 1 of the apico-basal
     coordinate.
 
     Args:
@@ -104,9 +114,8 @@ def create_fec(fourch_name = "Full_Heart_Mesh_Template", uvc_base="MVTV", subfol
     biv_elem = files_manipulations.elem.read(os.path.join(path2biv, "biv_default.elem"))
     biv_endo = files_manipulations.vtx.read(os.path.join(path2biv, "biv.endo.surf.vtx"), "biv")
 
-
-    fec_levels = np.append(0.33, np.arange(0.35, 1.01, 0.05))
-    fec_tags = range(25, 25 + len(fec_levels))
+    fec_levels = np.arange(0.33, 1., 0.0001)
+    fec_tags = range(3300, 3300 + len(fec_levels))
 
     new_tags = np.copy(biv_elem.tags)
 
