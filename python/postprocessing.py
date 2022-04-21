@@ -234,6 +234,36 @@ def plot_emulated_points(subfolder="literature/wave1", offset=0, in_dim=2):
 
         plt.close(fig)
 
+def print_emulator_variances(emulators_folders=["initial_sweep", "patient1_sd_10/wave1", "patient1_sd_10/wave2"]):
+
+    SEED = 2
+    np.random.seed(SEED)
+
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_lower.dat"),
+                                            dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_upper.dat"),
+                                            dtype=float)
+
+    param_ranges_lower_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_ep)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_ep)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+
+    emulators_vector = emulators.train(folders=emulators_folders, verbose=False)
+
+    space = skopt.space.Space(param_ranges)
+    points_to_emulate = space.rvs(int(1e5), random_state=SEED)
+
+    variances = [emul.predict(points_to_emulate) for emul in emulators_vector]
+
+    median_var = [np.median(variance_emul) for variance_emul in variances]
+
+    print("The median variances are {}".format([round(v,2) for v in median_var]))
+
+    return median_var
 
 def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_last_wave=2, using_patient=2,
                         using_last_wave=2):
@@ -299,6 +329,137 @@ def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_las
 
     return 100*sum(intersection_space)/len(intersection_space)
 
+
+def compare_nroy_two_cases(folder_a="patient1_sd_10", wave_a_number=2, wave_a_name="wave2_patient1_sd_10",
+                           emulators_a=["initial_sweep", "patient1_sd_10/wave1", "patient1_sd_10/wave2"],
+                           biomarkers_patient_number_a=1, sd_magnitude_a=10,
+                           folder_b="patient1_sd_5", wave_b_number=2, wave_b_name="wave2_patient1_sd_5",
+                           emulators_b=["initial_sweep", "patient1_sd_5/wave1", "patient1_sd_5/wave2"],
+                           biomarkers_patient_number_b=1, sd_magnitude_b=5):
+    """
+    A general case of compare_nroy_binary. For instance:
+
+    perc_1_using_2_RO:
+    postprocessing.compare_nroy_two_cases(folder_a="patient1_sd_10", wave_a_number=2, wave_a_name="wave2_patient1_sd_10",
+                           emulators_a=["initial_sweep", "patient1_sd_10/wave1", "patient1_sd_10/wave2"],
+                           biomarkers_patient_number_a=1, sd_magnitude_a=10,
+                           folder_b="using_patient2_sd_10", wave_b_number=2, wave_b_name="wave2_patient1_using_patient2_sd_10",
+                           emulators_b=['initial_sweep', 'patient2_sd_10/wave1', 'patient2_sd_10/wave2'],
+                           biomarkers_patient_number_b=1, sd_magnitude_b=10)
+
+    perc_2_using_1_RO:
+    postprocessing.compare_nroy_two_cases(folder_a="patient2_sd_10", wave_a_number=2, wave_a_name="wave2_patient2_sd_10",
+                           emulators_a=["initial_sweep", "patient2_sd_10/wave1", "patient2_sd_10/wave2"],
+                           biomarkers_patient_number_a=2, sd_magnitude_a=10,
+                           folder_b="using_patient1_sd_10", wave_b_number=2, wave_b_name="wave2_patient2_using_patient1_sd_10",
+                           emulators_b=['initial_sweep', 'patient1_sd_10/wave1', 'patient1_sd_10/wave2'],
+                           biomarkers_patient_number_b=2, sd_magnitude_b=10)
+
+    BUG: It does not replicate exactly as the previous script and I'm not sure why. The updates is the sampling of the
+    space. The NROY could be computed differently, checking in situ but then I don;t get the same results.
+    """
+
+
+    SEED=2
+    np.random.seed(SEED)
+
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_lower.dat"),
+                                            dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_upper.dat"),
+                                            dtype=float)
+
+    param_ranges_lower_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_ep)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_ep)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+    # points_to_emulate = Historia.shared.design_utils.lhd(param_ranges, int(1e5), SEED)
+
+
+    patients_simulation_output = np.loadtxt(open(os.path.join(PROJECT_PATH, "anatomy_EP_patients.csv"), "rb"),
+                                            delimiter=",", skiprows=1)
+    exp_mean_a = patients_simulation_output[biomarkers_patient_number_a - 1,]
+    exp_std_a = sd_magnitude_a / 100. * exp_mean_a
+    exp_var_a = np.power(exp_std_a, 2)
+
+    exp_mean_b = patients_simulation_output[biomarkers_patient_number_b - 1,]
+    exp_std_b = sd_magnitude_b / 100. * exp_mean_b
+    exp_var_b = np.power(exp_std_b, 2)
+
+    ############
+
+    if int(wave_a_number) > 0:
+        wave_a_path = os.path.join(PROJECT_PATH, folder_a, "wave" + str(wave_a_number), wave_a_name)
+    else:
+        wave_a_path = os.path.join(PROJECT_PATH, folder_a, wave_a_name)
+
+    if int(wave_b_number) > 0:
+        wave_b_path = os.path.join(PROJECT_PATH, folder_b, "wave" + str(wave_b_number), wave_b_name)
+    else:
+        wave_b_path = os.path.join(PROJECT_PATH, folder_b, wave_b_name)
+
+    emulators_vector_a = emulators.train(folders=emulators_a, verbose=False)
+
+    wave_a = Historia.history.hm.Wave()
+    wave_a.load(wave_a_path)
+    wave_a.emulator = emulators_vector_a
+    # wave_a.mean = exp_mean_a
+    # wave_a.var = exp_var_a
+
+    emulators_vector_b = emulators.train(folders=emulators_b, verbose=False)
+    wave_b = Historia.history.hm.Wave()
+    wave_b.load(wave_b_path)
+    wave_b.emulator = emulators_vector_b
+    # wave_b.mean = exp_mean_b
+    # wave_b.var = exp_var_b
+    ###########
+    space = skopt.space.Space(param_ranges)
+    points_to_emulate = space.rvs(int(1e5), random_state=SEED)
+
+    # points_to_emulate = wave_a.NIMP
+
+    impl_a = compute_impl_modified(wave_a, points_to_emulate)
+    impl_b = compute_impl_modified(wave_b, points_to_emulate)
+
+    nroy_boolean_a = impl_a < wave_a.cutoff
+    nroy_boolean_b = impl_b < wave_b.cutoff
+
+    intersection_space_a_in_b = [nroy_boolean_a[i] == nroy_boolean_b[i] for i in range(len(nroy_boolean_a))]
+    intersection_space_b_in_a = [nroy_boolean_b[i] == nroy_boolean_a[i] for i in range(len(nroy_boolean_b))]
+
+    points_to_emulate = wave_a.NIMP
+
+    impl_a = compute_impl_modified(wave_a, points_to_emulate)
+    impl_b = compute_impl_modified(wave_b, points_to_emulate)
+
+    nroy_boolean_a = impl_a < wave_a.cutoff
+    nroy_boolean_b = impl_b < wave_b.cutoff
+
+    intersection_nroy_a_in_b = [nroy_boolean_a[i] == nroy_boolean_b[i] for i in range(len(nroy_boolean_a))]
+
+    points_to_emulate = wave_b.NIMP
+
+    impl_a = compute_impl_modified(wave_a, points_to_emulate)
+    impl_b = compute_impl_modified(wave_b, points_to_emulate)
+
+    nroy_boolean_a = impl_a < wave_a.cutoff
+    nroy_boolean_b = impl_b < wave_b.cutoff
+
+    intersection_nroy_b_in_a = [nroy_boolean_b[i] == nroy_boolean_a[i] for i in range(len(nroy_boolean_b))]
+
+    perc_space_a_in_b = round(100 * sum(intersection_space_a_in_b) / len(intersection_space_a_in_b),2)
+    perc_space_b_in_a = round(100 * sum(intersection_space_b_in_a) / len(intersection_space_b_in_a),2)
+    perc_nroy_a_in_b = round(100 * sum(intersection_nroy_a_in_b) / len(intersection_nroy_a_in_b),2)
+    perc_nroy_b_in_a = round(100 * sum(intersection_nroy_b_in_a) / len(intersection_nroy_b_in_a),2)
+
+    print("{}% of the space of {} matches that of {}".format(str(perc_space_a_in_b),folder_a,folder_b))
+    print("{}% of the space of {} matches that of {}".format(str(perc_space_b_in_a),folder_b,folder_a))
+    print("{}% of the NROY of {} matches that of {}".format(str(perc_nroy_a_in_b),folder_a,folder_b))
+    print("{}% of the NROY of {} matches that of {}".format(str(perc_nroy_b_in_a),folder_b,folder_a))
+
+    return [perc_space_a_in_b, perc_space_b_in_a, perc_nroy_a_in_b, perc_nroy_b_in_a]
 
 def plot_var_quotient(first_wave = 0, last_wave = 9, subfolder = ".",
                         plot_title = "Evolution of variance quotient"):
@@ -2043,3 +2204,36 @@ def compute_R2_ISE():
         ISE_vec.append(f"{iseScore:.2f}")
 
     return R2score_vec, ISE_vec
+
+
+def print_patient_implausibility_terms(emulators_folders=["initial_sweep", "patient1_sd_10/wave1", "patient1_sd_10/wave2"],
+                                       patient_number=1, sd_magnitude=10):
+
+    patients_simulation_output = np.loadtxt(open(os.path.join(PROJECT_PATH, "anatomy_EP_patients.csv"), "rb"),
+                                            delimiter=",", skiprows=1)
+    exp_mean = patients_simulation_output[patient_number - 1,]
+    exp_std = sd_magnitude / 100. * exp_mean
+    exp_var = np.power(exp_std, 2)
+
+    anatomy_values = np.loadtxt(open(os.path.join(PROJECT_PATH, "X_anatomy.csv")),
+                                delimiter=',', skiprows=1)
+
+    patient_input_points = np.hstack((anatomy_values[0:19, 0:9], np.tile([80, 70, 0.8, 0.29, 7], (19, 1))))
+
+    point_to_emulate = patient_input_points[patient_number - 1,]
+
+    emulators_vector = emulators.train(folders=emulators_folders, verbose=False)
+
+    numerator_vector = abs([emul.predict([point_to_emulate])[0][0] for emul in emulators_vector] - exp_mean)
+    denominator_vector = np.sqrt(
+        [np.power(emul.predict([point_to_emulate])[1][0], 2) for emul in emulators_vector] + exp_var)
+
+    impl_value_vector = numerator_vector / denominator_vector
+
+    print("The implausibilities are {}".format([round(i, 2) for i in impl_value_vector]))
+    print("The numerators are {}".format([round(i, 2) for i in numerator_vector]))
+    print("The denominators are {}".format([round(i, 2) for i in denominator_vector]))
+    print("The emulated results are {}".format(
+        [round(emul.predict([point_to_emulate])[0][0], 2) for emul in emulators_vector]))
+    print("The emulated variances are {}".format(
+        [round(emul.predict([point_to_emulate])[0][0], 2) for emul in emulators_vector]))
