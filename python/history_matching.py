@@ -48,7 +48,7 @@ def save_patient_implausibility(emulators_vector, input_folder, patient_number, 
 
 def compute_nroy_region(emulators_vector, implausibility_threshold, literature_data, input_folder, previous_wave_name=None,
                         patient_number=None,
-                        sd_magnitude=None, first_time=False, sampling_pts_lhd=0):
+                        sd_magnitude=None, first_time=False, sampling_pts_lhd=1e5):
     """Function to compute the not-ruled-out-yet (NROY) region using specified emulators and biomarkers. It also saves
     the points to emulate and the percentage of NROY region compared to the previous wave.
 
@@ -412,6 +412,12 @@ def generate_new_training_pts(wave, num_pts, output_folder, input_folder, wave_n
     """
 
     if not os.path.isfile(os.path.join(PROJECT_PATH, output_folder, "input_space_training.dat")):
+
+        if not os.path.isfile(os.path.join(PROJECT_PATH, input_folder, "variance_quotient" + wave_name + ".dat")):
+            np.savetxt(os.path.join(PROJECT_PATH, input_folder, "variance_quotient_" + wave_name + ".dat"), wave.PV,
+                       fmt="%.2f")
+        wave.save(os.path.join(PROJECT_PATH, input_folder, wave_name)) # Just in case there are not enough points in the NROY
+
         if num_pts > 0:
             training_pts = wave.get_points(num_pts)
         else:
@@ -421,9 +427,6 @@ def generate_new_training_pts(wave, num_pts, output_folder, input_folder, wave_n
         np.savetxt(os.path.join(PROJECT_PATH, output_folder, "input_space_training.dat"), training_pts, fmt="%.2f")
 
         wave.save(os.path.join(PROJECT_PATH, input_folder, wave_name))
-
-    if not os.path.isfile(os.path.join(PROJECT_PATH, input_folder, "variance_quotient" + wave_name + ".dat")):
-        np.savetxt(os.path.join(PROJECT_PATH, input_folder, "variance_quotient_" + wave_name + ".dat"), wave.PV, fmt="%.2f")
 
     if not os.path.isfile(os.path.join(PROJECT_PATH, output_folder, "input_ep_training.dat")) or not os.path.isfile(os.path.join(PROJECT_PATH, output_folder, "input_anatomy_training.csv")):
         with open(os.path.join(PROJECT_PATH, output_folder, "input_space_training.dat")) as f:
