@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import time
 
 from global_variables_config import *
 
@@ -139,6 +140,10 @@ def train(folders, verbose=True):
                                            filename=biomarkers[biomarkers_i] + '_' + '_'.join(folders).replace("/","_") + '.gpe',
                                            verbose=verbose)
         else:
+            print("Looking for " + os.path.join(PROJECT_PATH, folders[-1],
+                                                biomarkers[biomarkers_i] + '_' + '_'.join(folders).replace("/",
+                                                                                                           "_") + '.gpe'))
+            time.sleep(4)
             emul = gpytGPE.gpe.GPEmul(X_train=x_train, y_train=y_train)
             emul.train(X_val=x_val, y_val=y_val, max_epochs=100, n_restarts=5,
                        savepath=os.path.join(PROJECT_PATH, folders[-1] + "/"))
