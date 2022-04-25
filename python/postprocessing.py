@@ -283,12 +283,17 @@ def compare_nroy_binary(n_samples, whole_space, original_patient=1, original_las
     @return Percentage of the match between the two waves.
     """
     original_emulators = ["initial_sweep"]
-    for i in range(original_last_wave):
-        original_emulators.append("patient" + str(original_patient) + "_sd_10/wave" + str(i+1))
 
-    original_wave = os.path.join(PROJECT_PATH,"patient" + str(original_patient) + "_sd_10",
+    if original_last_wave > 0:
+        for i in range(original_last_wave):
+            original_emulators.append("patient" + str(original_patient) + "_sd_10/wave" + str(i+1))
+
+        original_wave = os.path.join(PROJECT_PATH,"patient" + str(original_patient) + "_sd_10",
                                  "wave" + str(original_last_wave) + "/wave" + str(original_last_wave) + "_patient" +
                                  str(original_patient) + "_sd_10")
+    else:
+        original_wave = os.path.join(PROJECT_PATH, "initial_sweep","wave" + str(original_last_wave) + "_patient" +
+                                     str(original_patient) + "_sd_10")
 
     reusing_emulators = ["initial_sweep"]
     for i in range(using_last_wave):

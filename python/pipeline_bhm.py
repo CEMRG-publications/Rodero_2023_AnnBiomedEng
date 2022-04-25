@@ -558,7 +558,7 @@ def patient_convergence(patient_number, perc_convergence=95., fixed_sd=10):
         else:
             converged = True
 
-def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
+def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude, emulators_folders = None, last_wave="wave2"):
     """Function to use the emulators train for one patient but with the biomarkers of a different patient. Runs one
     wave for now.
 
@@ -567,40 +567,56 @@ def mix_patients(use_emulators_from_patient, new_patient, sd_magnitude):
     @param sd_magnitude: Percentage of the mean of the biomarker to apply as standard deviation.
     """
 
-    emulators_vector = emulators.train(
-        folders=["initial_sweep", "patient" + str(use_emulators_from_patient) + "_sd_" + str(sd_magnitude) + "/wave1",
-                 "patient" + str(use_emulators_from_patient) + "_sd_" + str(sd_magnitude) + "/wave2"])
+    if emulators_folders is None:
+        emulators_folders = ["initial_sweep",
+                             "patient" + str(use_emulators_from_patient) + "_sd_" + str(sd_magnitude) + "/wave1",
+                             "patient" + str(use_emulators_from_patient) + "_sd_" + str(sd_magnitude) + "/wave2"]
+    if last_wave == "initial_sweep":
+        previous_wave_name = None
+        first_time = True
+        implausibility_threshold = 3.2
+    else:
+        numbered_last_wave = last_wave
+        previous_wave_name = os.path.join(PROJECT_PATH, "patient" + str(use_emulators_from_patient) + "_sd_" + str(
+            sd_magnitude) + "/" + last_wave, numbered_last_wave + "_patient" + str(
+            use_emulators_from_patient) + "_sd_" + str(
+            sd_magnitude))
+        first_time = False
+        implausibility_threshold = 3.
+
+    emulators_vector = emulators.train(folders=emulators_folders)
 
     if use_emulators_from_patient != new_patient:
         sampling_pts_lhd = 1e6
     else:
         sampling_pts_lhd = 0
 
-    wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector, implausibility_threshold=3.0,
+    wave = history_matching.compute_nroy_region(emulators_vector=emulators_vector, implausibility_threshold=implausibility_threshold,
                                                 literature_data=False,
                                                 input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                    sd_magnitude) + "/wave2",
+                                                    sd_magnitude) + "/" + last_wave,
                                                 patient_number=new_patient, sd_magnitude=sd_magnitude,
-                                                previous_wave_name=os.path.join(PROJECT_PATH,"patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                       sd_magnitude) + "/wave2","wave2_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                       sd_magnitude)), sampling_pts_lhd=sampling_pts_lhd)
+                                                previous_wave_name=previous_wave_name, sampling_pts_lhd=sampling_pts_lhd,
+                                                first_time=first_time)
     history_matching.save_patient_implausibility(emulators_vector=emulators_vector,
                                                  input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                    sd_magnitude) + "/wave2",
+                                                    sd_magnitude) + "/" + last_wave,
                                                  patient_number=new_patient, sd_magnitude=sd_magnitude)
     history_matching.plot_nroy(input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                    sd_magnitude) + "/wave2",
+                                                    sd_magnitude) + "/" + last_wave,
                                wave=wave, literature_data=False,
                                patient_number=new_patient, sd_magnitude=sd_magnitude,
                                title = "Wave for #" + str(new_patient) + " using data from #" + str(use_emulators_from_patient) + "(SD=" + str(sd_magnitude) + "%)")
     wave.save(os.path.join(PROJECT_PATH, "using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                    sd_magnitude) + "/wave2", "wave2_patient" + str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude)))
+                                                    sd_magnitude) + "/" + last_wave, last_wave + "_patient" +\
+                           str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude)))
     history_matching.generate_new_training_pts(wave=wave, num_pts=0,
                                                output_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                    sd_magnitude) + "/wave3",
+                                                    sd_magnitude) + "/wavex",
                                                input_folder="using_patient" + str(use_emulators_from_patient) + "_sd_" + str(
-                                                    sd_magnitude) + "/wave2",
-                                               wave_name="wave2_patient" + str(new_patient) + "_using_patient" + str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude))
+                                                    sd_magnitude) + "/" + last_wave,
+                                               wave_name=last_wave + "_patient" + str(new_patient) + "_using_patient" +\
+                                                         str(use_emulators_from_patient) +  "_sd_" + str(sd_magnitude))
 
 def run_farthest_patients(patient_number,input_or_output="input"):
 
