@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as grsp
+from matplotlib.ticker import PercentFormatter
 import multiprocessing
 import scipy
 from scipy.stats import iqr
@@ -2242,3 +2243,106 @@ def print_patient_implausibility_terms(emulators_folders=["initial_sweep", "pati
         [round(emul.predict([point_to_emulate])[0][0], 2) for emul in emulators_vector]))
     print("The emulated variances are {}".format(
         [round(emul.predict([point_to_emulate])[0][0], 2) for emul in emulators_vector]))
+
+
+def plot_parameter_distributions(waves_paths, legends, file_path, file_name):
+
+    matplotlib.rcParams.update({'font.size': 24})
+
+    with open(os.path.join(PROJECT_PATH, "param_labels.txt")) as f:
+        param_names = f.read().splitlines()
+
+    param_ranges_lower_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_lower.dat"),
+                                            dtype=float)
+    param_ranges_upper_anatomy = np.loadtxt(os.path.join(PROJECT_PATH, "anatomy_input_range_upper.dat"),
+                                            dtype=float)
+
+    param_ranges_lower_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_lower.dat"), dtype=float)
+    param_ranges_upper_ep = np.loadtxt(os.path.join(PROJECT_PATH, "EP_input_range_upper.dat"), dtype=float)
+
+    param_ranges_lower = np.append(param_ranges_lower_anatomy, param_ranges_lower_ep)
+    param_ranges_upper = np.append(param_ranges_upper_anatomy, param_ranges_upper_ep)
+
+    param_ranges = np.column_stack((param_ranges_lower, param_ranges_upper))
+
+    total_df = pd.DataFrame([], columns=param_names)
+
+    for i in range(len(waves_paths)):
+        waves_path = waves_paths[i]
+        wave = Historia.history.hm.Wave()
+        wave.load(waves_path)
+        wave_df = pd.DataFrame(wave.NIMP, columns=param_names)
+        wave_df["Scenario"] = legends[i]
+        total_df = pd.concat([total_df, wave_df])
+
+    final_df = pd.melt(total_df, total_df.columns[-1], total_df.columns[:-1])
+
+    # wave_emul_1_bio_1_path = os.path.join(PROJECT_PATH, "patient1_sd_10", "wave2", "wave2_patient1_sd_10")
+    # wave_emul_2_bio_2_path = os.path.join(PROJECT_PATH, "patient2_sd_10", "wave2", "wave2_patient2_sd_10")
+    # wave_emul_1_bio_2_path = os.path.join(PROJECT_PATH, "using_patient1_sd_10", "wave2",
+    #                                       "wave2_patient2_using_patient1_sd_10")
+    # wave_emul_2_bio_1_path = os.path.join(PROJECT_PATH, "using_patient2_sd_10", "wave2",
+    #                                       "wave2_patient1_using_patient2_sd_10")
+
+    # wave_emul_1_bio_1 = Historia.history.hm.Wave()
+    # wave_emul_1_bio_1.load(wave_emul_1_bio_1_path)
+    # wave_emul_2_bio_2 = Historia.history.hm.Wave()
+    # wave_emul_2_bio_2.load(wave_emul_2_bio_2_path)
+    # wave_emul_1_bio_2 = Historia.history.hm.Wave()
+    # wave_emul_1_bio_2.load(wave_emul_1_bio_2_path)
+    # wave_emul_2_bio_1 = Historia.history.hm.Wave()
+    # wave_emul_2_bio_1.load(wave_emul_2_bio_1_path)
+
+    # e1b1_df = pd.DataFrame(wave_emul_1_bio_1.NIMP, columns=param_names)
+    # e2b2_df = pd.DataFrame(wave_emul_2_bio_2.NIMP, columns=param_names)
+    # e1b2_df = pd.DataFrame(wave_emul_1_bio_2.NIMP, columns=param_names)
+    # e2b1_df = pd.DataFrame(wave_emul_2_bio_1.NIMP, columns=param_names)
+
+    # e1b1_df["Scenario"] = "Using emulators from #01\n and biomarkers from #01"
+    # e2b2_df["Scenario"] = "Using emulators from #02\n and biomarkers from #02"
+    # e1b2_df["Scenario"] = "Using emulators from #01\n and biomarkers from #02"
+    # e2b1_df["Scenario"] = "Using emulators from #02\n and biomarkers from #01"
+
+    # e12b12_df = pd.concat([e1b1_df, e2b2_df, e1b2_df, e2b1_df])
+
+    # final_df = pd.melt(e12b12_df, e12b12_df.columns[-1], e12b12_df.columns[:-1])
+
+    final_df.rename(columns={'variable': 'parameter', 'value': ' '}, inplace=True)
+
+    sns.set_theme(style="ticks", palette="colorblind")
+    g = sns.FacetGrid(final_df, col="parameter", hue="Scenario", col_wrap=4, sharex=False, sharey=False,
+                      legend_out=False)
+    g.map(sns.kdeplot, " ", fill=True, alpha=0.1, common_norm=False)
+
+    for i in range(len(g.axes.flat)):
+        g.axes.flat[i].set_title(param_names[i])
+        g.axes.flat[i].axis(xmin=param_ranges[i][0], xmax=param_ranges[i][1])
+        g.axes.flat[i].locator_params(axis='y')
+        g.axes.flat[i].locator_params(axis='x')
+
+        y_lims = g.axes.flat[i].get_ylim()
+
+        g.axes.flat[i].set_yticks(np.round(np.linspace(y_lims[0], y_lims[1], 5), 3))
+        # g.axes.flat[i].set_yticklabels(["0%","25%","50%","75%","100%"])
+
+
+        x_lims = g.axes.flat[i].get_xlim()
+        g.axes.flat[i].set_xticks(np.round(np.linspace(x_lims[0], x_lims[1], 5), 2))
+
+        bin_width = (5/100)*(x_lims[1] - x_lims[0])
+
+        g.axes.flat[i].yaxis.set_major_formatter(PercentFormatter(1 / bin_width))  # show axis such that 1/binwidth corresponds to 100%
+    #     vals = axes.get_yticks()
+    #     axes.set_yticklabels(['{:,.2%}'.format(x) for x in vals])
+    #     g.axes.flat[i].yaxis.set_major_locator(MaxNLocator(4))
+    #     g.axes.flat[i].xaxis.set_major_locator(MaxNLocator(4))
+    # print(axes.get_yticklabels())
+    #     _ = axes.set_yticklabels(axes.set_yticks(range(0,float(axes.get_yticklabels()[-1].get_text()),10)))
+
+    # g.map(sns.histplot, " ", alpha=0.3, bins=10, element="poly")
+
+    plt.legend(bbox_to_anchor=(1.34, 0.5), loc="center left", fontsize=20, handleheight=2)
+    g.fig.suptitle('Proportion of points in the NROY region', x=0.5, y=1.05, fontsize=28)
+    # plt.savefig(os.path.join(PROJECT_PATH, "test.png"), bbox_inches="tight", dpi=300)
+    pathlib.Path(file_path).mkdir(parents=True, exist_ok=True)
+    plt.savefig(os.path.join(file_path, file_name), bbox_inches="tight", dpi=300)
