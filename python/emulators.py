@@ -4,7 +4,7 @@ import time
 
 from global_variables_config import *
 
-import gpytGPE
+import gpytGPE.gpe
 
 def load_training(folders, load_x, load_y, biomarker):
     """Function to load the training data set (suffix _training).
