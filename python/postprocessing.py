@@ -2236,13 +2236,16 @@ def print_patient_implausibility_terms(emulators_folders=["initial_sweep", "pati
 
     impl_value_vector = numerator_vector / denominator_vector
 
+    biomarkers_labels = np.genfromtxt(os.path.join(PROJECT_PATH, "biomarkers_labels.txt"), dtype=str)
+    print("The biomarkers are: ")
+    print(biomarkers_labels)
     print("The implausibilities are {}".format([round(i, 2) for i in impl_value_vector]))
     print("The numerators are {}".format([round(i, 2) for i in numerator_vector]))
     print("The denominators are {}".format([round(i, 2) for i in denominator_vector]))
     print("The emulated results are {}".format(
         [round(emul.predict([point_to_emulate])[0][0], 2) for emul in emulators_vector]))
-    print("The emulated variances are {}".format(
-        [round(emul.predict([point_to_emulate])[0][0], 2) for emul in emulators_vector]))
+    print("The emulated SDs are {}".format(
+        [round(emul.predict([point_to_emulate])[1][0], 2) for emul in emulators_vector]))
 
 
 def plot_parameter_distributions(waves_paths, legends, file_path, file_name):
