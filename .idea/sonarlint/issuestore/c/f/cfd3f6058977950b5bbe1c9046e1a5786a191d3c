@@ -1,0 +1,38 @@
+
+hpython:S1192‹"ODefine a constant instead of duplicating this literal " -ofmt=vtk_bin" 4 times.(÷ü¿‹
+`python:S1192>"HDefine a constant instead of duplicating this literal " -surf=" 9 times.(›ƒß
+€python:S1192p"cDefine a constant instead of duplicating this literal "meshtool extract unreachable -msh=" 7 times.(‘ÅùÀÿÿÿÿÿ
+mpython:S1192Ê"ODefine a constant instead of duplicating this literal "rvendo_tv.surf" 3 times.(¤½º¨ıÿÿÿÿ
+gpython:S1192N"JDefine a constant instead of duplicating this literal " -files=" 14 times.(ŸàÎÿÿÿÿÿ
+ipython:S1192Ä"PDefine a constant instead of duplicating this literal "biv.lvendo.surf" 4 times.(²öŞ¤
+npython:S1192—"PDefine a constant instead of duplicating this literal " -ofmt=carp_txt" 5 times.(ªÏÉßşÿÿÿÿ
+hpython:S1192Ÿ"ODefine a constant instead of duplicating this literal "mv_la.surfmesh" 3 times.(‹Óˆ“
+mpython:S1192"ODefine a constant instead of duplicating this literal "biv.rvendo.pts" 3 times.(÷§¶ùÿÿÿÿ
+jpython:S1192Ğ"LDefine a constant instead of duplicating this literal " -mode=s2m" 11 times.(û±¼ºıÿÿÿÿ
+epython:S1192W"HDefine a constant instead of duplicating this literal " -odat=" 4 times.(ä…„ÿÿÿÿÿ
+gpython:S1192E"JDefine a constant instead of duplicating this literal " -submsh=" 8 times.( ¯õĞùÿÿÿÿ
+mpython:S1192"TDefine a constant instead of duplicating this literal "biv.rvendo.surfmesh" 3 times.(ƒóÀÑ
+qpython:S1192"YDefine a constant instead of duplicating this literal "meshtool convert -imsh=" 10 times.(‚«‡Ü
+apython:S1192"IDefine a constant instead of duplicating this literal " -omsh=" 10 times.(‰ºÑğ
+gpython:S1192Ä"ODefine a constant instead of duplicating this literal "tv_ra.surfmesh" 3 times.(±™Œ~
+dpython:S1192Œ"FDefine a constant instead of duplicating this literal ".eidx" 3 times.(ğÔåÒøÿÿÿÿ
+gpython:S1192Ÿ"ODefine a constant instead of duplicating this literal "biv.rvendo.nod" 3 times.(ØÅ×
+tpython:S1192M"WDefine a constant instead of duplicating this literal "meshtool map -submsh=" 14 times.(Şëåèıÿÿÿÿ
+|python:S1192œ"^Define a constant instead of duplicating this literal " -ifmt=vtk_bin -ofmt=carp_txt" 8 times.(©”¥šşÿÿÿÿ
+hpython:S1192¥"ODefine a constant instead of duplicating this literal "lvendo_mv.surf" 3 times.(ñíìñ
+npython:S1192 "PDefine a constant instead of duplicating this literal "biv.rvendo.eidx" 3 times.(¨ı§Ñüÿÿÿÿ
+hpython:S1192æ"ODefine a constant instead of duplicating this literal "av_ao.surfmesh" 3 times.(Ôóä˜
+_python:S1192J"HDefine a constant instead of duplicating this literal "biv.pts" 5 times.(şó£)
+hpython:S1192X"QDefine a constant instead of duplicating this literal " -ifmt=carp_txt" 11 times.(¼ÔÅ
+cpython:S1192*"FDefine a constant instead of duplicating this literal ".elem" 4 times.(»«ºûÿÿÿÿ
+epython:S1192>"MDefine a constant instead of duplicating this literal "biv.epi_endo" 3 times.(›ƒß
+mpython:S1192‹"ODefine a constant instead of duplicating this literal "pv_pa.surfmesh" 3 times.(»üŒ¾ıÿÿÿÿ
+ipython:S1192œ"PDefine a constant instead of duplicating this literal "biv.rvendo.surf" 4 times.(Ä½Àñ
+spython:S1192`"VDefine a constant instead of duplicating this literal "biv.epi_endo_tags.dat" 3 times.(ËÁøÕüÿÿÿÿ
+|python:S1192="_Define a constant instead of duplicating this literal "meshtool extract surface -msh=" 9 times.(ş”‹øÿÿÿÿ
+cpython:S1192O"KDefine a constant instead of duplicating this literal " -outdir=" 14 times.(Àœôß
+opython:S1192N"RDefine a constant instead of duplicating this literal "biv.epi_endo.surf" 4 times.(ŸàÎÿÿÿÿÿ
+dpython:S2208"GImport only needed names or import the module and then use its members.(ö¤‹Şüÿÿÿÿ
+lpython:S1542¤"SRename function "close_LA_endo" to match the regular expression ^[a-z_][a-z0-9_]*$.(Â¦ã¶
+kpython:S1542Ì"SRename function "close_RA_endo" to match the regular expression ^[a-z_][a-z0-9_]*$.(ã™†=
+7python:S125ã"Remove this commented out code.(à†”™

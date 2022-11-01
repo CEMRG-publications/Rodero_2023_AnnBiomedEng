@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/python/CardiacMeshConstruction_outside_original" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/python/CardiacMeshConstruction_testing" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/python/CardiacMeshConstruction_winner" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/python/CardiacMeshConstruction_winner_+2SD" vcs="Git" />
+  </component>
+</project>

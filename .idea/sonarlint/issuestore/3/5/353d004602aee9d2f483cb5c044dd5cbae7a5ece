@@ -1,0 +1,4 @@
+
+dpython:S2208"GImport only needed names or import the module and then use its members.(ö¤‹Şüÿÿÿÿ
+hpython:S1542"KRename function "jobID" to match the regular expression ^[a-z_][a-z0-9_]*$.(…©Öıÿÿÿÿ
+Zpython:S112<">Replace this generic exception class with a more specific one.(ã·—³øÿÿÿÿ

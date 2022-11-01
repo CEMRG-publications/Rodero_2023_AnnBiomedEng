@@ -762,3 +762,4 @@ def close_RA_endo(fourch_name, subfolder="."):
 
     shutil.copy(chamber_or_valve_files[idx_valve], os.path.join(path2fourch, "tv_rv.elem"))
     shutil.copy(chamber_or_valve_files[idx_valve][:-5] + ".pts", os.path.join(path2fourch, "tv_rv.pts"))
+

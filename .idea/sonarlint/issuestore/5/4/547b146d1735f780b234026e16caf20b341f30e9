@@ -1,0 +1,107 @@
+
+dpython:S1192"NDefine a constant instead of duplicating this literal "X_anatomy.csv" 8 times.(«€Éò
+apython:S1192"FDefine a constant instead of duplicating this literal "/data" 6 times.(¶·¬ıÿÿÿÿ
+bpython:S2208"GImport only needed names or import the module and then use its members.(ö¤‹Şüÿÿÿÿ
+qpython:S117"WRename this local variable "AT_vec" to match the regular expression ^[_a-z][a-z0-9_]*$.(¹€³æıÿÿÿÿ
+qpython:S117"\Rename this local variable "AT_vec_endo" to match the regular expression ^[_a-z][a-z0-9_]*$.(âë‡Ë
+rpython:S117"]Rename this local variable "AT_vec_float" to match the regular expression ^[_a-z][a-z0-9_]*$.(åŒå¬
+{python:S117"aRename this local variable "ED_dimension_ROI" to match the regular expression ^[_a-z][a-z0-9_]*$.(¬µ„ıÿÿÿÿ
+opython:S117"ZRename this local variable "LAendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(šµ…è
+tpython:S117"ZRename this local variable "LVOT_area" to match the regular expression ^[_a-z][a-z0-9_]*$.(¦Éµ úÿÿÿÿ
+spython:S117"YRename this local variable "LVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(‘¬ÜÍıÿÿÿÿ
+tpython:S117"_Rename this local variable "LV_chamber_vol" to match the regular expression ^[_a-z][a-z0-9_]*$.(ä§Òœ
+rpython:S117"XRename this local variable "LV_mass" to match the regular expression ^[_a-z][a-z0-9_]*$.(„˜¥åÿÿÿÿÿ
+qpython:S117"\Rename this local variable "LV_mass_idx" to match the regular expression ^[_a-z][a-z0-9_]*$.(õã‡
+tpython:S117"ZRename this local variable "RAendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(›„…šşÿÿÿÿ
+tpython:S117"ZRename this local variable "RVOT_area" to match the regular expression ^[_a-z][a-z0-9_]*$.(¤á›¸ÿÿÿÿÿ
+spython:S117"YRename this local variable "RVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(³ü£ıÿÿÿÿÿ
+qpython:S117"\Rename this local variable "RVbasaldiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(ª‡º‚
+tpython:S117"ZRename this local variable "RVendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(½ÿêıÿÿÿÿ
+upython:S117"[Rename this local variable "RVlongdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(¶åêÆûÿÿÿÿ
+~python:S117"dRename this local variable "RVlongdiam_centroid" to match the regular expression ^[_a-z][a-z0-9_]*$.(­–¼£ùÿÿÿÿ
+ppython:S117"[Rename this local variable "UVC_V_elem" to match the regular expression ^[_a-z][a-z0-9_]*$.(ºò€£
+ppython:S117"[Rename this local variable "UVC_Z_elem" to match the regular expression ^[_a-z][a-z0-9_]*$.(½İÕ¦
+tpython:S117"ZRename this local variable "Z_90_endo" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÕØëüÿÿÿÿ
+tpython:S117"_Rename this local variable "Z_90_endo_mask" to match the regular expression ^[_a-z][a-z0-9_]*$.(ë¯çª
+rpython:S117"]Rename this local variable "bandwith_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ã‰ï
+spython:S117"YRename this local variable "bivepi_Z" to match the regular expression ^[_a-z][a-z0-9_]*$.( ÁŸ«úÿÿÿÿ
+upython:S117"`Rename this local variable "bivepi_band_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÅÚıŸ
+npython:S117"TRename this parameter "close_LA" to match the regular expression ^[_a-z][a-z0-9_]*$.(Áùşÿÿÿÿ
+npython:S117"TRename this parameter "close_LV" to match the regular expression ^[_a-z][a-z0-9_]*$.(¡Àıÿÿÿÿ
+ipython:S117"TRename this parameter "close_RA" to match the regular expression ^[_a-z][a-z0-9_]*$.(Àù¤Ñ
+npython:S117"TRename this parameter "close_RV" to match the regular expression ^[_a-z][a-z0-9_]*$.(Áùşÿÿÿÿ
+wpython:S117"]Rename this local variable "filtered_TAT" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÏÛ‹Üşÿÿÿÿ
+xpython:S117"cRename this local variable "filtered_TATLVendo" to match the regular expression ^[_a-z][a-z0-9_]*$.(ø±´¦
+npython:S117"YRename this local variable "lvendo_Z" to match the regular expression ^[_a-z][a-z0-9_]*$.(»¶Ìğ
+zpython:S117"`Rename this local variable "lvendo_band_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(ˆˆşõøÿÿÿÿ
+€python:S117"fRename this local variable "lvendo_septum_ROI_idx" to match the regular expression ^[_a-z][a-z0-9_]*$.(ü£ø¶ÿÿÿÿÿ
+€python:S117"fRename this local variable "lvendo_septum_ROI_pts" to match the regular expression ^[_a-z][a-z0-9_]*$.(Á„’Ôúÿÿÿÿ
+xpython:S117"dRename this local variable "lvendo_wall_ROI_idx" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÿÛüe
+ypython:S117"dRename this local variable "lvendo_wall_ROI_pts" to match the regular expression ^[_a-z][a-z0-9_]*$.(ã±±”
+spython:S117"^Rename this local variable "lvepi_ROI_idx" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ü§öø
+xpython:S117"^Rename this local variable "lvepi_ROI_pts" to match the regular expression ^[_a-z][a-z0-9_]*$.(‰ú‡‚ÿÿÿÿÿ
+mpython:S117"XRename this local variable "max_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(‘ØØø
+rpython:S117"]Rename this local variable "midpoint_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(ûÖÀ·
+rpython:S117"XRename this local variable "min_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(”µîÎşÿÿÿÿ
+npython:S117"YRename this local variable "path2UVC" to match the regular expression ^[_a-z][a-z0-9_]*$.(–†ÎÅ
+kpython:S117"VRename this parameter "return_EDD" to match the regular expression ^[_a-z][a-z0-9_]*$.(¨“Ğ¾
+qpython:S117"WRename this parameter "return_ISWT" to match the regular expression ^[_a-z][a-z0-9_]*$.(£ïÿ”şÿÿÿÿ
+vpython:S117"\Rename this parameter "return_LAendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(Áùşÿÿÿÿ
+upython:S117"[Rename this parameter "return_LVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(’£›ÿÿÿÿÿ
+vpython:S117"\Rename this parameter "return_LVendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(¡Àıÿÿÿÿ
+npython:S117"YRename this parameter "return_LVmass" to match the regular expression ^[_a-z][a-z0-9_]*$.(¨“Ğ¾
+qpython:S117"\Rename this parameter "return_RAendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(Àù¤Ñ
+upython:S117"[Rename this parameter "return_RVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(’£›ÿÿÿÿÿ
+spython:S117"^Rename this parameter "return_RVbasaldiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(Õç¤á
+vpython:S117"\Rename this parameter "return_RVendovol" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ü¦ß°ÿÿÿÿÿ
+rpython:S117"]Rename this parameter "return_RVlongdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(Õç¤á
+ppython:S117"VRename this parameter "return_TAT" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ü¦ß°ÿÿÿÿÿ
+vpython:S117"\Rename this parameter "return_TATLVendo" to match the regular expression ^[_a-z][a-z0-9_]*$.(ğÈôıÿÿÿÿ
+opython:S117"URename this parameter "return_WT" to match the regular expression ^[_a-z][a-z0-9_]*$.(£ïÿ”şÿÿÿÿ
+ypython:S117"_Rename this local variable "septum_ROI_idx" to match the regular expression ^[_a-z][a-z0-9_]*$.(ìÊÙşÿÿÿÿ
+tpython:S117"_Rename this local variable "septum_ROI_pts" to match the regular expression ^[_a-z][a-z0-9_]*$.(ŞÕŒ
+python:S117"eRename this local variable "septum_ROI_thickness" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÛÒâøıÿÿÿÿ
+npython:S117"YRename this local variable "septum_Z" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÁÆÄÃ
+zpython:S117"`Rename this local variable "septum_band_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(²ªõÇúÿÿÿÿ
+upython:S117"[Rename this local variable "six_vol_LV" to match the regular expression ^[_a-z][a-z0-9_]*$.(ìÇè¥üÿÿÿÿ
+xpython:S117"cRename this local variable "wall_ROI_thickness" to match the regular expression ^[_a-z][a-z0-9_]*$.(ĞğÉº
+rpython:S117"]Rename this local variable "wall_max_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(»“ã„
+wpython:S117"]Rename this local variable "wall_min_PHI" to match the regular expression ^[_a-z][a-z0-9_]*$.(©³ÚÉşÿÿÿÿ
+gpython:S107"MFunction "output" has 21 parameters, which is greater than the 13 authorized.(£ïÿ”şÿÿÿÿ
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 72 to the 15 allowed.(£ïÿ”şÿÿÿÿ
+4python:S125"Remove this commented out code.(‚™¡ë
+qpython:S117"WRename this local variable "EP_dir" to match the regular expression ^[_a-z][a-z0-9_]*$.(¶·¬ıÿÿÿÿ
+npython:S117"YRename this local variable "LVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ä¥×Æ
+lpython:S117"WRename this local variable "LVmass" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ä¶µ©
+npython:S117"YRename this local variable "RVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(¡‰Ş¡
+upython:S117"[Rename this local variable "RVlongdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(æõ‹æøÿÿÿÿ
+spython:S117"YRename this local variable "SeptumWT" to match the regular expression ^[_a-z][a-z0-9_]*$.(Öëşÿÿÿÿ
+tpython:S117"ZRename this local variable "TATLVendo" to match the regular expression ^[_a-z][a-z0-9_]*$.(‘ïš÷øÿÿÿÿ
+spython:S117"^Rename this local variable "flag_close_LA" to match the regular expression ^[_a-z][a-z0-9_]*$.(âÓì
+xpython:S117"^Rename this local variable "flag_close_LV" to match the regular expression ^[_a-z][a-z0-9_]*$.(ùÁ‡´ùÿÿÿÿ
+spython:S117"^Rename this local variable "flag_close_RA" to match the regular expression ^[_a-z][a-z0-9_]*$.(üØ½ú
+spython:S117"^Rename this local variable "flag_close_RV" to match the regular expression ^[_a-z][a-z0-9_]*$.(Èå«Ò
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.(ªÈì°ùÿÿÿÿ
+>python:S1481"(Remove the unused local variable "line".(…™Ì
+qpython:S117"WRename this local variable "EP_dir" to match the regular expression ^[_a-z][a-z0-9_]*$.(¶·¬ıÿÿÿÿ
+npython:S117"YRename this local variable "LVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(…ÈœŠ
+lpython:S117"WRename this local variable "LVmass" to match the regular expression ^[_a-z][a-z0-9_]*$.(á¢ßË
+spython:S117"YRename this local variable "RVOTdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(•İî¿şÿÿÿÿ
+ppython:S117"[Rename this local variable "RVlongdiam" to match the regular expression ^[_a-z][a-z0-9_]*$.(è£·Ã
+spython:S117"YRename this local variable "SeptumWT" to match the regular expression ^[_a-z][a-z0-9_]*$.(•Œ¢¿şÿÿÿÿ
+opython:S117"ZRename this local variable "TATLVendo" to match the regular expression ^[_a-z][a-z0-9_]*$.(ş¤—Õ
+upython:S117"[Rename this local variable "CT_x_train" to match the regular expression ^[_a-z][a-z0-9_]*$.(ºŸ˜ìüÿÿÿÿ
+upython:S117"[Rename this local variable "CT_y_train" to match the regular expression ^[_a-z][a-z0-9_]*$.(ìŞùºøÿÿÿÿ
+4python:S125"Remove this commented out code.(ĞãÌ
+upython:S117"[Rename this local variable "CT_x_train" to match the regular expression ^[_a-z][a-z0-9_]*$.(ºŸ˜ìüÿÿÿÿ
+opython:S117"[Rename this local variable "CT_y_train" to match the regular expression ^[_a-z][a-z0-9_]*$.(“ÊúW
+4python:S125"Remove this commented out code.(ĞãÌ
+upython:S117"[Rename this local variable "CT_x_train" to match the regular expression ^[_a-z][a-z0-9_]*$.(ºŸ˜ìüÿÿÿÿ
+opython:S117"[Rename this local variable "CT_y_train" to match the regular expression ^[_a-z][a-z0-9_]*$.(“ÊúW
+rpython:S117"XRename this local variable "R2Score" to match the regular expression ^[_a-z][a-z0-9_]*$.(ŠäÀùÿÿÿÿ
+qpython:S117"\Rename this local variable "R2Score_vec" to match the regular expression ^[_a-z][a-z0-9_]*$.(‡öÂà
+spython:S117"YRename this local variable "iseScore" to match the regular expression ^[_a-z][a-z0-9_]*$.(“†¼œüÿÿÿÿ
+rpython:S117"]Rename this local variable "iseScore_vec" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÛğåÅ
+tpython:S117"ZRename this local variable "CT_output" to match the regular expression ^[_a-z][a-z0-9_]*$.(ëšş¢ùÿÿÿÿ
+vpython:S117"aRename this local variable "CT_output_matrix" to match the regular expression ^[_a-z][a-z0-9_]*$.(œ‘ó«
+wpython:S1542"bRename function "plot_CT_output_vs_literature" to match the regular expression ^[a-z_][a-z0-9_]*$.(€ú€M

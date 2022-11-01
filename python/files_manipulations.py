@@ -1,5 +1,6 @@
 import numpy as np
 import csv
+import tqdm
 
 class vtx:
 
@@ -531,6 +532,19 @@ class elem:
 
         with open(pathname, "ab") as f:
             np.savetxt(f, np.transpose(data), fmt = "%s")
+
+    def change_tags(self, old_tags_list, new_tags_list):
+
+        new_tags = self.tags
+
+        for i in tqdm.tqdm(range(len(self.tags))):
+            if self.tags[i] in old_tags_list:
+                new_tags[i] = -new_tags_list[old_tags_list.index(self.tags[i])]
+
+        for i in tqdm.tqdm(range(len(new_tags))):
+            if new_tags[i] < 0:
+                self.tags[i] = -new_tags[i]
+
 def reescale(value_aray, lower_boundary = 0, upper_boundary = 1):
     """Function to reescale an array of values to the interval
     [lower_boundary, upper_boundary] with a linear transformation. 

@@ -1,0 +1,6 @@
+
+bpython:S1192)"JDefine a constant instead of duplicating this literal "_elem.dat" 3 times.(î£Îµ
+dpython:S2208
+"GImport only needed names or import the module and then use its members.(ö¤‹Þüÿÿÿÿ
+kpython:S117>"TRename this parameter "UVC_base" to match the regular expression ^[_a-z][a-z0-9_]*$.(ñÊƒï
+upython:S117K"YRename this local variable "path2UVC" to match the regular expression ^[_a-z][a-z0-9_]*$.(Å¢™Èûÿÿÿÿ
