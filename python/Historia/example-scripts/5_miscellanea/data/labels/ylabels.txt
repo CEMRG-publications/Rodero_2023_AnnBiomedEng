@@ -1,0 +1,14 @@
+EDV
+ESV
+SV
+EF
+IVCT
+ET
+IVRT
+Tdiast
+PeakP
+Tpeak
+ESP
+maxdP
+mindP
+Tau

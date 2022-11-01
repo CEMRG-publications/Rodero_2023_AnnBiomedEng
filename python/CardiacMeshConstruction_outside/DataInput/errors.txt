@@ -1,0 +1,12 @@
+ERROR: In /vtk/src/Common/ExecutionModel/vtkAlgorithm.cxx, line 867
+vtkDataReader (0x556e47628430): FillOutputPortInformation is not implemented.
+
+
+ERROR: In /vtk/src/Common/ExecutionModel/vtkDemandDrivenPipeline.cxx, line 633
+vtkReaderExecutive (0x556e46c78e80): Algorithm vtkDataReader(0x556e47628430) did not create output for port 0 when asked by REQUEST_DATA_OBJECT and does not specify any DATA_TYPE_NAME.
+
+
+Generic Warning: In /vtk/src/Filters/Core/vtkIdFilter.cxx, line 157
+vtkIdFilter::SetIdsArrayName was deprecated for VTK 9.0 and will be removed in a future version.  Use vtkIdFilter::SetPointIdsArrayName or vtkIdFilter::SetCellIdsArrayName instead.
+
+
